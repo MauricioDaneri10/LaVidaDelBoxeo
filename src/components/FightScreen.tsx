@@ -1,331 +1,355 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { COMENTARIOS_CRIT, COMENTARIOS_FAIL, COMENTARIOS_HIT, INSTRUCCIONES, fmt } from "../game/data";
-import { intercambio, instruccionIA, recuperarRound, roundsPara, type LiveFighter } from "../game/engine";
+import { useEffect, useRef, useState } from "react";
+import { TITULOS } from "../game/data";
+import {
+  cerrarAsalto, crearEstadoPelea, fmt, PLANES, planSugerido, resolverPelea,
+  simularIntercambio, simularPeleaEntera, valoracion,
+} from "../game/engine";
+import type { EstadoPelea, PlanId } from "../game/engine";
+import { caida as sndCaida, campana, campanaFinal, conteo as sndConteo, golpe as sndGolpe } from "../game/audio";
 import { useGame } from "../game/state";
-import type { FightResult, FightSetup, Instruccion } from "../game/types";
-import { Btn, Chip, I } from "./ui";
+import type { Pelea, ResultadoPelea } from "../game/types";
+import { Figura } from "./GymView";
+import { Btn, I } from "./ui";
 
-const EXCH = 8;
+type Fase = "cartelera" | "esquina" | "asalto" | "conteo" | "final";
 
-function FighterSprite({ b, side, pose, animKey }: { b: FightSetup["miBoxeador"]; side: "L" | "R"; pose: "guard" | "hit"; animKey: number }) {
-  const dir = side === "L" ? 1 : -1;
-  return (
-    <motion.div key={animKey}
-      animate={pose === "hit" ? { x: -14 * dir, rotate: -5 * dir } : { x: 22 * dir, rotate: 2 * dir }}
-      transition={{ duration: 0.16, yoyo: true, repeat: 1, repeatType: "reverse" }}
-      className="relative" style={{ transform: side === "R" ? "scaleX(-1)" : undefined }}>
-      <svg viewBox="0 0 130 170" width="150" height="196">
-        <ellipse cx="62" cy="160" rx="34" ry="7" fill="rgba(0,0,0,0.45)" />
-        {/* pierna trasera */}
-        <path d="M72 96 Q 88 118 84 142" stroke={b.skin} strokeWidth="11" fill="none" strokeLinecap="round" />
-        <path d="M84 142 l 12 4" stroke="#2e2822" strokeWidth="9" strokeLinecap="round" />
-        {/* pierna delantera */}
-        <path d="M58 96 Q 46 118 42 142" stroke={b.skin} strokeWidth="11" fill="none" strokeLinecap="round" />
-        <path d="M42 142 l -12 4" stroke="#2e2822" strokeWidth="9" strokeLinecap="round" />
-        {/* calzones */}
-        <path d="M48 78 h 34 v 22 l -10 6 h -14 l -10 -6 z" fill={b.short} stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />
-        <rect x="48" y="78" width="34" height="6" fill="rgba(255,255,255,0.25)" />
-        {/* torso */}
-        <path d="M50 82 Q 46 56 56 42 L 78 44 Q 86 62 82 84 Z" fill={b.skin} stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
-        {/* cabeza */}
-        <g transform={pose === "hit" ? "rotate(-10 52 30)" : undefined}>
-          <circle cx="52" cy="27" r="13" fill={b.skin} stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
-          <path d="M40 24 a 13 13 0 0 1 24 -3 c -2 -8 -9 -11 -13 -10 c -6 1 -10 6 -11 13z" fill={b.pelo} />
-          <circle cx="46" cy="27" r="1.6" fill="#241a12" />
-        </g>
-        {/* brazo trasero (guardia) */}
-        <path d="M76 50 Q 74 40 64 38" stroke={b.skin} strokeWidth="9" fill="none" strokeLinecap="round" />
-        <circle cx="62" cy="38" r="9" fill="#d4342c" stroke="#8f1f1a" strokeWidth="2" />
-        {/* brazo delantero (jab) */}
-        <path d={pose === "hit" ? "M54 52 Q 40 56 34 62" : "M54 52 Q 34 50 22 50"} stroke={b.skin} strokeWidth="9" fill="none" strokeLinecap="round" />
-        <circle cx={pose === "hit" ? 32 : 18} cy={pose === "hit" ? 63 : 50} r="10" fill="#d4342c" stroke="#8f1f1a" strokeWidth="2" />
-      </svg>
-    </motion.div>
-  );
-}
+interface IntercambioR { acciones: { atacante: "a" | "b"; tipo: "jab" | "poder"; conecto: boolean; dano: number; critico: boolean }[]; caida: "a" | "b" | null; ko: "a" | "b" | null; }
 
-function Bar({ label, v, color }: { label: string; v: number; color: string }) {
-  return (
-    <div>
-      <div className="flex justify-between font-cond text-[10px] uppercase tracking-widest text-sand"><span>{label}</span><span>{Math.max(0, Math.round(v))}</span></div>
-      <div className="stat-bar h-3"><i style={{ width: `${Math.max(0, v)}%`, background: color, transition: "width .3s ease" }} /></div>
-    </div>
-  );
-}
-
-export default function FightScreen({ fight, onDone }: { fight: FightSetup; onDone: (r: FightResult) => void }) {
+export default function PantallaPelea({ pelea, alTerminar }: { pelea: Pelea; alTerminar: (r: ResultadoPelea) => void }) {
   const { state } = useGame();
-  const total = roundsPara(fight);
-  const liveRef = useRef({
-    a: { b: fight.miBoxeador, hp: 100, en: fight.miBoxeador.energia, score: 0 } as LiveFighter,
-    b: { b: fight.rival, hp: 100, en: fight.rival.energia, score: 0 } as LiveFighter,
-  });
-  const [view, setView] = useState({ ...liveRef.current, a: { ...liveRef.current.a }, b: { ...liveRef.current.b } });
-  const [phase, setPhase] = useState<"intro" | "corner" | "round" | "end">("intro");
-  const [round, setRound] = useState(1);
-  const exRef = useRef(0);
-  const [exIdx, setExIdx] = useState(0);
-  const [myInstr, setMyInstr] = useState<Instruccion>("presionar");
-  const myInstrRef = useRef<Instruccion>("presionar");
-  const [comentario, setComentario] = useState("El réferi da las instrucciones...");
-  const [floats, setFloats] = useState<{ id: number; side: "a" | "b"; txt: string; crit: boolean }[]>([]);
-  const [hitSide, setHitSide] = useState<{ side: "a" | "b"; key: number } | null>(null);
-  const [result, setResult] = useState<FightResult | null>(null);
-  const [shakeOn, setShakeOn] = useState(false);
-  const fastRef = useRef(false);
-  const floatId = useRef(1);
+  const mio = state.plantel.find(p => p.id === pelea.miId)!;
+  const estado = useRef<EstadoPelea | null>(null);
+  if (!estado.current) estado.current = crearEstadoPelea(pelea, mio, state.equipamiento);
+  const e = estado.current;
 
-  const crowd = useMemo(() => Array.from({ length: 46 }, (_, i) => ({
-    x: 2 + (i % 23) * 4.3 + (i > 22 ? 2 : 0), y: i > 22 ? 5 : 0,
-    c: ["#5d4a35", "#4a3a2a", "#6b573f", "#54432f", "#7a6248"][i % 5],
-  })), []);
+  const [fase, setFase] = useState<Fase>("cartelera");
+  const [plan, setPlan] = useState<PlanId>(planSugerido(e));
+  const [, setTick] = useState(0);
+  const colaRef = useRef<IntercambioR[]>([]);
+  const accionIdxRef = useRef(0);
+  const [conteoNum, setConteoNum] = useState(1);
+  const [ladoCaida, setLadoCaida] = useState<"a" | "b">("b");
+  const [resultado, setResultado] = useState<ResultadoPelea | null>(null);
+  const [sacudida, setSacudida] = useState(0);
+  const [golpeA, setGolpeA] = useState(0);
+  const [golpeB, setGolpeB] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const nombres = { a: fight.miBoxeador.nombre.split(" ")[0], b: fight.rival.nombre.split(" ")[0] };
+  const rerender = () => setTick(t => t + 1);
 
-  const terminar = (metodo: "KO" | "Decision", gane: boolean) => {
-    setResult({ fightId: fight.id, gane, metodo, rounds: round, purse: fight.purse, titulo: fight.titulo });
-    setPhase("end");
+  const terminar = (koLado: "a" | "b" | null) => {
+    if (koLado) e.ko = koLado;
+    const r = resolverPelea(e);
+    setResultado(r);
+    campanaFinal();
+    setFase("final");
   };
 
-  const paso = () => {
-    const L = liveRef.current;
-    const iaRival = instruccionIA(L.b, L.a);
-    const res = intercambio(L.a, L.b, myInstrRef.current, iaRival, fight.esVelada);
-    exRef.current += 1;
-    setExIdx(exRef.current);
-    setView({ a: { ...L.a }, b: { ...L.b } });
-    if (res.hit) {
-      const atacante = res.atacante === "a" ? nombres.a : nombres.b;
-      const defensor = res.atacante === "a" ? nombres.b : nombres.a;
-      const pool = res.crit ? COMENTARIOS_CRIT : COMENTARIOS_HIT;
-      setComentario(pool[Math.floor(Math.random() * pool.length)].replace("{a}", atacante).replace("{b}", defensor) + (res.crit ? "" : ` (-${res.dmg.toFixed(0)})`));
-      setFloats(f => [...f.slice(-4), { id: floatId.current++, side: res.atacante === "a" ? "b" : "a", txt: `-${res.dmg.toFixed(0)}`, crit: res.crit }]);
-      setHitSide({ side: res.atacante === "a" ? "b" : "a", key: floatId.current });
-      if (res.crit) {
-        setShakeOn(true);
-        setTimeout(() => setShakeOn(false), 420);
+  const consumirAcciones = () => {
+    const cola = colaRef.current;
+    if (cola.length === 0) return;
+    const inter = cola[0];
+    if (accionIdxRef.current < inter.acciones.length) {
+      const acc = inter.acciones[accionIdxRef.current];
+      accionIdxRef.current++;
+      if (acc.conecto) {
+        sndGolpe(acc.critico);
+        if (acc.critico) setSacudida(s => s + 1);
+        if (acc.atacante === "a") setGolpeB(g => g + 1); else setGolpeA(g => g + 1);
       }
-    } else {
-      setComentario(COMENTARIOS_FAIL[Math.floor(Math.random() * COMENTARIOS_FAIL.length)].replace("{a}", nombres.a).replace("{b}", nombres.b));
-    }
-    if (res.ko) {
-      terminar("KO", res.atacante === "a");
-      return true;
-    }
-    if (exRef.current >= EXCH) {
-      if (round >= total) {
-        const sa = L.a.score + L.a.b.mentalidad * 0.15 + Math.random() * 6;
-        const sb = L.b.score + L.b.b.mentalidad * 0.15 + Math.random() * 6;
-        setComentario("Suena la campana final. Los jueces suman sus tarjetas...");
-        terminar("Decision", sa >= sb);
-      } else {
-        recuperarRound(L.a, myInstrRef.current);
-        recuperarRound(L.b, iaRival);
-        setView({ a: { ...L.a }, b: { ...L.b } });
-        setPhase("corner");
-        setComentario("Fin del round. A la esquina: banquito, agua y consejos.");
-      }
-      return true;
-    }
-    return false;
-  };
-
-  // intro → corner
-  useEffect(() => {
-    if (phase !== "intro") return;
-    const t = setTimeout(() => setPhase("corner"), 1900);
-    return () => clearTimeout(t);
-  }, [phase]);
-
-  // bucle del round
-  useEffect(() => {
-    if (phase !== "round") return;
-    if (fastRef.current) {
-      let guard = 0;
-      while (guard++ < 400 && !paso()) { /* simulación rápida */ }
+      rerender();
+      timerRef.current = setTimeout(consumirAcciones, acc.conecto ? (acc.critico ? 700 : 520) : 380);
       return;
     }
-    const t = setTimeout(() => paso(), 640);
+    // intercambio consumido
+    cola.shift();
+    accionIdxRef.current = 0;
+    if (inter.ko) { terminar(inter.ko === "a" ? "a" : "b"); return; }
+    if (inter.caida) {
+      setLadoCaida(inter.caida);
+      sndCaida();
+      setConteoNum(1);
+      setFase("conteo");
+      return;
+    }
+    if (cola.length > 0) {
+      timerRef.current = setTimeout(consumirAcciones, 300);
+      return;
+    }
+    // fin del asalto
+    cerrarAsalto(e);
+    e.asalto++;
+    rerender();
+    if (e.asalto > e.totalAsaltos) { terminar(null); return; }
+    setFase("esquina");
+  };
+
+  const iniciarAsalto = () => {
+    e.A.plan = plan;
+    campana();
+    const ronda: IntercambioR[] = [];
+    for (let i = 0; i < 3; i++) {
+      const r = simularIntercambio(e);
+      ronda.push({ acciones: e.acciones, caida: r.caida, ko: r.ko });
+      if (r.ko) break;
+    }
+    colaRef.current = ronda;
+    accionIdxRef.current = 0;
+    setFase("asalto");
+    timerRef.current = setTimeout(consumirAcciones, 600);
+  };
+
+  // conteo de protección del réferi
+  useEffect(() => {
+    if (fase !== "conteo") return;
+    if (conteoNum > 10) {
+      const caido = ladoCaida === "a" ? e.A : e.B;
+      if (caido.hp <= 0 || caido.caidas >= 3) { terminar(ladoCaida); return; }
+      // se levanta: sigue el resto de la cola del asalto
+      setFase("asalto");
+      timerRef.current = setTimeout(consumirAcciones, 500);
+      return;
+    }
+    sndConteo();
+    const t = setTimeout(() => setConteoNum(n => n + 1), 780);
     return () => clearTimeout(t);
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fase, conteoNum]);
 
-  const limpiarFloats = () => setTimeout(() => setFloats([]), 900);
-  useEffect(() => { if (floats.length) { const t = limpiarFloats(); return () => clearTimeout(t); } }, [floats]);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  const comenzarRound = () => {
-    exRef.current = 0;
-    setExIdx(0);
-    const next = phase === "corner" && exIdx > 0 ? round + 1 : round;
-    setRound(next);
-    setComentario(`¡Round ${next}! Campana y a pelear.`);
-    setPhase("round");
+  const simularResto = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const r = simularPeleaEntera(e, plan);
+    setResultado(r);
+    campanaFinal();
+    setFase("final");
   };
 
-  const simularTodo = () => {
-    fastRef.current = true;
-    exRef.current = 0;
-    setPhase("round");
-  };
-
-  const elegir = (i: Instruccion) => { setMyInstr(i); myInstrRef.current = i; };
+  const pct = (hp: number, max: number) => Math.max(0, Math.min(100, (hp / max) * 100));
+  const eficaciaPct = (c: number, l: number) => l === 0 ? 0 : Math.round((c / l) * 100);
+  const nombreA = mio.nombre.split(" ")[0];
+  const nombreB = pelea.rival.nombre.split(" ")[0];
+  const esTitulo = pelea.esTitulo > 0;
 
   return (
-    <motion.div className="fixed inset-0 z-50 overflow-y-auto bg-ink/97" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <div className="mx-auto flex min-h-full max-w-5xl flex-col justify-center gap-4 p-4">
-        {/* encabezado */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="text-center">
-            <div className="font-display text-3xl tracking-wide text-cream sm:text-4xl">{fight.miBoxeador.nombre}</div>
-            <div className="font-cond text-xs uppercase tracking-widest text-sand">{fight.miBoxeador.ganadas}-{fight.miBoxeador.perdidas} · {fight.miBoxeador.division} · TÚ</div>
+    <div className="fondo-app fixed inset-0 z-50 overflow-y-auto scroll-fino">
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        {/* encabezado de cartelera */}
+        <div className="mb-4 text-center">
+          <div className="font-cond text-xs uppercase tracking-[0.4em] text-sand">
+            {esTitulo ? TITULOS[pelea.esTitulo as 1 | 2 | 3 | 4].cinturon + " en juego" : pelea.velada ? "Velada propia · pelea estelar" : "Noche de peleas federadas"}
           </div>
-          <div className="flex flex-col items-center">
-            <span className="font-display text-5xl text-blood" style={{ textShadow: "0 0 18px rgba(212,52,44,0.6)" }}>VS</span>
-            <div className="flex gap-1.5">
-              {fight.titulo && <Chip tone="gold"><I n="trophy" className="h-3 w-3" /> Por el título</Chip>}
-              {fight.esVelada && <Chip tone="blood">Velada propia</Chip>}
-              <Chip>{fight.circuito} · {total} rounds</Chip>
+          <h1 className="font-display text-4xl tracking-wide text-cream sm:text-5xl">
+            {fase === "final" ? "Fallo Oficial" : `Asalto ${Math.min(e.asalto, e.totalAsaltos)} de ${e.totalAsaltos}`}
+          </h1>
+          {esTitulo && fase !== "final" && (
+            <div className="mx-auto mt-1 w-fit border border-gold2/70 bg-gold/10 px-3 py-0.5 font-display text-lg tracking-widest text-gold anim-cinturon">
+              {TITULOS[pelea.esTitulo as 1 | 2 | 3 | 4].nombre.toUpperCase()} · {fmt(pelea.bolsa)}
             </div>
-          </div>
-          <div className="text-center">
-            <div className="font-display text-3xl tracking-wide text-cream sm:text-4xl">{fight.rival.nombre}</div>
-            <div className="font-cond text-xs uppercase tracking-widest text-sand">{fight.rival.ganadas}-{fight.rival.perdidas} · {fight.rival.division}{fight.rival.campeon ? " · Campeón" : ""}</div>
-          </div>
+          )}
         </div>
 
-        {/* barras */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="panel space-y-1.5 p-3">
-            <Bar label="Salud" v={view.a.hp} color="var(--color-blood)" />
-            <Bar label="Energía" v={view.a.en} color="var(--color-win)" />
-          </div>
-          <div className="panel space-y-1.5 p-3">
-            <Bar label="Salud" v={view.b.hp} color="var(--color-blood)" />
-            <Bar label="Energía" v={view.b.en} color="var(--color-win)" />
-          </div>
+        {/* barras de salud y energía */}
+        <div className="mb-3 grid grid-cols-2 gap-4">
+          {[{ l: e.A, nombre: nombreA, lado: "izq", golpes: golpeA }, { l: e.B, nombre: nombreB, lado: "der", golpes: golpeB }].map(({ l, nombre, lado, golpes }) => (
+            <div key={nombre} className={`panel p-3 ${lado === "der" ? "text-right" : ""}`}>
+              <div className={`flex items-baseline gap-2 ${lado === "der" ? "flex-row-reverse" : ""}`}>
+                <span className="font-display text-2xl tracking-wide text-cream">{nombre}</span>
+                <span className="font-cond text-xs uppercase text-mut">VG {valoracion(l.p.atrib)} · {l.p.circuito}</span>
+                <span className="font-cond text-xs text-blood">Caídas: {l.caidas}</span>
+              </div>
+              <div className="stat-bar mt-1.5 h-3.5"><i style={{ width: `${pct(l.hp, l.hpMax)}%`, background: pct(l.hp, l.hpMax) < 30 ? "var(--color-blood)" : "var(--color-gold)" }} /></div>
+              <div className={`mt-1 flex items-center gap-2 ${lado === "der" ? "flex-row-reverse" : ""}`}>
+                <I n="bolt" className="h-3.5 w-3.5 text-win" />
+                <div className="stat-bar h-2 w-28"><i style={{ width: `${l.energia}%`, background: "var(--color-win)" }} /></div>
+                <span className="font-cond text-[11px] text-mut">Aire {Math.round(l.energia)}</span>
+                {l.aturdido > 0 && <span className="font-cond text-[11px] text-blood anim-latido">ATURDIDO</span>}
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* ring */}
-        <div className={`panel relative overflow-hidden ${shakeOn ? "anim-shake" : ""}`} style={{ minHeight: 300 }}>
+        {/* RING */}
+        <div key={sacudida} className={`panel relative overflow-hidden ${sacudida > 0 && fase === "asalto" ? "anim-shake" : ""}`} style={{ minHeight: 320 }}>
           {/* público */}
-          <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#191310] to-[#221a12]">
-            {crowd.map((c, i) => (
-              <div key={i} className="absolute h-2.5 w-2.5 rounded-full" style={{ left: `${c.x}%`, top: c.y + 8, background: c.c, animation: `crowdWave ${1.4 + (i % 5) * 0.2}s ease-in-out infinite`, animationDelay: `${(i % 7) * 0.12}s` }} />
-            ))}
-          </div>
-          {/* cuerdas */}
-          {[70, 100, 130].map(y => (
-            <div key={y} className="absolute left-0 right-0" style={{ top: y }}>
-              <div className={`h-[5px] ${y === 100 ? "bg-cream/80" : "bg-blood"}`} style={{ boxShadow: "0 2px 3px rgba(0,0,0,0.5)" }} />
-            </div>
-          ))}
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-[#5d452c] to-[#3b2b1a]">
-            <div className="absolute inset-0 opacity-20" style={{ background: "repeating-linear-gradient(90deg, rgba(0,0,0,0.3) 0 2px, transparent 2px 60px)" }} />
-          </div>
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 font-display text-4xl tracking-[0.3em] text-cream/10">{state.nombreGimnasio}</div>
-
-          {/* boxeadores */}
-          <div className="absolute bottom-10 left-[12%] sm:left-[18%]">
-            <FighterSprite b={fight.miBoxeador} side="L" pose={hitSide?.side === "a" ? "hit" : "guard"} animKey={hitSide?.side === "b" ? hitSide.key : 0} />
-          </div>
-          <div className="absolute bottom-10 right-[12%] sm:right-[18%]">
-            <FighterSprite b={fight.rival} side="R" pose={hitSide?.side === "b" ? "hit" : "guard"} animKey={hitSide?.side === "a" ? hitSide.key : 0} />
-          </div>
-
-          {/* números de daño */}
-          {floats.map(f => (
-            <div key={f.id} className={`anim-float pointer-events-none absolute font-display ${f.crit ? "text-4xl text-gold" : "text-2xl text-cream"}`}
-              style={{ left: f.side === "a" ? "24%" : "68%", top: "38%", textShadow: "2px 2px 0 rgba(0,0,0,0.7)" }}>
-              {f.txt}{f.crit && " ✦"}
-            </div>
-          ))}
-
-          {/* round */}
-          <div className="absolute right-3 top-20 border border-gold2 bg-ink/85 px-3 py-1 text-center">
-            <div className="font-display text-2xl leading-none text-gold">R{Math.min(round, total)}</div>
-            <div className="font-cond text-[10px] uppercase text-mut">{exIdx}/{EXCH}</div>
-          </div>
-
-          {/* comentarista */}
-          <div className="absolute bottom-2 left-1/2 w-[94%] -translate-x-1/2 border border-line bg-ink/90 px-3 py-1.5 text-center">
-            <motion.span key={comentario} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="font-cond text-sm text-sand">
-              <span className="mr-1.5 font-bold uppercase tracking-widest text-gold">Ringside:</span>{comentario}
-            </motion.span>
-          </div>
-        </div>
-
-        {/* controles */}
-        {phase === "intro" && (
-          <div className="text-center font-display text-3xl tracking-widest text-gold" style={{ animation: "ringPulse 1s ease-in-out infinite" }}>
-            PRESENTANDO A LOS CONTENDIENTES...
-          </div>
-        )}
-
-        {phase === "corner" && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="panel space-y-3 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="flex items-center gap-2 font-display text-2xl tracking-wide text-gold">
-                <I n="glove" className="h-5 w-5" /> Tu esquina · instrucciones {round === 1 && exIdx === 0 ? "para el round 1" : `para el round ${round + 1}`}
-              </h4>
-              <div className="font-cond text-xs uppercase tracking-wide text-mut">Tu boxeador aplica tu plan; el rival decide solo.</div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-              {(Object.keys(INSTRUCCIONES) as Instruccion[]).map(k => (
-                <button key={k} onClick={() => elegir(k)}
-                  className={`border p-2.5 text-left transition-all ${myInstr === k ? "border-gold bg-gold/15 hard-shadow-sm" : "border-line bg-panel2 hover:border-line2"}`}>
-                  <div className={`font-display text-lg leading-tight ${myInstr === k ? "text-gold" : "text-cream"}`}>{INSTRUCCIONES[k].nombre}</div>
-                  <div className="font-cond text-[11px] text-mut">{INSTRUCCIONES[k].desc}</div>
-                </button>
+          <div className="absolute inset-x-0 top-0 h-16 opacity-70"
+            style={{ background: "repeating-linear-gradient(90deg, #241c12 0 14px, #2a2015 14px 28px, #211a10 28px 42px)" }}>
+            <div className="flex h-full items-end justify-around">
+              {Array.from({ length: 18 }).map((_, i) => (
+                <div key={i} className="anim-bob h-5 w-5 rounded-full" style={{ background: ["#5a4630", "#3f4a55", "#553a3a", "#44503c"][i % 4], animationDelay: `${(i % 6) * 0.2}s` }} />
               ))}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Btn onClick={comenzarRound}><I n="play" className="h-4 w-4" /> {round === 1 && exIdx === 0 ? "¡Que suene la campana!" : `Salir al round ${round + 1}`}</Btn>
-              <Btn variant="ghost" onClick={simularTodo}><I n="ff" className="h-4 w-4" /> Simular el resto</Btn>
-            </div>
-          </motion.div>
-        )}
-
-        {phase === "round" && (
-          <div className="text-center font-cond text-sm uppercase tracking-[0.3em] text-mut">
-            {fastRef.current ? "Simulando..." : "En vivo desde el ringside"}
-            <button onClick={simularTodo} className="ml-3 border border-line px-2 py-0.5 text-gold transition-colors hover:border-gold2">simular ⏩</button>
           </div>
-        )}
+          {/* estructura del ring */}
+          <svg viewBox="0 0 400 150" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-[62%] w-full">
+            <polygon points="30,96 370,96 398,140 2,140" fill="#3a2c1c" />
+            <rect x="30" y="84" width="340" height="14" fill={esTitulo ? "#4c3a58" : "#5d452c"} stroke="#2c2013" strokeWidth="1.5" />
+            {[36, 364].map(x => (
+              <g key={x}>
+                <rect x={x - 4} y="8" width="8" height="78" fill="#8f8577" />
+                <rect x={x - 6} y="0" width="12" height="10" rx="3" fill="#d4342c" />
+              </g>
+            ))}
+            {[22, 44, 66].map((y, i) => (
+              <g key={y}>
+                <line x1="36" y1={y} x2="364" y2={y} stroke={i === 1 ? "#f2e7d0" : "#d4342c"} strokeWidth="3.4" />
+                <line x1="36" y1={y + 1.4} x2="364" y2={y + 1.4} stroke="rgba(0,0,0,0.35)" strokeWidth="1" />
+              </g>
+            ))}
+            <text x="200" y="118" textAnchor="middle" fontFamily="Bebas Neue" fontSize="16" fill="rgba(242,231,208,0.4)" letterSpacing="4">LA VIDA DEL BOXEO</text>
+          </svg>
 
-        {/* resultado */}
-        <AnimatePresence>
-          {phase === "end" && result && (
-            <motion.div className="fixed inset-0 z-10 flex items-center justify-center bg-black/80 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                className="panel w-full max-w-md p-6 text-center hard-shadow">
-                <div className={`font-display text-6xl leading-none ${result.gane ? "text-gold" : "text-lose"}`}
-                  style={{ textShadow: result.gane ? "0 0 24px rgba(232,178,58,0.5)" : "none" }}>
-                  {result.gane ? "¡VICTORIA!" : "DERROTA"}
+          {/* peleadores */}
+          <div className={`absolute bottom-[16%] left-[16%] transition-transform duration-200 ${fase === "asalto" ? "translate-x-2" : ""}`}>
+            <div key={`a${golpeA}`} className={golpeA > 0 && fase === "asalto" ? "anim-golpe" : ""}>
+              <div className={ladoCaida === "a" && (fase === "conteo" || (fase === "final" && e.ko === "a")) ? "anim-caida" : ""}>
+                <Figura p={e.A.p} pose={ladoCaida === "a" && fase === "conteo" ? "caido" : "guardia"} escala={1.5} />
+              </div>
+            </div>
+          </div>
+          <div className={`absolute bottom-[16%] right-[16%] transition-transform duration-200 ${fase === "asalto" ? "-translate-x-2" : ""}`}>
+            <div key={`b${golpeB}`} className={golpeB > 0 && fase === "asalto" ? "anim-golpe" : ""}>
+              <div className={ladoCaida === "b" && (fase === "conteo" || (fase === "final" && e.ko === "b")) ? "anim-caida" : ""}>
+                <div className="-scale-x-100">
+                  <Figura p={e.B.p} pose={ladoCaida === "b" && fase === "conteo" ? "caido" : "guardia"} escala={1.5} />
                 </div>
-                <div className="mt-1 font-display text-2xl tracking-widest text-cream">
-                  POR {result.metodo === "KO" ? "NOCAUT" : "DECISIÓN"} · ROUND {result.rounds}
-                </div>
-                {result.titulo && result.gane && (
-                  <div className="mx-auto mt-3 flex w-fit items-center gap-2 border-2 border-gold bg-gold/15 px-4 py-1.5 font-display text-xl tracking-widest text-gold" style={{ boxShadow: "0 0 20px rgba(232,178,58,0.35)" }}>
-                    <I n="trophy" className="h-5 w-5" /> NUEVO CAMPEÓN DE {fight.miBoxeador.division.toUpperCase()}
+              </div>
+            </div>
+          </div>
+
+          {/* réferi */}
+          <div className="anim-ref absolute bottom-[13%] left-1/2 -translate-x-1/2">
+            <svg viewBox="0 0 30 50" width="26" height="44">
+              <rect x="10" y="17" width="10" height="16" rx="3" fill="#f2e7d0" />
+              <rect x="10.5" y="31" width="4" height="14" rx="2" fill="#23262d" />
+              <rect x="15.5" y="31" width="4" height="14" rx="2" fill="#23262d" />
+              <circle cx="15" cy="10" r="5.5" fill="#c9986a" />
+              <line x1="10" y1="21" x2="3" y2="27" stroke="#c9986a" strokeWidth="2.4" strokeLinecap="round" />
+              <line x1="20" y1="21" x2="27" y2="15" stroke="#c9986a" strokeWidth="2.4" strokeLinecap="round" />
+            </svg>
+          </div>
+
+          {/* conteo de protección */}
+          <AnimatePresence>
+            {fase === "conteo" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 grid place-items-center bg-black/40">
+                <div className="text-center">
+                  <div className="font-cond text-sm uppercase tracking-[0.35em] text-sand">Caída a la lona · Conteo de protección</div>
+                  <div key={conteoNum} className="anim-conteo font-display text-9xl text-gold" style={{ textShadow: "0 0 30px rgba(232,178,58,0.6), 4px 4px 0 rgba(0,0,0,0.6)" }}>
+                    {Math.min(conteoNum, 10)}
                   </div>
-                )}
-                <div className="mt-4 grid grid-cols-3 gap-2 font-cond">
-                  <div className="border border-line bg-panel2 py-2"><div className="text-xl font-bold text-cream">{Math.round(view.a.score)}</div><div className="text-[10px] uppercase text-mut">Daño tuyo</div></div>
-                  <div className="border border-line bg-panel2 py-2"><div className="text-xl font-bold text-cream">{Math.round(view.b.score)}</div><div className="text-[10px] uppercase text-mut">Daño rival</div></div>
-                  <div className="border border-line bg-panel2 py-2"><div className="text-xl font-bold text-gold">{fmt(result.gane ? result.purse : Math.round(result.purse * 0.35))}</div><div className="text-[10px] uppercase text-mut">Bolsa</div></div>
-                </div>
-                <p className="mt-3 font-cond text-sm text-sand">
-                  {result.gane ? "El vestuario es una fiesta. La fama crece y el ranking se mueve." : "Se pierde una pelea, no el camino: el público valoró la entrega (+1 fama)."}
-                </p>
-                <div className="mt-4">
-                  <Btn onClick={() => onDone(result)}><I n="chevR" className="h-4 w-4" /> Continuar</Btn>
+                  <Btn small variant="ghost" onClick={() => setConteoNum(11)}>Saltar conteo</Btn>
                 </div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+
+          {/* comentario ringside */}
+          <div className="absolute bottom-1 left-1/2 w-[92%] -translate-x-1/2 border border-line bg-ink/90 px-3 py-1.5 text-center">
+            <span className="font-cond text-sm text-sand">
+              <span className="mr-1.5 font-bold uppercase tracking-widest text-gold">Ringside:</span>
+              {fase === "cartelera" && "Los pugilistas se miden con la mirada. La arena huele a linimento y gloria."}
+              {fase === "esquina" && `Minuto de descanso: elegí la instrucción para el asalto ${Math.min(e.asalto, e.totalAsaltos)}.`}
+              {fase === "asalto" && `${nombreA} (${PLANES[e.A.plan].nombre.toLowerCase()}) contra ${nombreB}. ¡No parpadees!`}
+              {fase === "conteo" && `¡${ladoCaida === "a" ? nombreA : nombreB} besa la lona! El réferi cuenta hasta diez...`}
+              {fase === "final" && resultado && `${resultado.metodo}. ${resultado.gane ? `¡${nombreA} lo logró!` : `${nombreB} se lleva la noche.`}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Registro Oficial de Golpes en vivo */}
+        <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_300px]">
+          <div className="panel p-3">
+            <div className="mb-1.5 flex items-center gap-2 font-display text-lg tracking-wide text-gold">
+              <I n="target" className="h-4 w-4" /> Registro Oficial de Golpes
+            </div>
+            <table className="w-full font-cond text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-widest text-mut">
+                  <th className="py-1">Pugilista</th><th>Jabs</th><th>%</th><th>Golpes de poder</th><th>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[{ l: e.A, n: nombreA }, { l: e.B, n: nombreB }].map(({ l, n }) => (
+                  <tr key={n} className="border-t border-line">
+                    <td className="py-1.5 font-semibold text-cream">{n}</td>
+                    <td className="text-sand">{l.registro.jab.conectados}/{l.registro.jab.lanzados}</td>
+                    <td className="text-gold">{eficaciaPct(l.registro.jab.conectados, l.registro.jab.lanzados)}%</td>
+                    <td className="text-sand">{l.registro.poder.conectados}/{l.registro.poder.lanzados}</td>
+                    <td className="text-blood">{eficaciaPct(l.registro.poder.conectados, l.registro.poder.lanzados)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="mt-1 font-cond text-[11px] uppercase tracking-wide text-mut">
+              Eficacia = golpes conectados vs golpes al aire
+            </div>
+          </div>
+
+          {/* instrucciones / controles */}
+          <div className="panel p-3">
+            {fase === "cartelera" && (
+              <div className="space-y-2">
+                <div className="font-display text-lg text-cream">Tale of the Tape</div>
+                <div className="font-cond text-sm text-sand">
+                  {nombreA}: VG {valoracion(mio.atrib)} · {mio.division} · {mio.record.v}-{mio.record.d}<br />
+                  {nombreB}: VG {valoracion(pelea.rival.atrib)} · {pelea.rival.division} · {pelea.rival.record.v}-{pelea.rival.record.d}<br />
+                  Bolsa en juego: <b className="text-gold">{fmt(pelea.bolsa)}</b> · Asaltos: {e.totalAsaltos}
+                </div>
+                <Btn variant="gold" className="w-full" onClick={() => setFase("esquina")}><I n="bell" className="h-4 w-4" /> ¡Que suene la campana!</Btn>
+              </div>
+            )}
+            {fase === "esquina" && (
+              <div className="space-y-1.5">
+                <div className="font-display text-lg text-gold">Tu esquina · instrucciones</div>
+                {(Object.keys(PLANES) as PlanId[]).map(pid => (
+                  <button key={pid} onClick={() => setPlan(pid)}
+                    className={`flex w-full items-center gap-2 border px-2.5 py-1.5 text-left transition-colors ${plan === pid ? "border-gold bg-gold/10" : "border-line bg-panel2 hover:border-line2"}`}>
+                    <I n={PLANES[pid].icono} className={`h-4 w-4 ${plan === pid ? "text-gold" : "text-sand"}`} />
+                    <span>
+                      <span className="block font-display text-base leading-tight text-cream">{PLANES[pid].nombre}</span>
+                      <span className="block font-cond text-[11px] leading-tight text-sand">{PLANES[pid].desc}</span>
+                    </span>
+                  </button>
+                ))}
+                <Btn variant="blood" className="mt-1 w-full" onClick={iniciarAsalto} pulso><I n="play" className="h-4 w-4" /> Al ring</Btn>
+              </div>
+            )}
+            {(fase === "asalto" || fase === "conteo") && (
+              <div className="flex h-full flex-col justify-between gap-2">
+                <div className="font-cond text-sm text-sand">Plan actual: <b className="text-gold">{PLANES[e.A.plan].nombre}</b><br />Asalto {Math.min(e.asalto, e.totalAsaltos)}/{e.totalAsaltos}</div>
+                <Btn variant="ghost" onClick={simularResto}><I n="ff" className="h-4 w-4" /> Simular resto de la pelea</Btn>
+              </div>
+            )}
+            {fase === "final" && resultado && (
+              <div className="space-y-2">
+                <div className={`font-display text-2xl ${resultado.gane ? "text-win" : "text-blood"}`}>
+                  {resultado.gane ? "¡VICTORIA!" : "DERROTA"}
+                </div>
+                <div className="font-cond text-sm text-sand">{resultado.metodo} · {resultado.resumen}</div>
+                <div className="font-cond text-sm text-sand">Bolsa cobrada: <b className="text-gold">{fmt(resultado.bolsa)}</b> · +{resultado.fama} de fama</div>
+                {resultado.tituloGanado > 0 && (
+                  <div className="anim-cinturon border-2 border-gold bg-gold/10 px-3 py-1.5 text-center font-display text-lg tracking-widest text-gold">
+                    ¡{TITULOS[resultado.tituloGanado as 1 | 2 | 3 | 4].cinturon.toUpperCase()}!
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {resultado.tarjetas.map((t, i) => (
+                    <div key={i} className="border border-line bg-panel2 px-1 py-1 text-center">
+                      <div className="font-cond text-[10px] uppercase text-mut">Juez {i + 1}</div>
+                      <div className={`font-display text-lg ${t.a > t.b ? "text-win" : t.b > t.a ? "text-blood" : "text-sand"}`}>{t.a}–{t.b}</div>
+                    </div>
+                  ))}
+                </div>
+                <Btn variant="gold" className="w-full" onClick={() => alTerminar(resultado)}><I n="check" className="h-4 w-4" /> Continuar la noche</Btn>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

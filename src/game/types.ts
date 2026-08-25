@@ -1,126 +1,199 @@
-export type Genero = "M" | "F";
-export type Circuito = "amateur" | "pro";
-export type Rol = "alumno" | "boxeador";
-export type Focus = "fuerza" | "tecnica" | "condicion" | "descanso";
-export type Instruccion = "presionar" | "distancia" | "nocaut" | "recuperar";
+// ============================================================
+// "La Vida del Boxeo" — Tipos centrales del juego
+// Todo el vocabulario sigue el glosario oficial en español neutro.
+// ============================================================
 
-export interface Stats {
+export type Genero = "M" | "F";
+export type Rol = "alumno" | "boxeador";
+export type Circuito = "amateur" | "pro";
+
+/** Las 11 capacidades de la matriz oficial */
+export interface Atributos {
+  // Pilar Físico
   fuerza: number; velocidad: number; potencia: number; resistencia: number;
-  ataque: number; defensa: number; tecnica: number;
+  // Pilar Técnico
+  ataque: number; defensa: number; tecnica: number; eficacia: number;
+  // Pilar Mental
   inteligencia: number; mentalidad: number; talento: number;
 }
+export type ClaveAtributo = keyof Atributos;
 
-export interface Boxer extends Stats {
+export type ComboId = "noqueador" | "estilista" | "presion" | "tactico" | "acondicionamiento" | "descanso";
+
+export interface Pugilista {
   id: string;
   nombre: string;
   genero: Genero;
   edad: number;
-  division: string;
+  piel: string;
+  pantalon: string;
+  pelo: string;
+  atrib: Atributos;
   rol: Rol;
   circuito: Circuito;
-  elite: boolean;
-  focus: Focus;
+  division: string;
+  record: { v: number; d: number; ko: number };
+  /** 0 sin título · 1 Regional · 2 Nacional · 3 Continental · 4 Mundial */
+  titulo: 0 | 1 | 2 | 3 | 4;
   energia: number;
-  ganadas: number;
-  perdidas: number;
-  kos: number;
-  campeon: boolean;
-  trait: string | null;
-  skin: string;
-  short: string;
-  pelo: string;
-  semanas: number;
-  avisadoTalento?: boolean;
+  combo: ComboId;
+  fogueo: number;
+  fogueoMeta: number;
+  rasgo: string;
+  elite: boolean;
+  /** Bono de Madurez: +10% Temple Mental y Defensa en su debut oficial */
+  bonusDebut: boolean;
 }
 
-export type StaffType = "asistente" | "preparador" | "marketing" | "gerente";
-
-export interface StaffMember { id: string; type: StaffType; nombre: string; }
-
-export type GearId = "guantesPro" | "vendas" | "saco" | "peras" | "ring" | "neon" | "vestuarios" | "zonaElite";
-
-export type CourseId = "instructor" | "tecnico" | "promotor" | "empresarial";
-
-export type PropertyId = "local2" | "terreno" | "apartamento" | "mansion" | "tienda" | "sucursalNorte";
-
-export interface Propiedad { id: PropertyId; nombre: string; tipo: "sucursal" | "terreno" | "vivienda" | "tienda"; precio: number; }
-
-export type EventType = "sparring" | "exhibicion" | "entrevista" | "sponsor" | "prospecto" | "beca" | "torneo";
-
-export interface GameEventOption { label: string; hint: string; }
-export interface GameEvent {
+export interface OfertaRival {
   id: string;
-  type: EventType;
-  titulo: string;
-  de: string;
-  texto: string;
-  dias: number;
-  opciones: GameEventOption[];
-  necesitaBoxeador?: boolean;
-  extra?: { dinero?: number; fama?: number; purseX?: number };
+  rival: Pugilista;
+  nivel: "accesible" | "parejo" | "desafio";
+  bolsa: number;
+  etiqueta: string;
+  detalle: string;
+  esTitulo: 0 | 1 | 2 | 3 | 4;
 }
 
-export interface FightSetup {
+export interface Pelea {
   id: string;
-  miBoxeador: Boxer;
-  rival: Boxer;
-  circuito: Circuito;
-  titulo: boolean;
-  purse: number;
-  esVelada: boolean;
+  miId: string;
+  rival: Pugilista;
+  bolsa: number;
+  esTitulo: 0 | 1 | 2 | 3 | 4;
+  velada: boolean;
 }
 
-export interface FightResult {
-  fightId: string;
+export interface CajaGolpes { lanzados: number; conectados: number; }
+export interface CompuBox { jab: CajaGolpes; poder: CajaGolpes; }
+export interface TarjetaJuez { a: number; b: number; }
+
+export interface ResultadoPelea {
   gane: boolean;
-  metodo: "KO" | "Decision";
-  rounds: number;
-  purse: number;
-  titulo: boolean;
+  metodo: "Nocaut" | "Nocaut Técnico" | "Decisión Unánime" | "Decisión Dividida";
+  tarjetas: TarjetaJuez[];
+  caidasA: number;
+  caidasB: number;
+  registroA: CompuBox;
+  registroB: CompuBox;
+  bolsa: number;
+  fama: number;
+  tituloGanado: 0 | 1 | 2 | 3 | 4;
+  resumen: string;
 }
 
-export interface WeekSummary {
-  ingresos: number;
-  gastos: number;
-  famaDelta: number;
-  notas: string[];
+export type GearId =
+  | "vendasGel" | "sacosCuero" | "perasDoble" | "manoplasPro" | "soga" | "pisoGoma" | "ringReglamentario" | "zonaElite"
+  | "bucal" | "cabezal" | "botas" | "batas"
+  | "botiquin" | "vestuarios" | "barraProteinas" | "sauna"
+  | "carteles" | "sonido" | "marquesina" | "vitrina" | "estudioMarca";
+
+export type CategoriaMercado = "equipamiento" | "indumentaria" | "instalaciones" | "difusion";
+
+export type CursoId = "dt" | "nutricion" | "altoRendimiento" | "veladas" | "prensa" | "tv" | "clubes" | "franquicias" | "imperio";
+export type RamaCurso = "deportiva" | "promotora" | "empresarial";
+
+export type PersonalId = "directorTecnico" | "representante" | "preparador" | "asistente" | "difusion" | "gerente" | "entrenadorLocal";
+
+export interface MiembroPersonal { id: string; tipo: PersonalId; nombre: string; }
+
+export type TipoEvento = "desafio" | "patrocinio" | "comunitario" | "prospecto" | "federacion";
+
+export interface AccionEvento {
+  tipo: "dinero" | "fama" | "nuevoAlumno" | "programarComunitario" | "aceptarPatrocinio" | "exhibicion" | "nada";
+  monto?: number;
+  fama?: number;
+  nombre?: string;
+  semanas?: number;
+  comunitario?: "bingo" | "naipes" | "festival";
 }
 
-export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro"; }
+export interface OpcionEvento { texto: string; accion: AccionEvento; }
 
-export type Tab = "gimnasio" | "ciudad" | "roster" | "mercado" | "perfil" | "staff";
+export interface EventoJuego {
+  id: string;
+  tipo: TipoEvento;
+  de: string;
+  titulo: string;
+  texto: string;
+  venceEn: number;
+  opciones: OpcionEvento[];
+}
 
-export interface GameState {
+export interface PatrocinioActivo { nombre: string; semanal: number; semanas: number; }
+export interface ComunitarioProgramado { tipo: "bingo" | "naipes" | "festival"; nombre: string; }
+export interface Consejo { id: string; texto: string; fama: number; cumplido: boolean; reclamado: boolean; }
+export interface NotaPrensa { id: string; semana: number; texto: string; }
+export interface Cinturon { id: string; dueno: string; nivel: 1 | 2 | 3 | 4; semana: number; }
+export interface LineaLibro { concepto: string; monto: number; }
+export interface ResumenSemanal { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number; }
+
+export type PropiedadId = "local" | "terreno" | "sucursal" | "apartamento" | "mansion" | "arena";
+
+export interface EstadoJuego {
   version: number;
   creado: boolean;
   nombreJugador: string;
   nombreGimnasio: string;
-  rivales: Boxer[];
   dinero: number;
   fama: number;
-  dia: number; // 1=Lun ... 6=Sáb 7=Dom
+  dia: number; // 1 = Lunes ... 6 = Sábado · 7 = Domingo de Balance
   semana: number;
-  mes: number; // 1..12
+  mes: number;
   anio: number;
-  legados: number;
-  roster: Boxer[];
-  staff: StaffMember[];
-  courses: CourseId[];
-  gear: GearId[];
-  propiedades: PropertyId[];
-  marcaRopa: string | null;
-  patrocinio: { nombre: string; semanal: number; semanas: number } | null;
-  purseMult: number;
+  plantel: Pugilista[];
+  rivales: Pugilista[];
+  ofertas: OfertaRival[];
+  ofertasPara: string | null;
+  pendientes: Pelea[];
+  historial: ResultadoPelea[];
+  equipamiento: GearId[];
+  marcaRopa: string;
+  cursos: CursoId[];
+  personal: MiembroPersonal[];
+  propiedades: PropiedadId[];
+  patrocinio: PatrocinioActivo | null;
+  eventos: EventoJuego[];
+  comunitarios: ComunitarioProgramado[];
+  consejos: Consejo[];
+  prensa: NotaPrensa[];
+  cinturones: Cinturon[];
   veladaProgramada: boolean;
-  schedule: string[]; // ids de boxeadores con pelea el sábado
-  fights: FightSetup[];
-  events: GameEvent[];
-  log: string[];
+  libroIngresos: LineaLibro[];
+  libroGastos: LineaLibro[];
+  resumen: ResumenSemanal | null;
+  legados: number;
+  stats: { peleas: number; victorias: number; kos: number; veladas: number; dineroGanado: number; titulos: number };
   toasts: Toast[];
-  resumen: WeekSummary | null;
-  ingresosSemana: number;
-  gastosSemana: number;
-  famaSemana: number;
-  notasSemana: string[];
-  stats: { peleas: number; victorias: number; kos: number; veladas: number; dineroGanado: number };
 }
+
+export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro" | "alerta"; }
+
+export type Accion =
+  | { type: "NUEVO_JUEGO"; nombre: string; gimnasio: string }
+  | { type: "CONTINUAR" }
+  | { type: "IMPORTAR"; estado: EstadoJuego }
+  | { type: "REINICIAR" }
+  | { type: "AVANZAR_DIA" }
+  | { type: "SEMANA_RAPIDA" }
+  | { type: "CERRAR_DOMINGO" }
+  | { type: "CAMBIAR_COMBO"; id: string; combo: ComboId }
+  | { type: "LICENCIAR"; id: string }
+  | { type: "ALTERNAR_ELITE"; id: string }
+  | { type: "BUSCAR_RIVAL"; id: string }
+  | { type: "ELEGIR_OFERTA"; ofertaId: string }
+  | { type: "CANCELAR_PELEA"; peleaId: string }
+  | { type: "RESOLVER_PELEA"; peleaId: string; resultado: ResultadoPelea }
+  | { type: "COMPRAR_EQUIPO"; id: GearId }
+  | { type: "CREAR_MARCA"; nombre: string }
+  | { type: "COMPRAR_CURSO"; id: CursoId }
+  | { type: "COMPRAR_PROPIEDAD"; id: PropiedadId }
+  | { type: "CONTRATAR"; tipo: PersonalId }
+  | { type: "DESPEDIR"; id: string }
+  | { type: "ALTERNAR_VELADA" }
+  | { type: "EVENTO"; id: string; opcion: number }
+  | { type: "RECLAMAR_CONSEJO"; id: string }
+  | { type: "TOAST"; texto: string; tono?: Toast["tono"] }
+  | { type: "QUITAR_TOAST"; id: number }
+  | { type: "SCOUT" }
+  | { type: "LEGADO" };

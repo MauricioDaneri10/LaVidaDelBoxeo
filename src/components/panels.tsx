@@ -1,376 +1,398 @@
-import { useState } from "react";
-import { CURSOS, DIVISIONES_M, FOCUS_INFO, GEAR, STAFF_INFO, fmt } from "../game/data";
-import { capacidadAlumnos, capacidadFederados, rankingDe, tablaRanking } from "../game/engine";
+import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
+import { capacidadAlumnos, fmt, sanitizarEstado, sucursales, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
-import type { Boxer, Circuito, CourseId, Focus, Genero, GearId, StaffType } from "../game/types";
-import { Btn, Chip, EnergyBar, I, StatBar } from "./ui";
+import type { CategoriaMercado, CursoId, PersonalId, RamaCurso } from "../game/types";
+import { BarraEnergia, Btn, Chip, I, Modal } from "./ui";
 
-function BoxerCard({ b, onOpen }: { b: Boxer; onOpen: () => void }) {
-  const { state } = useGame();
-  const ov = Math.round(b.fuerza * 0.11 + b.velocidad * 0.11 + b.potencia * 0.11 + b.resistencia * 0.1 + b.ataque * 0.13 + b.defensa * 0.12 + b.tecnica * 0.12 + b.inteligencia * 0.07 + b.mentalidad * 0.06 + b.talento * 0.07);
-  const programada = state.schedule.includes(b.id);
-  return (
-    <button onClick={onOpen} className="panel group w-full p-3 text-left transition-all hover:-translate-y-0.5 hover:border-gold2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="truncate font-display text-xl tracking-wide text-cream group-hover:text-gold">{b.nombre}</span>
-            {b.campeon && <I n="trophy" className="h-4 w-4 shrink-0 text-gold" />}
-            {b.elite && <Chip tone="neon">Élite</Chip>}
-          </div>
-          <div className="font-cond text-xs uppercase tracking-wider text-mut">
-            {b.division} · {b.edad}a · {b.rol === "boxeador" ? `${b.circuito} · ${b.ganadas}-${b.perdidas} (${b.kos} KO)` : `talento ${b.talento}`}
-          </div>
-        </div>
-        <div className="shrink-0 border border-line2 bg-panel2 px-2.5 py-1 text-center">
-          <div className="font-cond text-xl font-bold leading-none" style={{ color: ov >= 70 ? "var(--color-blood)" : ov >= 50 ? "var(--color-gold)" : "var(--color-sand)" }}>{ov}</div>
-          <div className="font-cond text-[9px] uppercase text-mut">global</div>
-        </div>
-      </div>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <EnergyBar v={b.energia} />
-        {programada ? <Chip tone="blood">En cartelera</Chip> : (
-          <span className="flex items-center gap-1 font-cond text-[11px] uppercase tracking-wide text-sand">
-            <I n={FOCUS_INFO[b.focus].icon} className="h-3 w-3 text-gold" /> {FOCUS_INFO[b.focus].nombre}
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-export function RosterPanel({ onOpenBoxer }: { onOpenBoxer: (id: string) => void }) {
+// ==================== PLANTel DE ATLETAS ====================
+export function PanelPlantel({ onAbrir, onBuscarRival }: { onAbrir: (id: string) => void; onBuscarRival: (id: string) => void }) {
   const { state, dispatch } = useGame();
-  const alumnos = state.roster.filter(b => b.rol === "alumno");
-  const boxeadores = state.roster.filter(b => b.rol === "boxeador");
-  const [circ, setCirc] = useState<Circuito>("amateur");
-  const [gen, setGen] = useState<Genero>("M");
-  const [div, setDiv] = useState(DIVISIONES_M[4]);
-  const ranking = tablaRanking(state, circ, div, gen);
-  const propios = boxeadores.filter(b => b.circuito === circ && b.division === div && b.genero === gen);
+  const alumnos = state.plantel.filter(p => p.rol === "alumno");
+  const boxeadores = state.plantel.filter(p => p.rol === "boxeador");
+  const tieneDT = state.cursos.includes("dt");
+
+  const Tarjeta = ({ p }: { p: (typeof state.plantel)[number] }) => {
+    const agendada = state.pendientes.some(x => x.miId === p.id);
+    const listoSabado = p.rol === "alumno" && p.fogueo >= p.fogueoMeta && tieneDT;
+    return (
+      <motion.button layout whileHover={{ y: -2 }} onClick={() => onAbrir(p.id)}
+        className={`panel w-full p-3 text-left transition-colors hover:border-gold2 ${agendada ? "border-blood/60" : ""}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="font-display text-lg leading-tight tracking-wide text-cream">{p.nombre}</div>
+            <div className="font-cond text-[11px] uppercase tracking-wider text-mut">
+              {p.edad} años · {p.division} · {p.rol === "boxeador" ? (p.circuito === "pro" ? "Profesional" : "Amateur") : "Alumno"}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-display text-2xl text-gold">{valoracion(p.atrib)}</div>
+            <div className="font-cond text-[10px] uppercase text-mut">Valoración</div>
+          </div>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <BarraEnergia v={p.energia} />
+          {p.elite && <Chip tone="neon">Élite</Chip>}
+          {p.titulo > 0 && <Chip tone="gold"><I n="trophy" className="h-3 w-3" />{TITULOS[p.titulo as 1 | 2 | 3 | 4].nombre}</Chip>}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
+          {p.rol === "alumno" ? (
+            <>
+              <span className="font-cond text-[11px] uppercase tracking-wide text-sand">
+                Fogueo <b className="text-gold">{p.fogueo}/{p.fogueoMeta}</b>
+              </span>
+              <div className="stat-bar w-16"><i style={{ width: `${(p.fogueo / p.fogueoMeta) * 100}%`, background: "var(--color-gold)" }} /></div>
+              {listoSabado && (
+                <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); dispatch({ type: "LICENCIAR", id: p.id }); }}
+                  className="btn-poster guia-luminica border border-[#ffe0a0]/50 bg-gold px-3 py-1 text-sm text-ink">
+                  <span>Licenciar {fmt(200)}</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="font-cond text-[11px] uppercase text-sand">
+                <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
+              </span>
+              {agendada ? <Chip tone="blood">En cartelera</Chip>
+                : <Btn small variant="dark" onClick={() => onBuscarRival(p.id)}><I n="target" className="h-3 w-3" /> Buscar rival</Btn>}
+            </>
+          )}
+        </div>
+      </motion.button>
+    );
+  };
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* alumnos */}
-        <section>
-          <h3 className="mb-2 flex items-center gap-2 font-display text-2xl tracking-wide text-cream">
-            <I n="users" className="h-5 w-5 text-gold" /> Alumnos <span className="font-cond text-sm text-mut">{alumnos.length}/{capacidadAlumnos(state)}</span>
-          </h3>
-          <div className="space-y-2">
-            {alumnos.map(b => <BoxerCard key={b.id} b={b} onOpen={() => onOpenBoxer(b.id)} />)}
-            {alumnos.length === 0 && <p className="panel p-4 font-cond text-sm text-mut">Sin alumnos. Los prospectos llegan por eventos o scouting en la ciudad.</p>}
-          </div>
-        </section>
-        {/* boxeadores */}
-        <section>
-          <h3 className="mb-2 flex items-center gap-2 font-display text-2xl tracking-wide text-cream">
-            <I n="glove" className="h-5 w-5 text-blood" /> Boxeadores <span className="font-cond text-sm text-mut">{boxeadores.length}/{capacidadFederados(state)}</span>
-          </h3>
-          <div className="space-y-2">
-            {boxeadores.map(b => <BoxerCard key={b.id} b={b} onOpen={() => onOpenBoxer(b.id)} />)}
-            {boxeadores.length === 0 && (
-              <p className="panel p-4 font-cond text-sm text-mut">
-                {state.courses.includes("tecnico") ? "Federa a un alumno con talento desde su ficha." : "Haz el curso de Director Técnico para federar competidores."}
-              </p>
-            )}
-          </div>
-          {/* cartelera */}
-          <div className="panel mt-4 p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="flex items-center gap-2 font-display text-xl tracking-wide text-gold"><I n="calendar" className="h-4 w-4" /> Cartelera del sábado</h4>
-              {state.courses.includes("promotor") && (
-                <Btn small variant={state.veladaProgramada ? "blood" : "dark"} onClick={() => dispatch({ type: "TOGGLE_VELADA" })}>
-                  <I n="trophy" className="h-3.5 w-3.5" /> {state.veladaProgramada ? "Velada activa" : "Organizar velada"}
-                </Btn>
-              )}
-            </div>
-            {state.veladaProgramada && <p className="mt-1 font-cond text-xs text-sand">Velada propia: cobrarás entradas según tu fama ({fmt(state.fama * 18 + 150)} aprox.) menos costos de producción.</p>}
-            <div className="mt-2 space-y-1.5">
-              {state.schedule.length === 0 && <p className="font-cond text-sm text-mut">Nadie programado. Abre la ficha de un boxeador y pulsa "Programar pelea".</p>}
-              {state.schedule.map(id => {
-                const b = state.roster.find(x => x.id === id);
-                if (!b) return null;
-                return (
-                  <div key={id} className="flex items-center justify-between border border-line bg-panel2 px-3 py-1.5">
-                    <span className="font-cond text-sm text-cream">{b.nombre} <span className="text-mut">· {b.circuito} · {b.division}</span></span>
-                    <button onClick={() => dispatch({ type: "UNSCHEDULE", id })} className="text-mut transition-colors hover:text-blood"><I n="x" className="h-4 w-4" /></button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* rankings */}
-      <section className="panel p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="mr-auto flex items-center gap-2 font-display text-2xl tracking-wide text-cream"><I n="flag" className="h-5 w-5 text-gold" /> Rankings oficiales</h3>
-          <select value={circ} onChange={e => setCirc(e.target.value as Circuito)} className="border border-line bg-panel2 px-2 py-1 font-cond text-sm uppercase text-cream">
-            <option value="amateur">Amateur</option><option value="pro">Profesional</option>
-          </select>
-          <select value={gen} onChange={e => setGen(e.target.value as Genero)} className="border border-line bg-panel2 px-2 py-1 font-cond text-sm uppercase text-cream">
-            <option value="M">Masculino</option><option value="F">Femenino</option>
-          </select>
-          <select value={div} onChange={e => setDiv(e.target.value)} className="border border-line bg-panel2 px-2 py-1 font-cond text-sm uppercase text-cream">
-            {DIVISIONES_M.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[480px] text-left">
-            <thead>
-              <tr className="border-b border-line font-cond text-[11px] uppercase tracking-widest text-mut">
-                <th className="py-1.5 pr-2">#</th><th className="py-1.5 pr-2">Boxeador</th><th className="py-1.5 pr-2">Récord</th><th className="py-1.5">Nivel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranking.map((r, i) => (
-                <tr key={r.id} className="border-b border-line/50 font-cond text-sm text-sand">
-                  <td className="py-1.5 pr-2 font-bold text-gold">{i + 1}</td>
-                  <td className="py-1.5 pr-2 text-cream">{r.nombre} {r.campeon && <I n="trophy" className="ml-1 inline h-3.5 w-3.5 text-gold" />}</td>
-                  <td className="py-1.5 pr-2">{r.ganadas}-{r.perdidas}</td>
-                  <td className="py-1.5"><StatBar v={r.fuerza * 0.2 + r.tecnica * 0.2 + r.defensa * 0.2 + r.ataque * 0.2 + r.potencia * 0.2} color="auto" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {propios.map(b => (
-          <p key={b.id} className="mt-2 font-cond text-sm text-gold">
-            <I n="star" className="mr-1 inline h-3.5 w-3.5" /> Tu boxeador {b.nombre}: puesto #{rankingDe(state, b)} en esta división.
-            {rankingDe(state, b) <= 2 && b.ganadas >= 3 && " ¡La pelea de título está a tu alcance!"}
-          </p>
-        ))}
-      </section>
-    </div>
-  );
-}
-
-export function MarketPanel() {
-  const { state, dispatch } = useGame();
-  const [marca, setMarca] = useState("");
-  return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-      <section>
-        <h3 className="mb-2 flex items-center gap-2 font-display text-2xl tracking-wide text-cream">
-          <I n="cart" className="h-5 w-5 text-gold" /> Tienda de Don Anselmo
-        </h3>
-        <p className="mb-3 font-cond text-sm text-mut">Equipamiento permanente: cada compra mejora el crecimiento de todo tu plantel.</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {(Object.keys(GEAR) as GearId[]).map(id => {
-            const g = GEAR[id];
-            const owned = state.gear.includes(id);
-            return (
-              <div key={id} className={`panel p-4 transition-all ${owned ? "border-win/50" : "hover:border-gold2"}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-display text-xl tracking-wide text-cream">{g.nombre}</div>
-                    <div className="font-cond text-xs text-mut">{g.desc}</div>
-                  </div>
-                  <I n={id === "zonaElite" ? "trophy" : id === "neon" ? "spark" : "dumbbell"} className={`h-6 w-6 shrink-0 ${owned ? "text-win" : "text-gold"}`} />
-                </div>
-                <div className="mt-2 font-cond text-xs uppercase tracking-wide text-gold">{g.bonus}</div>
-                <div className="mt-3">
-                  {owned ? <Chip tone="win"><I n="check" className="h-3 w-3" /> Instalado</Chip> : (
-                    <Btn small variant="gold" disabled={state.dinero < g.costo} onClick={() => dispatch({ type: "BUY_GEAR", id })}>
-                      <I n="coin" className="h-3.5 w-3.5" /> {fmt(g.costo)}
-                    </Btn>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-      <section className="h-fit space-y-4">
-        <div className="panel p-4">
-          <h3 className="flex items-center gap-2 font-display text-2xl tracking-wide text-cream"><I n="shirt" className="h-5 w-5 text-neonm" /> Tu marca de ropa</h3>
-          {state.marcaRopa ? (
-            <div className="mt-3 space-y-2">
-              <div className="border border-neonm/50 bg-neonm/10 px-3 py-2 font-display text-2xl tracking-widest text-neonm">{state.marcaRopa}</div>
-              <p className="font-cond text-sm text-sand">
-                Ventas semanales estimadas: <b className="text-gold">{fmt(state.fama * 2.5 * (state.staff.some(x => x.type === "marketing") ? 1.8 : 1))}</b>
-                {state.staff.some(x => x.type === "marketing") && " (con Jefe de Marketing)"}
-              </p>
-              <p className="font-cond text-xs text-mut">A mayor fama, más camisetas con tu logo en cada esquina.</p>
-            </div>
-          ) : (
-            <div className="mt-3 space-y-2">
-              <p className="font-cond text-sm text-sand">Lanza tu línea de indumentaria y vende según tu fama. Requiere Gestión Empresarial y {fmt(2000)}.</p>
-              <input value={marca} onChange={e => setMarca(e.target.value)} placeholder="Ej: Furia Box Club"
-                className="w-full border border-line bg-ink px-3 py-2 font-cond text-sm text-cream outline-none placeholder:text-mut focus:border-gold2" />
-              <Btn disabled={!state.courses.includes("empresarial") || state.dinero < 2000 || !marca.trim()}
-                onClick={() => dispatch({ type: "CREATE_BRAND", name: marca })}>
-                <I n="shirt" className="h-4 w-4" /> Lanzar marca · {fmt(2000)}
-              </Btn>
-              {!state.courses.includes("empresarial") && <p className="font-cond text-xs uppercase tracking-wide text-mut">Requiere: Gestión Empresarial</p>}
-            </div>
-          )}
-        </div>
-        {state.patrocinio && (
-          <div className="panel border-gold2/50 p-4">
-            <h4 className="font-display text-xl tracking-wide text-gold">Sponsor activo</h4>
-            <p className="font-cond text-sm text-sand">{state.patrocinio.nombre}: <b className="text-gold">{fmt(state.patrocinio.semanal)}/semana</b> · {state.patrocinio.semanas} semana(s) restantes</p>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-export function ProfilePanel() {
-  const { state, dispatch } = useGame();
-  const orden: CourseId[] = ["instructor", "tecnico", "promotor", "empresarial"];
-  const puedeLegado = state.fama >= 60 && state.roster.some(b => b.campeon);
-  return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <section className="space-y-4">
-        <div className="panel p-4">
-          <h3 className="flex items-center gap-2 font-display text-2xl tracking-wide text-cream"><I n="user" className="h-5 w-5 text-gold" /> {state.nombreJugador}</h3>
-          <p className="font-cond text-sm text-mut">Coach de {state.nombreGimnasio} · Semana {state.semana}, Año {state.anio}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {[
-              ["Peleas", state.stats.peleas], ["Victorias", state.stats.victorias], ["Nocauts", state.stats.kos],
-              ["Veladas", state.stats.veladas], ["Fama", Math.round(state.fama)], ["Legados", state.legados],
-            ].map(([k, v]) => (
-              <div key={k as string} className="border border-line bg-panel2 px-3 py-2 text-center">
-                <div className="font-cond text-2xl font-bold text-gold">{v}</div>
-                <div className="font-cond text-[10px] uppercase tracking-widest text-mut">{k}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* cursos */}
-        <div className="panel p-4">
-          <h3 className="mb-3 flex items-center gap-2 font-display text-2xl tracking-wide text-cream"><I n="cap" className="h-5 w-5 text-gold" /> Cursos del entrenador</h3>
-          <div className="space-y-3">
-            {orden.map((id, idx) => {
-              const c = CURSOS[id];
-              const done = state.courses.includes(id);
-              const reqOk = !c.req || state.courses.includes(c.req);
-              return (
-                <div key={id} className={`relative border p-3.5 transition-colors ${done ? "border-gold2/60 bg-gold/5" : reqOk ? "border-line hover:border-gold2" : "border-line opacity-60"}`}>
-                  {idx < orden.length - 1 && <div className="absolute -bottom-3 left-8 h-3 w-px bg-line2" />}
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 font-display text-xl tracking-wide text-cream">
-                        {done && <I n="check" className="h-4 w-4 text-win" />}
-                        {c.nombre}
-                      </div>
-                      <p className="font-cond text-xs text-mut">{c.desc}</p>
-                      <ul className="mt-1.5 space-y-0.5">
-                        {c.desbloquea.map(d => (
-                          <li key={d} className="flex items-center gap-1.5 font-cond text-xs text-sand"><I n="chevR" className="h-3 w-3 text-gold" /> {d}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="shrink-0">
-                      {done ? <Chip tone="gold">Completado</Chip> : (
-                        <Btn small variant="gold" disabled={!reqOk || state.dinero < c.costo} onClick={() => dispatch({ type: "BUY_COURSE", id })}>
-                          {fmt(c.costo)}
-                        </Btn>
-                      )}
-                      {!done && !reqOk && <div className="mt-1 font-cond text-[10px] uppercase text-mut">Requiere {c.req && CURSOS[c.req].nombre}</div>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        {/* viviendas */}
-        <div className="panel p-4">
-          <h3 className="mb-2 flex items-center gap-2 font-display text-2xl tracking-wide text-cream"><I n="house" className="h-5 w-5 text-gold" /> Vivienda personal</h3>
-          {state.propiedades.includes("mansion") ? (
-            <p className="font-cond text-sm text-sand">Vives en la <b className="text-gold">Mansión de Las Lomas</b>. Hasta el cartero te pide autógrafos.</p>
-          ) : state.propiedades.includes("apartamento") ? (
-            <p className="font-cond text-sm text-sand">Tienes tu <b className="text-gold">apartamento céntrico</b>. Sin alquiler personal que pagar.</p>
-          ) : (
-            <p className="font-cond text-sm text-sand">Pagas {fmt(8)}/día de alquiler personal. Comprar una vivienda elimina ese gasto y suma fama. (Ver en el mapa de la ciudad.)</p>
-          )}
-        </div>
-
-        {/* legado */}
-        <div className={`panel p-4 ${puedeLegado ? "border-gold2" : ""}`}>
-          <h3 className="flex items-center gap-2 font-display text-2xl tracking-wide text-cream"><I n="trophy" className="h-5 w-5 text-gold" /> Sistema de legado</h3>
-          <p className="mt-1 font-cond text-sm text-sand">
-            Retírate en la cima y reencarna en tu mejor alumno: comenzarás con <b className="text-gold">+{fmt(1800)}</b>, fama heredada y a tu campeón de vuelta, joven otra vez.
-          </p>
-          <div className="mt-3 space-y-1.5 font-cond text-sm">
-            <div className={state.fama >= 60 ? "text-win" : "text-mut"}>
-              <I n={state.fama >= 60 ? "check" : "x"} className="mr-1.5 inline h-3.5 w-3.5" /> Fama 60+ (tienes {Math.round(state.fama)})
-            </div>
-            <div className={state.roster.some(b => b.campeon) ? "text-win" : "text-mut"}>
-              <I n={state.roster.some(b => b.campeon) ? "check" : "x"} className="mr-1.5 inline h-3.5 w-3.5" /> Al menos un campeón reinante
-            </div>
-          </div>
-          <div className="mt-3">
-            <Btn variant={puedeLegado ? "gold" : "dark"} disabled={!puedeLegado} onClick={() => {
-              if (window.confirm("¿Iniciar el legado? La partida actual terminará y renacerás con las bonificaciones de prestigio.")) dispatch({ type: "LEGACY" });
-            }}>
-              <I n="spark" className="h-4 w-4" /> Iniciar legado (reinicia la partida)
-            </Btn>
-          </div>
-        </div>
-
-        <div className="panel p-4">
-          <h4 className="font-display text-xl tracking-wide text-cream">Partida</h4>
-          <p className="mt-1 font-cond text-sm text-mut">El progreso se guarda solo en este navegador.</p>
-          <Btn small variant="ghost" className="mt-2" onClick={() => dispatch({ type: "RESET" })}>
-            <I n="x" className="h-3.5 w-3.5" /> Volver a la pantalla de inicio
+      <div className="panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
+        <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Atletas</h2>
+        <Chip tone="gold"><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{capacidadAlumnos(state)}</Chip>
+        <Chip tone="blood"><I n="glove" className="h-3 w-3" /> Federados {boxeadores.length}</Chip>
+        <Chip><I n="bell" className="h-3 w-3" /> Cartelera del sábado: {state.pendientes.length} pelea(s)</Chip>
+        <div className="ml-auto flex gap-2">
+          <Btn small variant={state.veladaProgramada ? "gold" : "ghost"} onClick={() => dispatch({ type: "ALTERNAR_VELADA" })}
+            disabled={!state.cursos.includes("veladas")}>
+            <I n="ring" className="h-3.5 w-3.5" /> {state.veladaProgramada ? "Velada programada" : "Programar velada"}
           </Btn>
         </div>
+      </div>
+      {!tieneDT && (
+        <div className="border border-gold2/50 bg-gold/5 px-4 py-2.5 font-cond text-sm text-sand">
+          <b className="text-gold">Ruta del Director Técnico:</b> aprobá el curso "Director Técnico Federado" en Mi Perfil para licenciar alumnos,
+          que primero deben completar sus <b>guanteos de fogueo</b> (8 a 10, los sábados).
+        </div>
+      )}
+      {boxeadores.length > 0 && (
+        <section>
+          <h3 className="mb-2 font-display text-xl tracking-wide text-blood">Mi Equipo Federado</h3>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {boxeadores.map(p => <Tarjeta key={p.id} p={p} />)}
+          </div>
+        </section>
+      )}
+      <section>
+        <h3 className="mb-2 font-display text-xl tracking-wide text-sand">Alumnos del Gimnasio</h3>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {alumnos.map(p => <Tarjeta key={p.id} p={p} />)}
+        </div>
+        {alumnos.length === 0 && <p className="font-cond text-sm italic text-mut">Sin alumnos: la fama y el boca a boca traerán nuevos talentos.</p>}
       </section>
     </div>
   );
 }
 
-export function StaffPanel() {
+// ==================== MERCADO EN 4 CATEGORÍAS ====================
+export function PanelMercado() {
   const { state, dispatch } = useGame();
-  const req: Record<StaffType, CourseId> = { asistente: "instructor", preparador: "tecnico", marketing: "promotor", gerente: "empresarial" };
+  const [cat, setCat] = useState<CategoriaMercado>("equipamiento");
+  const [nombreMarca, setNombreMarca] = useState("");
+  const items = Object.entries(EQUIPOS).filter(([, v]) => v.cat === cat);
+
   return (
     <div className="space-y-4">
-      <h3 className="flex items-center gap-2 font-display text-3xl tracking-wide text-cream"><I n="case" className="h-6 w-6 text-gold" /> Personal del imperio</h3>
-      <p className="font-cond text-sm text-mut">Delega para crecer: cada puesto se descuenta del sueldo automáticamente, sin microgestión.</p>
-      <div className="grid gap-4 md:grid-cols-2">
-        {(Object.keys(STAFF_INFO) as StaffType[]).map(t => {
-          const info = STAFF_INFO[t];
-          const miembros = state.staff.filter(s => s.type === t);
-          const cursoOk = state.courses.includes(req[t]);
+      <div className="panel flex flex-wrap items-center gap-4 p-4">
+        <h2 className="font-display text-2xl tracking-wide text-gold">Equipamiento e Instalaciones</h2>
+        <span className="font-cond text-sm text-sand">Caja disponible: <b className="text-gold">{fmt(state.dinero)}</b></span>
+        <span className="font-cond text-sm text-sand">Instalado: <b className="text-cream">{state.equipamiento.length}/21</b></span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {CATEGORIAS.map(c => (
+          <button key={c.id} onClick={() => setCat(c.id)}
+            className={`btn-poster px-4 py-1.5 text-base ${cat === c.id ? "border border-gold2/70 bg-gold text-ink" : "border border-line bg-panel2 text-sand hover:border-gold2"}`}>
+            <span className="inline-flex items-center gap-1.5"><I n={c.icono} className="h-4 w-4" /> {c.nombre}</span>
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {items.map(([id, eq]) => {
+          const comprado = state.equipamiento.includes(id as never);
+          const bloqueado = id === "zonaElite" && !state.cursos.includes("altoRendimiento");
           return (
-            <div key={t} className="panel p-4">
+            <div key={id} className={`panel p-4 ${comprado ? "border-win/50" : ""}`}>
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-display text-xl tracking-wide text-cream">{info.nombre}</div>
-                  <div className="font-cond text-xs uppercase tracking-wide text-mut">{fmt(info.sueldo)}/mes · {info.req}</div>
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-10 w-10 place-items-center border border-line bg-ink text-gold"><I n={eq.icono} className="h-5 w-5" /></div>
+                  <div>
+                    <div className="font-display text-lg leading-tight tracking-wide text-cream">{eq.nombre}</div>
+                    <div className="font-display text-base text-gold">{fmt(eq.costo)}</div>
+                  </div>
                 </div>
-                <I n={t === "gerente" ? "case" : t === "marketing" ? "star" : "dumbbell"} className="h-6 w-6 text-gold" />
+                {comprado && <Chip tone="win"><I n="check" className="h-3 w-3" /> Instalado</Chip>}
               </div>
-              <p className="mt-1.5 font-cond text-sm text-sand">{info.desc}</p>
-              {miembros.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {miembros.map(m => (
-                    <div key={m.id} className="flex items-center justify-between border border-line bg-panel2 px-2.5 py-1">
-                      <span className="font-cond text-sm text-cream"><I n="user" className="mr-1.5 inline h-3.5 w-3.5 text-win" />{m.nombre}</span>
-                      <button onClick={() => dispatch({ type: "FIRE", id: m.id })} className="font-cond text-xs uppercase text-mut transition-colors hover:text-blood">Despedir</button>
+              <p className="mt-2 font-cond text-sm text-sand">{eq.desc}</p>
+              <p className="mt-1 font-cond text-xs text-neonc">{eq.efecto}</p>
+              {!comprado && (
+                <Btn small variant={state.dinero >= eq.costo && !bloqueado ? "gold" : "dark"} className="mt-3 w-full"
+                  disabled={state.dinero < eq.costo || bloqueado}
+                  onClick={() => dispatch({ type: "COMPRAR_EQUIPO", id: id as never })}>
+                  {bloqueado ? "Requiere Alto Rendimiento" : `Comprar · ${fmt(eq.costo)}`}
+                </Btn>
+              )}
+              {id === "estudioMarca" && comprado && (
+                <div className="mt-3 border-t border-line pt-2">
+                  {state.marcaRopa ? (
+                    <p className="font-cond text-sm text-gold">Tu marca: <b>"{state.marcaRopa}"</b> — liquidación de ventas cada domingo.</p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input value={nombreMarca} onChange={e => setNombreMarca(e.target.value)} maxLength={16} placeholder="Nombre de la marca"
+                        className="w-full border border-line bg-ink px-2 py-1 font-cond text-sm text-cream outline-none focus:border-gold" />
+                      <Btn small variant="gold" onClick={() => dispatch({ type: "CREAR_MARCA", nombre: nombreMarca })}>Lanzar</Btn>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
-              <div className="mt-3">
-                <Btn small variant={cursoOk ? "gold" : "dark"} disabled={!cursoOk} onClick={() => dispatch({ type: "HIRE", staff: t })}>
-                  <I n="check" className="h-3.5 w-3.5" /> Contratar
-                </Btn>
-              </div>
             </div>
           );
         })}
       </div>
     </div>
+  );
+}
+
+// ==================== MI PERFIL: CURSOS, PROPIEDADES, LEGADO ====================
+export function PanelPerfil() {
+  const { state, dispatch } = useGame();
+  const ramas: { id: RamaCurso; nombre: string; icono: string; color: string }[] = [
+    { id: "deportiva", nombre: "Rama Deportiva", icono: "glove", color: "text-blood" },
+    { id: "promotora", nombre: "Rama Promotora", icono: "ring", color: "text-gold" },
+    { id: "empresarial", nombre: "Rama Empresarial", icono: "store", color: "text-neonc" },
+  ];
+  const puedeLegado = state.plantel.some(p => p.titulo === 4) || state.fama >= 85;
+
+  return (
+    <div className="space-y-5">
+      <div className="panel grid gap-4 p-4 md:grid-cols-[1fr_auto]">
+        <div>
+          <h2 className="font-display text-2xl tracking-wide text-gold">Perfil del Coach · {state.nombreJugador}</h2>
+          <p className="font-cond text-sm text-sand">
+            Semana {state.semana} al frente de <b className="text-cream">{state.nombreGimnasio}</b>. Nivel de gimnasio: <b className="text-gold">{state.fama >= 75 ? 4 : state.fama >= 50 ? 3 : state.fama >= 25 ? 2 : 1}</b> · Legados: <b className="text-neonc">{state.legados}</b>
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {[
+              ["Peleas", state.stats.peleas], ["Victorias", state.stats.victorias], ["KOs", state.stats.kos],
+              ["Veladas", state.stats.veladas], ["Títulos", state.stats.titulos],
+            ].map(([k, v]) => (
+              <div key={k as string} className="border border-line bg-panel2 px-2 py-1.5 text-center">
+                <div className="font-display text-2xl text-cream">{v}</div>
+                <div className="font-cond text-[10px] uppercase tracking-widest text-mut">{k}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col justify-center gap-2 border-t border-line pt-3 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+          <Btn variant={puedeLegado ? "gold" : "dark"} disabled={!puedeLegado}
+            onClick={() => { if (window.confirm("¿Iniciar el Sistema de Legado? Renacerás como tu mejor alumno con bonificaciones de prestigio.")) dispatch({ type: "LEGADO" }); }}>
+            <I n="medal" className="h-4 w-4" /> Sistema de Legado
+          </Btn>
+          <span className="font-cond text-[11px] text-mut">Se desbloquea con un Título Mundial o 85 de fama.</span>
+        </div>
+      </div>
+
+      {/* cursos */}
+      <section>
+        <h3 className="mb-2 font-display text-xl tracking-wide text-cream">Cursos del Coach · 3 ramas de especialización</h3>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {ramas.map(rama => (
+            <div key={rama.id} className="panel p-4">
+              <div className={`mb-3 flex items-center gap-2 font-display text-xl tracking-wide ${rama.color}`}>
+                <I n={rama.icono} className="h-5 w-5" /> {rama.nombre}
+              </div>
+              <div className="space-y-3">
+                {(Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === rama.id)
+                  .sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel)
+                  .map(cid => {
+                    const c = CURSOS[cid];
+                    const aprobado = state.cursos.includes(cid);
+                    const reqOk = !c.req || state.cursos.includes(c.req);
+                    return (
+                      <div key={cid} className={`border p-3 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-display text-base tracking-wide text-cream">
+                            <span className="mr-1.5 text-mut">Nv.{c.nivel}</span>{c.nombre}
+                          </div>
+                          {aprobado ? <Chip tone="win"><I n="check" className="h-3 w-3" /> Aprobado</Chip>
+                            : <Btn small variant={reqOk && state.dinero >= c.costo ? "gold" : "dark"} disabled={!reqOk || state.dinero < c.costo}
+                              onClick={() => dispatch({ type: "COMPRAR_CURSO", id: cid })}>{fmt(c.costo)}</Btn>}
+                        </div>
+                        <p className="mt-1 font-cond text-xs text-sand">{c.desc}</p>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* propiedades */}
+      <section>
+        <h3 className="mb-2 font-display text-xl tracking-wide text-cream">Bienes Raíces y Vivienda</h3>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {(Object.keys(PROPIEDADES) as (keyof typeof PROPIEDADES)[]).map(pid => {
+            const pr = PROPIEDADES[pid];
+            const mia = state.propiedades.includes(pid);
+            const nSuc = sucursales(state);
+            return (
+              <div key={pid} className={`panel p-4 ${mia ? "border-win/50" : ""}`}>
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-9 w-9 place-items-center border border-line bg-ink text-gold"><I n={pr.icono} className="h-4 w-4" /></div>
+                  <div className="font-display text-lg leading-tight text-cream">{pr.nombre}</div>
+                  <div className="ml-auto font-display text-base text-gold">{fmt(pr.costo)}</div>
+                </div>
+                <p className="mt-1.5 font-cond text-xs text-sand">{pr.desc}</p>
+                {pid === "sucursal" && <p className="font-cond text-[11px] text-mut">Sucursales activas: {nSuc} · Gerentes: {state.personal.filter(x => x.tipo === "gerente").length}</p>}
+                {pid === "local" && state.propiedades.includes("local") && <p className="font-cond text-[11px] text-win">Alquiler eliminado para siempre.</p>}
+                {!mia && (
+                  <Btn small variant={state.dinero >= pr.costo ? "gold" : "dark"} disabled={state.dinero < pr.costo} className="mt-2.5 w-full"
+                    onClick={() => dispatch({ type: "COMPRAR_PROPIEDAD", id: pid })}>
+                    <I n="house" className="h-3.5 w-3.5" /> Comprar · {fmt(pr.costo)}
+                  </Btn>
+                )}
+                {mia && <Chip tone="win">Propiedad tuya</Chip>}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ==================== PERSONAL DEL GIMNASIO ====================
+export function PanelPersonal() {
+  const { state, dispatch } = useGame();
+  const tipos = Object.keys(PERSONAL_INFO) as PersonalId[];
+  const nSuc = sucursales(state);
+
+  return (
+    <div className="space-y-4">
+      <div className="panel flex flex-wrap items-center gap-4 p-4">
+        <h2 className="font-display text-2xl tracking-wide text-gold">Personal del Gimnasio</h2>
+        <Chip><I n="users" className="h-3 w-3" /> Contratados: {state.personal.length}</Chip>
+        <Chip tone="gold">Sueldos semanales: {fmt(state.personal.reduce((a, p) => a + PERSONAL_INFO[p.tipo].sueldo, 0))}</Chip>
+        <Chip tone="neon">Sucursales: {nSuc}</Chip>
+      </div>
+      <p className="font-cond text-sm text-sand">
+        Delegar es crecer: el <b className="text-cream">Director Técnico Principal</b> automatiza los entrenamientos y el{" "}
+        <b className="text-cream">Representante Deportivo y Promotor</b> agenda solo la cartelera del sábado.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {tipos.map(t => {
+          const info = PERSONAL_INFO[t];
+          const contratados = state.personal.filter(p => p.tipo === t);
+          const limiteSucursal = (t === "gerente" || t === "entrenadorLocal") && contratados.length >= nSuc;
+          return (
+            <div key={t} className="panel p-4">
+              <div className="flex items-center gap-2.5">
+                <div className="grid h-10 w-10 place-items-center border border-line bg-ink text-gold"><I n={info.icono} className="h-5 w-5" /></div>
+                <div>
+                  <div className="font-display text-lg leading-tight text-cream">{info.nombre}</div>
+                  <div className="font-cond text-xs text-mut">{fmt(info.sueldo)}/semana {info.multiple ? "· por sede" : ""}</div>
+                </div>
+              </div>
+              <p className="mt-2 font-cond text-sm text-sand">{info.desc}</p>
+              {contratados.length > 0 && (
+                <div className="mt-2 space-y-1.5 border-t border-line pt-2">
+                  {contratados.map(m => (
+                    <div key={m.id} className="flex items-center justify-between">
+                      <span className="font-cond text-sm text-cream"><I n="user" className="mr-1 inline h-3.5 w-3.5 text-gold" />{m.nombre}</span>
+                      <button onClick={() => dispatch({ type: "DESPEDIR", id: m.id })} className="font-cond text-xs uppercase text-mut transition-colors hover:text-blood">Despedir</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(!info.multiple || !limiteSucursal) && !(contratados.length > 0 && !info.multiple) && (
+                <Btn small variant="gold" className="mt-3 w-full" onClick={() => dispatch({ type: "CONTRATAR", tipo: t })}>
+                  <I n="case" className="h-3.5 w-3.5" /> Contratar {info.multiple ? `(${contratados.length}/${Math.max(nSuc, 1)})` : ""}
+                </Btn>
+              )}
+              {info.multiple && limiteSucursal && <p className="mt-2 font-cond text-[11px] text-mut">Cada puesto de sucursal requiere una sucursal propia.</p>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ==================== AJUSTES: EXPORTAR / IMPORTAR ====================
+export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
+  const { state, dispatch } = useGame();
+  const archivoRef = useRef<HTMLInputElement>(null);
+
+  const exportar = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "partida-vida-del-boxeo.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importar = (archivo: File) => {
+    const lector = new FileReader();
+    lector.onload = () => {
+      try {
+        const estado = sanitizarEstado(JSON.parse(String(lector.result)));
+        dispatch({ type: "IMPORTAR", estado });
+        onCerrar();
+      } catch {
+        dispatch({ type: "TOAST", texto: "El archivo no parece una partida válida.", tono: "alerta" });
+      }
+    };
+    lector.readAsText(archivo);
+  };
+
+  return (
+    <Modal title="Configuración y Partida" icon="gear" onClose={onCerrar}>
+      <div className="space-y-3">
+        <div className="border border-line bg-panel2 p-3">
+          <div className="font-display text-lg text-cream">Guardar y cargar</div>
+          <p className="font-cond text-xs text-sand">La partida se guarda sola en este navegador después de cada acción.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Btn small variant="gold" onClick={exportar}><I n="download" className="h-3.5 w-3.5" /> Exportar .json</Btn>
+            <Btn small variant="dark" onClick={() => archivoRef.current?.click()}><I n="upload" className="h-3.5 w-3.5" /> Importar .json</Btn>
+            <input ref={archivoRef} type="file" accept="application/json" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ""; }} />
+          </div>
+        </div>
+        <div className="border border-blood/40 bg-blood/5 p-3">
+          <div className="font-display text-lg text-[#ff8a7e]">Zona de riesgo</div>
+          <p className="font-cond text-xs text-sand">Borra la carrera actual (los legados también). No se puede deshacer.</p>
+          <Btn small variant="blood" className="mt-2" onClick={() => {
+            if (window.confirm("¿Seguro? Se borrará toda la carrera actual.")) { dispatch({ type: "REINICIAR" }); onCerrar(); }
+          }}>
+            <I n="x" className="h-3.5 w-3.5" /> Reiniciar carrera
+          </Btn>
+        </div>
+        <div className="font-cond text-[11px] leading-relaxed text-mut">
+          La Vida del Boxeo · Simulador de gestión deportiva y vida · Turnos semanales · Sistema de 10 puntos · Registro Oficial de Golpes ·
+          Todo el contenido es ficción y cualquier parecido con la realidad es pura gloria compartida.
+        </div>
+      </div>
+    </Modal>
   );
 }
