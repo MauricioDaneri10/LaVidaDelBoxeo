@@ -1,31 +1,44 @@
-import { DIAS, MESES } from "../game/data";
+import { DIAS, LOGOS_DISPONIBLES, MESES } from "../game/data";
 import { fmt } from "../game/engine";
 import { useGame } from "../game/state";
 import { Btn, I } from "./ui";
 
-export default function TopBar({ onAjustes, pulsoAvanzar }: { onAjustes: () => void; pulsoAvanzar: boolean }) {
+interface TopBarProps {
+  onAjustes?: () => void;
+  pulsoAvanzar?: boolean;
+}
+
+export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps) {
   const { state, dispatch } = useGame();
   const finDeSemana = state.dia >= 6;
 
   const avanzar = () => dispatch({ type: "AVANZAR_DIA" });
   const semanaRapida = () => dispatch({ type: "SEMANA_RAPIDA" });
 
+  // Selección de emblema del club (respetando catálogo local y fallback canónico)
+  const logoActual = LOGOS_DISPONIBLES.find(l => l.id === (state as any).logoGimnasio) || LOGOS_DISPONIBLES[0];
+
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur-sm select-none">
       <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
-        {/* marca */}
+        {/* Marca e Identidad del Club con Emblema */}
         <div className="flex items-center gap-2.5">
-          <div className="grid h-9 w-9 place-items-center border-2 border-blood bg-blood/15 text-blood">
-            <I n="glove" className="h-5 w-5" />
+          <div className="grid h-10 w-10 place-items-center border-2 border-blood bg-blood/15 text-blood text-xl shadow-md"
+               title={`${logoActual.nombre} — ${logoActual.lema}`}>
+            <span>{logoActual.emoji || "🥊"}</span>
           </div>
           <div className="leading-none">
-            <div className="font-display text-xl tracking-[0.14em] text-gold">LA VIDA DEL BOXEO</div>
-            <div className="font-cond text-[11px] uppercase tracking-[0.22em] text-mut">{state.nombreGimnasio} · Coach {state.nombreJugador}</div>
+            <div className="font-display text-xl tracking-[0.14em] text-gold flex items-center gap-2">
+              <span>{state.nombreGimnasio || "LA VIDA DEL BOXEO"}</span>
+            </div>
+            <div className="font-cond text-[11px] uppercase tracking-[0.22em] text-mut mt-0.5">
+              Coach {state.nombreJugador || "Principal"} · {logoActual.nombre}
+            </div>
           </div>
         </div>
 
-        {/* fecha */}
-        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5">
+        {/* Calendario y Fecha Oficial */}
+        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 shadow-sm">
           <I n="calendar" className="h-4 w-4 text-gold" />
           <div className="leading-tight">
             <div className={`font-display text-lg tracking-wide ${finDeSemana ? "text-blood" : "text-cream"}`}>
@@ -37,8 +50,8 @@ export default function TopBar({ onAjustes, pulsoAvanzar }: { onAjustes: () => v
           </div>
         </div>
 
-        {/* dinero */}
-        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5">
+        {/* Tesorería y Fondos del Club */}
+        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 shadow-sm">
           <I n="coin" className="h-4 w-4 text-gold" />
           <div className="leading-tight">
             <div className="font-display text-xl tracking-wide text-gold">{fmt(state.dinero)}</div>
@@ -46,8 +59,8 @@ export default function TopBar({ onAjustes, pulsoAvanzar }: { onAjustes: () => v
           </div>
         </div>
 
-        {/* fama */}
-        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5">
+        {/* Nivel de Prestigio & Fama */}
+        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 shadow-sm">
           <I n="star" className="h-4 w-4 text-blood" />
           <div className="w-24 leading-tight">
             <div className="flex items-baseline justify-between">
@@ -58,28 +71,35 @@ export default function TopBar({ onAjustes, pulsoAvanzar }: { onAjustes: () => v
           </div>
         </div>
 
+        {/* Patrocinio Activo */}
         {state.patrocinio && (
-          <div className="hidden items-center gap-1.5 border border-gold2/50 bg-gold/10 px-2.5 py-1 font-cond text-xs uppercase tracking-wide text-gold lg:flex">
+          <div className="hidden items-center gap-1.5 border border-gold2/50 bg-gold/10 px-2.5 py-1 font-cond text-xs uppercase tracking-wide text-gold lg:flex shadow-sm">
             <I n="case" className="h-3.5 w-3.5" /> {state.patrocinio.nombre} · {state.patrocinio.semanas} sem
           </div>
         )}
+
+        {/* Legados Acumulados */}
         {state.legados > 0 && (
-          <div className="hidden items-center gap-1.5 border border-neonc/50 bg-neonc/10 px-2.5 py-1 font-cond text-xs uppercase tracking-wide text-neonc md:flex">
+          <div className="hidden items-center gap-1.5 border border-neonc/50 bg-neonc/10 px-2.5 py-1 font-cond text-xs uppercase tracking-wide text-neonc md:flex shadow-sm">
             <I n="medal" className="h-3.5 w-3.5" /> Legado ×{state.legados}
           </div>
         )}
 
-        {/* acciones de tiempo */}
+        {/* Acciones de Flujo de Tiempo */}
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={onAjustes} title="Configuración y partidas"
-            className="grid h-9 w-9 place-items-center border border-line bg-panel2 text-sand transition-colors hover:border-gold2 hover:text-gold">
-            <I n="gear" className="h-4.5 w-4.5" />
-          </button>
+          {onAjustes && (
+            <button onClick={onAjustes} title="Configuración y partidas"
+              className="grid h-9 w-9 place-items-center border border-line bg-panel2 text-sand transition-colors hover:border-gold2 hover:text-gold cursor-pointer">
+              <I n="gear" className="h-4.5 w-4.5" />
+            </button>
+          )}
+
           {state.dia < 6 && (
             <Btn variant="ghost" small onClick={semanaRapida} className="hidden sm:inline-flex" disabled={state.dia === 7}>
               <I n="ff" className="h-4 w-4" /> Semana rápida
             </Btn>
           )}
+
           {state.dia === 7 ? (
             <Btn variant="gold" onClick={() => dispatch({ type: "CERRAR_DOMINGO" })} pulso>
               <I n="check" className="h-4 w-4" /> Empezar nueva semana
@@ -97,3 +117,5 @@ export default function TopBar({ onAjustes, pulsoAvanzar }: { onAjustes: () => v
     </header>
   );
 }
+
+export { TopBar };

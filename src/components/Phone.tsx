@@ -8,14 +8,18 @@ import { I } from "./ui";
 export type PestanaDock = "mensajes" | "patrocinios" | "prensa" | "consejos";
 
 const ICONO_TIPO: Record<string, string> = {
-  desafio: "glove", comunitario: "dice", prospecto: "users", federacion: "flag", patrocinio: "case",
+  desafio: "glove",
+  comunitario: "dice",
+  prospecto: "users",
+  federacion: "flag",
+  patrocinio: "case",
 };
 
 function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }) {
   const { dispatch } = useGame();
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className={`border border-line bg-panel ${compacto ? "p-2.5" : "p-3"}`}>
+      className={`border border-line bg-panel ${compacto ? "p-2.5" : "p-3"} shadow-sm`}>
       <div className="flex items-center gap-2">
         <I n={ICONO_TIPO[ev.tipo] ?? "phone"} className="h-4 w-4 text-gold" />
         <span className="font-display text-base leading-tight tracking-wide text-cream">{ev.titulo}</span>
@@ -27,7 +31,7 @@ function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }
         {ev.opciones.map((op, i) => (
           <button key={i}
             onClick={() => { dispatch({ type: "EVENTO", id: ev.id, opcion: i }); }}
-            className={`btn-poster px-3 py-1 text-sm ${i === 0
+            className={`btn-poster px-3 py-1 text-sm cursor-pointer ${i === 0
               ? "border border-[#ffe0a0]/50 bg-gold text-ink"
               : "border border-line bg-panel2 text-sand hover:border-line2"}`}>
             <span>{i === 0 && op.accion.tipo !== "nada" ? "Aceptar · " : ""}{op.texto}</span>
@@ -38,9 +42,21 @@ function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }
   );
 }
 
-export default function DockLateral({ pestana, setPestana, lado }: {
-  pestana: PestanaDock; setPestana: (p: PestanaDock) => void; lado: "escritorio" | "movil";
-}) {
+interface DockLateralProps {
+  pestana?: PestanaDock;
+  setPestana?: (p: PestanaDock) => void;
+  lado?: "escritorio" | "movil";
+  onNavegarPestana?: (p: any) => void;
+  onSeleccionarBoxeador?: (id: string) => void;
+}
+
+export default function DockLateral({
+  pestana = "mensajes",
+  setPestana = () => {},
+  lado = "escritorio",
+  onNavegarPestana,
+  onSeleccionarBoxeador,
+}: DockLateralProps) {
   const { state, dispatch } = useGame();
   const mensajes = state.eventos.filter(e => e.tipo !== "patrocinio");
   const patrocinios = state.eventos.filter(e => e.tipo === "patrocinio");
@@ -48,15 +64,20 @@ export default function DockLateral({ pestana, setPestana, lado }: {
   const hayNovedad = mensajes.length > 0 || patrocinios.length > 0 || consejosListos.length > 0;
   const esEscritorio = lado === "escritorio";
 
+  // Inteligencia Contextual: Detección proactiva del estado del plantel
+  const alumnoListoParaFederar = state.plantel?.find(b => b.rol === "alumno" && ((b.fogueo ?? 0) >= 10 || (b as any).guanteosPrevios >= 10));
+  const saldoCritico = state.dinero < 300;
+
   const tabs: { id: PestanaDock; nombre: string; icono: string; badge: number; pulso: boolean }[] = [
     { id: "mensajes", nombre: "Mensajes", icono: "phone", badge: mensajes.length, pulso: mensajes.length > 0 },
     { id: "patrocinios", nombre: "Sponsors", icono: "case", badge: patrocinios.length, pulso: patrocinios.length > 0 },
     { id: "prensa", nombre: "Prensa", icono: "mic", badge: 0, pulso: false },
-    { id: "consejos", nombre: "Don Anselmo", icono: "cap", badge: consejosListos.length, pulso: consejosListos.length > 0 },
+    { id: "consejos", nombre: "Don Anselmo", icono: "cap", badge: consejosListos.length + (alumnoListoParaFederar ? 1 : 0), pulso: consejosListos.length > 0 || !!alumnoListoParaFederar },
   ];
 
   const contenido = (
-    <div className="scroll-fino h-full space-y-2 overflow-y-auto p-2.5">
+    <div className="scroll-fino h-full space-y-2 overflow-y-auto p-2.5 select-none">
+      {/* PESTAÑA: MENSAJES Y DESAFÍOS */}
       {pestana === "mensajes" && (
         <>
           {mensajes.length === 0 && (
@@ -67,10 +88,12 @@ export default function DockLateral({ pestana, setPestana, lado }: {
           {mensajes.map(ev => <TarjetaEvento key={ev.id} ev={ev} compacto={esEscritorio} />)}
         </>
       )}
+
+      {/* PESTAÑA: SPONSORS Y PATROCINIOS */}
       {pestana === "patrocinios" && (
         <>
           {state.patrocinio && (
-            <div className="border border-gold2/60 bg-gold/10 p-3">
+            <div className="border border-gold2/60 bg-gold/10 p-3 shadow-sm">
               <div className="flex items-center gap-2 font-display text-lg text-gold">
                 <I n="case" className="h-4 w-4" /> {state.patrocinio.nombre}
               </div>
@@ -87,6 +110,8 @@ export default function DockLateral({ pestana, setPestana, lado }: {
           )}
         </>
       )}
+
+      {/* PESTAÑA: PRENSA Y NOTICIAS */}
       {pestana === "prensa" && (
         <>
           <div className="flex items-center gap-2 px-1 pb-1">
@@ -99,16 +124,19 @@ export default function DockLateral({ pestana, setPestana, lado }: {
             </p>
           )}
           {state.prensa.map(n => (
-            <div key={n.id} className="border border-line bg-panel p-2.5">
+            <div key={n.id} className="border border-line bg-panel p-2.5 shadow-sm">
               <div className="font-cond text-[10px] uppercase tracking-widest text-mut">Semana {n.semana}</div>
               <p className="font-cond text-sm leading-snug text-sand">{n.texto}</p>
             </div>
           ))}
         </>
       )}
+
+      {/* PESTAÑA: CONSEJOS TÁCTICOS DE DON ANSELMO */}
       {pestana === "consejos" && (
         <>
-          <div className="border border-line bg-panel p-3">
+          {/* Tarjeta de Don Anselmo */}
+          <div className="border border-line bg-panel p-3 shadow-sm">
             <div className="flex items-center gap-2 font-display text-lg text-cream">
               <I n="cap" className="h-4 w-4 text-gold" /> Don Anselmo, el viejo del club
             </div>
@@ -116,15 +144,49 @@ export default function DockLateral({ pestana, setPestana, lado }: {
               "Te vi llegar con las manos vacías y el corazón lleno. Cumplí mis hitos y te regalo fama, que es la moneda del barrio."
             </p>
           </div>
+
+          {/* Banner Táctico Proactivo: Alumno listo para Federar (Aporte Local) */}
+          {alumnoListoParaFederar && (
+            <div
+              onClick={() => {
+                if (onSeleccionarBoxeador) onSeleccionarBoxeador(alumnoListoParaFederar.id);
+              }}
+              className="border-2 border-gold bg-gold/15 p-3 shadow-md transition-all hover:bg-gold/25 cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 font-cond text-[11px] uppercase tracking-wider text-gold font-bold">
+                <I n="spark" className="h-3.5 w-3.5" /> ¡10/10 Guanteos Completados!
+              </div>
+              <p className="font-display text-base text-cream mt-0.5">
+                {alumnoListoParaFederar.nombre} está listo para ser profesional.
+              </p>
+              <p className="font-cond text-xs text-sand mt-0.5 leading-tight">
+                Abrí su ficha técnica para tramitar su Licencia Federativa ($200).
+              </p>
+            </div>
+          )}
+
+          {/* Alerta Financiera Táctica (Aporte Local) */}
+          {saldoCritico && (
+            <div className="border border-blood/60 bg-blood/10 p-2.5 shadow-sm">
+              <div className="flex items-center gap-1 font-cond text-xs uppercase text-[#ff8a7e] font-bold">
+                <I n="fire" className="h-3.5 w-3.5" /> Precaución Financiera
+              </div>
+              <p className="font-cond text-xs text-sand mt-0.5">
+                Fondos por debajo de $300. Cuidado con los salarios del personal en el balance del domingo.
+              </p>
+            </div>
+          )}
+
+          {/* Hitos Canónicos de Don Anselmo */}
           {state.consejos.map(c => (
-            <div key={c.id} className={`border p-2.5 ${c.reclamado ? "border-line bg-panel opacity-60" : c.cumplido ? "border-gold2/70 bg-gold/10" : "border-line bg-panel"}`}>
+            <div key={c.id} className={`border p-2.5 shadow-sm ${c.reclamado ? "border-line bg-panel opacity-60" : c.cumplido ? "border-gold2/70 bg-gold/10" : "border-line bg-panel"}`}>
               <p className="font-cond text-sm leading-snug text-sand">{c.texto}</p>
               <div className="mt-1.5 flex items-center justify-between">
                 <span className="font-cond text-[11px] uppercase tracking-wide text-mut">Recompensa: +{c.fama} de fama</span>
                 {c.reclamado ? <span className="font-cond text-[11px] uppercase text-win">Cobrado</span>
                   : !c.cumplido ? <span className="font-cond text-[11px] uppercase text-mut">Pendiente</span> : (
                     <button onClick={() => { notificacion(); dispatch({ type: "RECLAMAR_CONSEJO", id: c.id }); }}
-                      className="btn-poster guia-luminica border border-[#ffe0a0]/50 bg-gold px-2.5 py-0.5 text-sm text-ink">
+                      className="btn-poster guia-luminica border border-[#ffe0a0]/50 bg-gold px-2.5 py-0.5 text-sm text-ink cursor-pointer">
                       <span>Cobrar</span>
                     </button>
                   )}
@@ -138,7 +200,7 @@ export default function DockLateral({ pestana, setPestana, lado }: {
 
   if (esEscritorio) {
     return (
-      <aside className="anim-dock flex h-[calc(100vh-140px)] w-[320px] shrink-0 flex-col border border-line bg-panel/80"
+      <aside className="anim-dock flex h-[calc(100vh-140px)] w-[320px] shrink-0 flex-col border border-line bg-panel/80 select-none"
         style={{ boxShadow: "-8px 0 24px rgba(0,0,0,0.3)" }}>
         <div className="flex items-center gap-2 border-b border-line bg-panel2/70 px-3 py-2">
           <span className={`grid h-7 w-7 place-items-center border ${hayNovedad ? "border-gold text-gold anim-latido" : "border-line2 text-sand"}`}>
@@ -150,7 +212,7 @@ export default function DockLateral({ pestana, setPestana, lado }: {
         <div className="grid grid-cols-4 border-b border-line">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setPestana(t.id)}
-              className={`relative flex flex-col items-center gap-0.5 border-b-2 px-1 py-2 transition-colors ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"} ${t.pulso && pestana !== t.id ? "guia-luminica" : ""}`}>
+              className={`relative flex flex-col items-center gap-0.5 border-b-2 px-1 py-2 transition-colors cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"} ${t.pulso && pestana !== t.id ? "guia-luminica" : ""}`}>
               <I n={t.icono} className="h-4 w-4" />
               <span className="font-cond text-[10px] uppercase tracking-wide">{t.nombre}</span>
               {t.badge > 0 && <span className="absolute right-1.5 top-1 grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}
@@ -162,13 +224,13 @@ export default function DockLateral({ pestana, setPestana, lado }: {
     );
   }
 
-  // versión compacta para pantallas chicas
+  // Versión compacta para pantallas móviles
   return (
-    <div className="border-t border-line bg-panel/95">
+    <div className="border-t border-line bg-panel/95 select-none">
       <div className="grid grid-cols-4">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setPestana(pestana === t.id ? "mensajes" : t.id)}
-            className={`relative flex items-center justify-center gap-1.5 border-t-2 px-2 py-2 ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut"} ${t.pulso ? "guia-luminica" : ""}`}>
+            className={`relative flex items-center justify-center gap-1.5 border-t-2 px-2 py-2 cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut"} ${t.pulso ? "guia-luminica" : ""}`}>
             <I n={t.icono} className="h-4 w-4" />
             <span className="font-cond text-[11px] uppercase">{t.nombre}</span>
             {t.badge > 0 && <span className="grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}
@@ -183,3 +245,5 @@ export default function DockLateral({ pestana, setPestana, lado }: {
     </div>
   );
 }
+
+export { DockLateral, DockLateral as Phone };

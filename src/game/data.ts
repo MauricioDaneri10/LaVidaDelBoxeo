@@ -4,9 +4,52 @@ import type {
 } from "./types";
 
 // ==================== NOMBRES Y APARIENCIAS ====================
-export const NOMBRES_H = ["Marcos", "Julián", "Rodrigo", "Emiliano", "Sergio", "Iván", "Nicolás", "Federico", "Gastón", "Bruno", "Damián", "Ezequiel", "Matías", "Leandro", "Ramiro", "Facundo"];
-export const NOMBRES_M = ["Valentina", "Camila", "Lucía", "Martina", "Julieta", "Antonella", "Florencia", "Milagros", "Agustina", "Rocío", "Bianca", "Dana", "Selene", "Priscila"];
-export const APELLIDOS = ["Quiroga", "Sosa", "Vega", "Peralta", "Molina", "Roldán", "Ibarra", "Castro", "Benítez", "Figueroa", "Ojeda", "Luna", "Cabrera", "Maidana", "Toledo", "Villalba", "Herrera", "Paz", "Ríos", "Bustos", "Coronel", "Salas", "Nieto", "Oliva"];
+// Nombres masculinos (16 canónicos + 34 ampliados de fuente local = 50 pugilistas)
+export const NOMBRES_H = [
+  "Marcos", "Julián", "Rodrigo", "Emiliano", "Sergio", "Iván", "Nicolás", "Federico",
+  "Gastón", "Bruno", "Damián", "Ezequiel", "Matías", "Leandro", "Ramiro", "Facundo",
+  "Mateo", "Santiago", "Lucas", "Lautaro", "Agustín", "Tomás", "Ignacio", "Joaquín",
+  "Sebastián", "Diego", "Esteban", "Cristian", "Franco", "Gonzalo", "Nahuel", "Alejandro",
+  "Maximiliano", "Gabriel", "Ángel", "Mariano", "Darío", "Oscar", "Raúl", "Claudio",
+  "César", "Hugo", "Gustavo", "Martín", "Pablo", "Enzo", "Luciano", "Guillermo",
+  "Hernán", "Manuel"
+];
+
+// Nombres femeninos (14 canónicos + 22 ampliados de fuente local = 36 pugilistas)
+export const NOMBRES_M = [
+  "Valentina", "Camila", "Lucía", "Martina", "Julieta", "Antonella", "Florencia", "Milagros",
+  "Agustina", "Rocío", "Bianca", "Dana", "Selene", "Priscila", "Sofía", "Abril",
+  "Micaela", "Carolina", "Sol", "Brisa", "Candela", "Victoria", "Romina", "Mariana",
+  "Natalia", "Daniela", "Cecilia", "Paula", "Andrea", "Silvina", "Lorena", "Verónica",
+  "Jazmín", "Belén", "Luciana", "Guadalupe"
+];
+
+// Alias canónicos para compatibilidad transparente de nomenclatura
+export const NOMBRES_F = NOMBRES_M;
+export const NOMBRES_MASCULINOS = NOMBRES_H;
+export const NOMBRES_FEMENINOS = NOMBRES_M;
+
+// Apellidos (24 canónicos + 40 ampliados de fuente local = 64 linajes)
+export const APELLIDOS = [
+  "Quiroga", "Sosa", "Vega", "Peralta", "Molina", "Roldán", "Ibarra", "Castro",
+  "Benítez", "Figueroa", "Ojeda", "Luna", "Cabrera", "Maidana", "Toledo", "Villalba",
+  "Herrera", "Paz", "Ríos", "Bustos", "Coronel", "Salas", "Nieto", "Oliva",
+  "Rodríguez", "González", "Gómez", "Fernández", "López", "Díaz", "Martínez", "Pérez",
+  "García", "Sánchez", "Romero", "Torres", "Álvarez", "Ruiz", "Ramírez", "Flores",
+  "Acosta", "Medina", "Aguirre", "Pereyra", "Gutiérrez", "Giménez", "Silva", "Rojas",
+  "Ortiz", "Núñez", "Juárez", "Morales", "Godoy", "Moreno", "Ferreyra", "Domínguez",
+  "Carrizo", "Castillo", "Vázquez", "Navarro", "Correa", "Mendoza", "Barrios", "Bravo"
+];
+
+// Apodos pugilísticos
+export const APODOS = [
+  "El Toro", "La Cobra", "Dinamita", "El Rayo", "El Tanque", "Martillo", "La Furia",
+  "El Cirujano", "Relámpago", "El Huracán", "El Gladiador", "La Pantera", "El Cazador",
+  "Terremoto", "El Diamante", "La Roca", "El Vikingo", "El Destructor", "El Zurdo de Oro",
+  "El Matador", "El Fantasma", "Piedra Fuerte", "El Chacal", "Corazón de León", "El León Negro",
+  "El Trueno", "Impacto Puro", "Mano de Piedra", "La Topadora", "El Maestro", "El Asesino Silencioso"
+];
+
 export const RASGOS = [
   { id: "mandibula", nombre: "Mandíbula de Acero", desc: "Resiste mejor los golpes de poder (+defensa efectiva)." },
   { id: "hijo", nombre: "Hijo de Leyenda", desc: "Crece más rápido en mentalidad e inteligencia." },
@@ -24,7 +67,29 @@ export const PIELES = ["#f0c8a0", "#e0b088", "#c9986a", "#b07d52", "#8f5f3d", "#
 export const PANTALONES = ["#d4342c", "#1f6fb2", "#2e9e63", "#e8b23a", "#8b4fbf", "#e2e2e2", "#23262d", "#e0662e"];
 export const PELOS = ["#20180f", "#3a2a18", "#151515", "#5a3d20", "#7a5230", "#2c2c34"];
 
+// Alias de apariencia
+export const SKINS = PIELES;
+export const SHORTS = PANTALONES;
+
+// Divisiones oficiales
 export const DIVISIONES = ["Mosca", "Gallo", "Pluma", "Ligero", "Wélter", "Mediano", "Semipesado", "Pesado"];
+
+// Divisiones por sexo y peso
+export const DIVISIONES_M = [
+  "Pluma (57 kg)",
+  "Ligero (61 kg)",
+  "Wélter (66 kg)",
+  "Mediano (72 kg)",
+  "Semipesado (79 kg)",
+  "Pesado (+91 kg)"
+];
+
+export const DIVISIONES_F = [
+  "Pluma (57 kg)",
+  "Ligero (61 kg)",
+  "Wélter (66 kg)",
+  "Mediano (72 kg)"
+];
 
 export const GIMNASIOS_RIVALES = ["Club La Loma", "Club Ferro", "Gimnasio Atlas", "Puños del Sur", "Escuela Centenario"];
 
@@ -106,15 +171,80 @@ export const TITULOS: Record<1 | 2 | 3 | 4, { nombre: string; cinturon: string; 
   4: { nombre: "Título Mundial", cinturon: "Cinturón Absoluto de Oro y Diamantes", bolsa: 150000, req: "18 a 20+ victorias (10+ por KO)", colores: ["#f2c94c", "#e8b23a"] },
 };
 
-// ==================== PROPIEDADES ====================
-export const PROPIEDADES: Record<PropiedadId, { nombre: string; costo: number; desc: string; icono: string }> = {
-  local: { nombre: "Local Propio del Gimnasio", costo: 9000, desc: "Comprá el local y olvidate del alquiler para siempre.", icono: "store" },
-  terreno: { nombre: "Terreno Baldío", costo: 5000, desc: "Paso previo y barato antes de levantar una sucursal.", icono: "plot" },
-  sucursal: { nombre: "Sucursal del Gimnasio", costo: 14000, desc: "Nueva sede con ingresos pasivos semanales (requiere Gerente).", icono: "store" },
-  apartamento: { nombre: "Apartamento Céntrico", costo: 6000, desc: "Tu primer techo propio: +2 de fama.", icono: "house" },
-  mansion: { nombre: "Mansión con Vista", costo: 35000, desc: "El sueño del magnate: +8 de fama.", icono: "house" },
-  arena: { nombre: "Arena Central", costo: 80000, desc: "El templo del boxeo es tuyo: veladas con recaudación ×1.5.", icono: "ring" },
+// ==================== PROPIEDADES ENRIQUECIDAS ====================
+export const PROPIEDADES: Record<PropiedadId, {
+  nombre: string;
+  costo: number;
+  desc: string;
+  icono: string;
+  tipo?: "vivienda" | "comercial" | "estadio";
+  distrito?: string;
+  coordenadasSvg?: { x: number; y: number };
+  beneficio?: string;
+}> = {
+  local: {
+    nombre: "Local Propio del Gimnasio",
+    costo: 9000,
+    desc: "Comprá el local y olvidate del alquiler para siempre.",
+    icono: "store",
+    tipo: "comercial",
+    distrito: "Sur (Barrio Tradicional)",
+    coordenadasSvg: { x: 420, y: 340 },
+    beneficio: "Elimina el alquiler semanal del gimnasio",
+  },
+  terreno: {
+    nombre: "Terreno Baldío",
+    costo: 5000,
+    desc: "Paso previo y barato antes de levantar una sucursal.",
+    icono: "plot",
+    tipo: "comercial",
+    distrito: "Sur (Barrio Tradicional)",
+    coordenadasSvg: { x: 300, y: 400 },
+    beneficio: "Habilita la construcción de nuevas instalaciones",
+  },
+  sucursal: {
+    nombre: "Sucursal del Gimnasio",
+    costo: 14000,
+    desc: "Nueva sede con ingresos pasivos semanales (requiere Gerente).",
+    icono: "store",
+    tipo: "comercial",
+    distrito: "Centro Urbano",
+    coordenadasSvg: { x: 500, y: 300 },
+    beneficio: "+10 cupos de alumnos y +$800/sem con Gerente contratado",
+  },
+  apartamento: {
+    nombre: "Apartamento Céntrico",
+    costo: 6000,
+    desc: "Tu primer techo propio: +2 de fama.",
+    icono: "house",
+    tipo: "vivienda",
+    distrito: "Sur (Barrio Tradicional)",
+    coordenadasSvg: { x: 260, y: 380 },
+    beneficio: "+2 de Fama permanente y vivienda personal",
+  },
+  mansion: {
+    nombre: "Mansión con Vista",
+    costo: 35000,
+    desc: "El sueño del magnate: +8 de fama.",
+    icono: "house",
+    tipo: "vivienda",
+    distrito: "Norte (Lomas)",
+    coordenadasSvg: { x: 740, y: 140 },
+    beneficio: "+8 de Fama permanente y prestigio para el club",
+  },
+  arena: {
+    nombre: "Arena Central",
+    costo: 80000,
+    desc: "El templo del boxeo es tuyo: veladas con recaudación ×1.5.",
+    icono: "ring",
+    tipo: "estadio",
+    distrito: "Centro Urbano",
+    coordenadasSvg: { x: 620, y: 190 },
+    beneficio: "Elimina alquiler para siempre y multiplica recaudación ×1.5",
+  },
 };
+
+export const PROPIEDADES_INFO = PROPIEDADES;
 
 // ==================== EVENTOS COMUNITARIOS ====================
 export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival", { nombre: string; inversion: number; min: number; max: number; extra: string }> = {
@@ -122,6 +252,69 @@ export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival", { nombre: str
   naipes: { nombre: "Torneo de Juegos de Mesa y Naipes", inversion: 100, min: 400, max: 900, extra: "Noche de camaradería" },
   festival: { nombre: "Noche de Festival y Exhibición de Boxeo", inversion: 500, min: 1000, max: 2500, extra: "+3 de Fama garantizada" },
 };
+
+// Eventos de club ampliados
+export const EVENTOS_CLUB_INFO: Record<string, {
+  id: string;
+  nombre: string;
+  emoji: string;
+  costoOrganizacion: number;
+  recaudacionBase: number;
+  famaMultiplicador: number;
+  famaGanada: number;
+  descripcion: string;
+}> = {
+  bingoFamiliar: {
+    id: "bingoFamiliar",
+    nombre: "Gran Bingo Familiar",
+    emoji: "🎟️",
+    costoOrganizacion: 120,
+    recaudacionBase: 250,
+    famaMultiplicador: 4,
+    famaGanada: 2,
+    descripcion: "Tarde de sorteos, premios y buffet con las familias del barrio en el salón del club.",
+  },
+  torneoJuegosMesa: {
+    id: "torneoJuegosMesa",
+    nombre: "Torneo de Juegos de Mesa & Truco",
+    emoji: "🃏",
+    costoOrganizacion: 80,
+    recaudacionBase: 160,
+    famaMultiplicador: 3,
+    famaGanada: 1,
+    descripcion: "Competencia barrial de truco, ajedrez y dominó para socios y aficionados.",
+  },
+  festivalBoxeo: {
+    id: "festivalBoxeo",
+    nombre: "Festival de Boxeo & Kermesse",
+    emoji: "🎪",
+    costoOrganizacion: 250,
+    recaudacionBase: 450,
+    famaMultiplicador: 8,
+    famaGanada: 4,
+    descripcion: "Exhibición de guanteos al aire libre, puestos gastronómicos y música en vivo.",
+  },
+  copaMundialClubes: {
+    id: "copaMundialClubes",
+    nombre: "Copa Mundial de Clubes de Élite",
+    emoji: "👑",
+    costoOrganizacion: 50000,
+    recaudacionBase: 85000,
+    famaMultiplicador: 20,
+    famaGanada: 25,
+    descripcion: "Mega-torneo internacional transmitido a nivel global. Consagra a tu club como la máxima dinastía del pugilismo.",
+  },
+};
+
+// Emblemas de club
+export const LOGOS_DISPONIBLES = [
+  { id: "guante", nombre: "Guante Carmesí", emoji: "🥊", lema: "Tradición, forja y disciplina" },
+  { id: "leon", nombre: "León Imperial", emoji: "🦁", lema: "Orgullo y dominio en el ring" },
+  { id: "aguila", nombre: "Águila Dorada", emoji: "🦅", lema: "Velocidad, visión y precisión" },
+  { id: "corona", nombre: "Corona Real", emoji: "👑", lema: "Excelencia y realeza boxística" },
+  { id: "rayo", nombre: "Rayo Eléctrico", emoji: "⚡", lema: "Explosividad e impacto fulminante" },
+  { id: "lobo", nombre: "Lobo Plateado", emoji: "🐺", lema: "Estrategia, garra y trabajo de esquina" },
+];
 
 // ==================== SPONSORS Y PRENSA ====================
 export const SPONSORS = ["Bebidas Toro", "Ropa Deportiva Ráfaga", "Ferretería El Yunque", "Autos Falcón", "Lácteos La Pradera", "Zapatillas Trueno", "Seguros Escudo", "Carnes Don Pedro"];
@@ -138,5 +331,18 @@ export const CONSEJOS_INICIALES: Omit<Consejo, "cumplido" | "reclamado">[] = [
   { id: "c7", texto: "Contratá a tu primer miembro del personal. Nadie llega solo a la cima.", fama: 4 },
 ];
 
+// Calendario
 export const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+export const DIAS_SEMANA_NOMBRES = DIAS;
+export const MESES_CALENDARIO = MESES;
+
+// ==================== FUNCIONES AUXILIARES ====================
+export function fmtDinero(n: number): string {
+  return `$${Math.round(n).toLocaleString("es-AR")}`;
+}
+
+export function generarIdUnico(): string {
+  return "id_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now();
+}

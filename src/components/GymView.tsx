@@ -1,11 +1,11 @@
-import { useMemo } from "react";
-import { COMBOS, TITULOS } from "../game/data";
-import { capacidadAlumnos, nivelGimnasio } from "../game/engine";
+import { useMemo, useState } from "react";
+import { COMBOS, LOGOS_DISPONIBLES, TITULOS } from "../game/data";
+import { capacidadAlumnos, nivelGimnasio, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { Pugilista } from "../game/types";
-import { I } from "./ui";
+import { I, RostroBoxeador } from "./ui";
 
-// ==================== FIGURA BASE ====================
+// ==================== FIGURA PROCEDIMENTAL DE ATLETA ====================
 export function Figura({ p, pose = "guardia", escala = 1, voltear = false, onClick }: {
   p: Pugilista; pose?: "guardia" | "sombra" | "sentado" | "saltando" | "caido" | "cabezal";
   escala?: number; voltear?: boolean; onClick?: () => void;
@@ -13,9 +13,9 @@ export function Figura({ p, pose = "guardia", escala = 1, voltear = false, onCli
   const anim = pose === "saltando" ? "anim-salto" : pose === "sombra" ? "anim-sombra" : pose === "sentado" ? "" : "anim-bob";
   return (
     <button onClick={onClick} title={`${p.nombre} — ver ficha`}
-      className="group relative flex flex-col items-center outline-none" style={{ width: 56 * escala }}>
-      <div className="pointer-events-none absolute -top-6 z-10 flex items-center gap-1 whitespace-nowrap border border-line bg-ink/95 px-1.5 py-0.5 font-cond text-[10px] uppercase tracking-wide text-sand opacity-0 transition-opacity group-hover:opacity-100">
-        {p.nombre.split(" ")[0]} · {COMBOS[p.combo].corto} · En. {Math.round(p.energia)}
+      className="group relative flex flex-col items-center outline-none cursor-pointer" style={{ width: 56 * escala }}>
+      <div className="pointer-events-none absolute -top-6 z-10 flex items-center gap-1 whitespace-nowrap border border-line bg-ink/95 px-1.5 py-0.5 font-cond text-[10px] uppercase tracking-wide text-sand opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
+        {p.nombre.split(" ")[0]} · {COMBOS[p.combo]?.corto || "Libre"} · En. {Math.round(p.energia)}
       </div>
       <div className={`${anim} ${voltear ? "-scale-x-100" : ""}`} style={{ animationDelay: `${(p.nombre.length % 5) * 0.17}s` }}>
         <svg viewBox="0 0 48 66" width={52 * escala} height={71 * escala}>
@@ -76,32 +76,43 @@ function EtiquetaZona({ n, titulo, extra }: { n: string; titulo: string; extra?:
   );
 }
 
-// ==================== CINTURONES EN LA PARED ====================
-function VitrinaCinturones() {
+// ==================== VITRINA DE CINTURONES ====================
+function VitrinaCinturones({ onAbrirDueno }: { onAbrirDueno: (nombre: string) => void }) {
   const { state } = useGame();
   const conVitrina = state.equipamiento.includes("vitrina");
   if (state.cinturones.length === 0) return null;
+
   return (
-    <div className={`absolute right-[2%] top-[8%] z-10 ${conVitrina ? "border-2 border-gold2/70 bg-ink/60 p-2 backdrop-blur-[1px]" : "p-1"}`}
+    <div className={`absolute right-[2%] top-[8%] z-10 ${conVitrina ? "border-2 border-gold2/70 bg-ink/75 p-2 rounded-xl backdrop-blur-[2px]" : "p-1"}`}
       style={conVitrina ? { boxShadow: "0 0 18px rgba(232,178,58,0.25), inset 0 0 12px rgba(232,178,58,0.12)" } : undefined}>
-      <div className="mb-1 flex items-center gap-1 font-cond text-[10px] uppercase tracking-[0.2em] text-gold">
-        <I n="trophy" className="h-3 w-3" /> Vitrina de Campeones
+      <div className="mb-1 flex items-center gap-1.5 font-cond text-[10px] uppercase tracking-[0.2em] text-gold">
+        <I n="trophy" className="h-3 w-3" /> Vitrina de Campeones ({state.cinturones.length})
       </div>
-      <div className="flex max-w-[220px] flex-wrap gap-2">
+      <div className="flex max-w-[240px] flex-wrap gap-2">
         {state.cinturones.slice(0, 6).map(c => {
           const info = TITULOS[c.nivel];
           return (
-            <svg key={c.id} viewBox="0 0 60 22" className="anim-cinturon h-6 w-16">
-              <title>{`${info.cinturon} — ${c.dueno}`}</title>
-              <rect x="2" y="8" width="56" height="7" rx="3" fill={info.colores[0]} stroke="#00000055" />
-              <rect x="2" y="8" width="56" height="3" rx="1.5" fill="#ffffff22" />
-              <circle cx="30" cy="11" r="7.5" fill={info.colores[1]} stroke="#00000066" strokeWidth="1.2" />
-              <circle cx="30" cy="11" r="4.5" fill="#f8f3e4" opacity="0.85" />
-              {c.nivel === 4 && <>
-                <circle cx="20" cy="11" r="1.6" fill="#bfefff" /><circle cx="40" cy="11" r="1.6" fill="#bfefff" />
-              </>}
-              <text x="30" y="13.6" textAnchor="middle" fontSize="6.5" fontFamily="Bebas Neue" fill="#3a2a12">{c.nivel === 4 ? "M" : c.nivel === 3 ? "C" : c.nivel === 2 ? "N" : "R"}</text>
-            </svg>
+            <button
+              key={c.id}
+              onClick={() => onAbrirDueno(c.dueno)}
+              className="anim-cinturon h-6 w-16 cursor-pointer outline-none hover:scale-110 transition-transform"
+              title={`${info.cinturon} — Dueño: ${c.dueno} (Clic para ver ficha)`}
+            >
+              <svg viewBox="0 0 60 22" className="w-full h-full">
+                <rect x="2" y="8" width="56" height="7" rx="3" fill={info.colores[0]} stroke="#00000055" />
+                <rect x="2" y="8" width="56" height="3" rx="1.5" fill="#ffffff22" />
+                <circle cx="30" cy="11" r="7.5" fill={info.colores[1]} stroke="#00000066" strokeWidth="1.2" />
+                <circle cx="30" cy="11" r="4.5" fill="#f8f3e4" opacity="0.85" />
+                {c.nivel === 4 && (
+                  <>
+                    <circle cx="20" cy="11" r="1.6" fill="#bfefff" /><circle cx="40" cy="11" r="1.6" fill="#bfefff" />
+                  </>
+                )}
+                <text x="30" y="13.6" textAnchor="middle" fontSize="6.5" fontFamily="Bebas Neue" fill="#3a2a12">
+                  {c.nivel === 4 ? "M" : c.nivel === 3 ? "C" : c.nivel === 2 ? "N" : "R"}
+                </text>
+              </svg>
+            </button>
           );
         })}
       </div>
@@ -109,13 +120,34 @@ function VitrinaCinturones() {
   );
 }
 
-// ==================== DIORAMA ====================
-export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) {
+interface GymViewProps {
+  onAbrir?: (id: string) => void;
+  onSeleccionarBoxeador?: (b: Pugilista) => void;
+}
+
+// ==================== DIORAMA DEL GIMNASIO ====================
+export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const { state, nivel } = useGame();
+  const [drawerAbierto, setDrawerAbierto] = useState(false);
   const todos = state.plantel;
   const tieneZonaElite = state.equipamiento.includes("zonaElite");
 
-  // rotación activa: máximo 8 en pantalla
+  const logoActual = LOGOS_DISPONIBLES.find(l => l.id === (state as any).logoGimnasio) || LOGOS_DISPONIBLES[0];
+
+  const seleccionarAtleta = (id: string) => {
+    if (onAbrir) onAbrir(id);
+    if (onSeleccionarBoxeador) {
+      const b = state.plantel.find(p => p.id === id);
+      if (b) onSeleccionarBoxeador(b);
+    }
+  };
+
+  const abrirPorNombre = (nombre: string) => {
+    const pugil = state.plantel.find(p => p.nombre === nombre);
+    if (pugil) seleccionarAtleta(pugil.id);
+  };
+
+  // Rotación activa: máximo 8 en pantalla
   const asignacion = useMemo(() => {
     const vip: Pugilista[] = [];
     const hidratacion: Pugilista[] = [];
@@ -143,8 +175,9 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
   const piso = nivel >= 3 ? "linear-gradient(180deg,#241f2e,#191521)" : "linear-gradient(180deg,#6b4d2e,#4a341e)";
 
   return (
-    <div className="panel relative overflow-hidden" style={{ minHeight: 560 }}>
-      {/* PARED */}
+    <div className="panel relative overflow-hidden flex flex-col justify-between" style={{ minHeight: 560 }}>
+      
+      {/* PARED DEL GIMNASIO */}
       <div className="absolute inset-x-0 top-0 h-[56%]" style={{ background: pared }}>
         {[14, 50, 86].map((x, i) => (
           <div key={x} className="absolute top-0" style={{ left: `${x}%` }}>
@@ -154,28 +187,42 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
               style={{ background: nivel >= 3 ? "var(--color-neonc)" : "var(--color-gold)", boxShadow: nivel >= 3 ? "0 0 20px 7px rgba(56,224,207,0.3)" : "0 0 20px 7px rgba(232,178,58,0.3)", animation: `latido ${2.2 + i * 0.5}s ease-in-out infinite` }} />
           </div>
         ))}
-        <div className={`absolute left-1/2 top-7 -translate-x-1/2 text-center ${nivel >= 3 ? "anim-neon" : ""}`}>
-          <div className={`border-2 px-5 py-1.5 font-display text-2xl tracking-[0.12em] sm:text-3xl ${nivel >= 3 ? "border-neonc text-neonc" : "border-gold2 text-gold"}`}
-            style={nivel >= 3
-              ? { textShadow: "0 0 16px rgba(56,224,207,0.85), 0 0 38px rgba(255,79,160,0.4)", boxShadow: "0 0 22px rgba(56,224,207,0.22) inset" }
-              : { textShadow: "0 0 12px rgba(232,178,58,0.55)" }}>
-            {state.nombreGimnasio}
+
+        {/* MARQUESINA CENTRAL DEL GIMNASIO CON EMBLEMA Y NIVEL */}
+        <div className={`absolute left-1/2 top-6 -translate-x-1/2 text-center ${nivel >= 3 ? "anim-neon" : ""}`}>
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-2xl filter drop-shadow">{logoActual.emoji}</span>
+            <div className={`border-2 px-5 py-1 font-display text-2xl tracking-[0.12em] sm:text-3xl ${nivel >= 3 ? "border-neonc text-neonc" : "border-gold2 text-gold"}`}
+              style={nivel >= 3
+                ? { textShadow: "0 0 16px rgba(56,224,207,0.85), 0 0 38px rgba(255,79,160,0.4)", boxShadow: "0 0 22px rgba(56,224,207,0.22) inset" }
+                : { textShadow: "0 0 12px rgba(232,178,58,0.55)" }}>
+              {state.nombreGimnasio}
+            </div>
+            <span className="text-2xl filter drop-shadow">{logoActual.emoji}</span>
           </div>
-          <div className="mt-0.5 font-cond text-[10px] uppercase tracking-[0.3em] text-sand">Club de Box · Nivel {nivel}</div>
+          <div className="mt-0.5 font-cond text-[10px] uppercase tracking-[0.3em] text-sand">
+            Sede Central de Entrenamiento · Nivel {nivel}
+          </div>
         </div>
+
         {nivel >= 3 && <div className="anim-marquee absolute bottom-0 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg,transparent,var(--color-neonc),var(--color-neonm),transparent)" }} />}
-        <VitrinaCinturones />
-        <div className="absolute left-[4%] top-[38%] hidden -rotate-2 border-4 border-[#efe3c8] bg-[#e8d9b8] p-1 sm:block" style={{ width: 70 }}>
+        
+        {/* VITRINA DE CINTURONES */}
+        <VitrinaCinturones onAbrirDueno={abrirPorNombre} />
+
+        {/* AFICHE DE VELADA */}
+        <div className="absolute left-[4%] top-[36%] hidden -rotate-2 border-4 border-[#efe3c8] bg-[#e8d9b8] p-1 sm:block shadow-md" style={{ width: 70 }}>
           <div className="bg-blood px-1 py-0.5 text-center font-display text-[12px] leading-tight text-cream">VELADA<br />DE ORO</div>
           <div className="py-0.5 text-center font-cond text-[9px] uppercase text-ink">Sábado · 21 hs</div>
         </div>
       </div>
-      {/* PISO */}
+
+      {/* PISO DE MADERA / RING */}
       <div className="absolute inset-x-0 bottom-0 h-[44%]" style={{ background: piso }}>
         <div className="absolute inset-0 opacity-25" style={{ background: "repeating-linear-gradient(90deg, rgba(0,0,0,0.25) 0 2px, transparent 2px 54px)" }} />
       </div>
 
-      {/* ============ LAS 5 ESTACIONES ============ */}
+      {/* ============ LAS 5 ESTACIONES DE ENTRENAMIENTO ============ */}
       <div className="absolute inset-x-0 bottom-[7%] top-[52%] grid grid-cols-5 gap-1 px-2">
 
         {/* ZONA 1: SOGA Y CARDIO */}
@@ -189,7 +236,7 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
                 </g>
                 <ellipse cx="30" cy="66" rx="13" ry="2.6" fill="rgba(0,0,0,0.35)" />
               </svg>
-              <Figura p={b} pose="saltando" escala={0.88} onClick={() => onAbrir(b.id)} />
+              <Figura p={b} pose="saltando" escala={0.88} onClick={() => seleccionarAtleta(b.id)} />
             </div>
           ))}
           {asignacion.soga.length === 0 && <Vacia />}
@@ -213,7 +260,7 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
           </svg>
           {asignacion.sacos.map((b, i) => (
             <div key={b.id} className="absolute bottom-1" style={{ left: `${8 + i * 46}%` }}>
-              <Figura p={b} pose="guardia" escala={0.85} onClick={() => onAbrir(b.id)} />
+              <Figura p={b} pose="guardia" escala={0.85} onClick={() => seleccionarAtleta(b.id)} />
             </div>
           ))}
           {asignacion.sacos.length === 0 && <Vacia />}
@@ -230,12 +277,12 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
           </svg>
           {asignacion.ring[0] && (
             <div className="absolute bottom-[16%] left-[10%]">
-              <Figura p={asignacion.ring[0]} pose="cabezal" escala={0.66} onClick={() => onAbrir(asignacion.ring[0].id)} />
+              <Figura p={asignacion.ring[0]} pose="cabezal" escala={0.66} onClick={() => seleccionarAtleta(asignacion.ring[0].id)} />
             </div>
           )}
           {asignacion.ring[1] && (
             <div className="absolute bottom-[16%] right-[10%]">
-              <Figura p={asignacion.ring[1]} pose="cabezal" escala={0.66} voltear onClick={() => onAbrir(asignacion.ring[1].id)} />
+              <Figura p={asignacion.ring[1]} pose="cabezal" escala={0.66} voltear onClick={() => seleccionarAtleta(asignacion.ring[1].id)} />
             </div>
           )}
           {asignacion.ring.length > 0 && (
@@ -262,7 +309,7 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
           </div>
           {asignacion.manoplas.map(b => (
             <div key={b.id} className="absolute bottom-1 left-[8%]">
-              <Figura p={b} pose="sombra" escala={0.85} onClick={() => onAbrir(b.id)} />
+              <Figura p={b} pose="sombra" escala={0.85} onClick={() => seleccionarAtleta(b.id)} />
             </div>
           ))}
           <svg viewBox="0 0 40 52" width="30" height="40" className="absolute bottom-2 right-[12%]">
@@ -292,7 +339,7 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
           </svg>
           {asignacion.hidratacion.map((b, i) => (
             <div key={b.id} className="absolute bottom-1" style={{ left: `${10 + i * 44}%` }}>
-              <Figura p={b} pose="sentado" escala={0.85} onClick={() => onAbrir(b.id)} />
+              <Figura p={b} pose="sentado" escala={0.85} onClick={() => seleccionarAtleta(b.id)} />
             </div>
           ))}
           {asignacion.hidratacion.length === 0 && <Vacia />}
@@ -301,7 +348,7 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
 
       {/* ZONA ÉLITE VIP */}
       {tieneZonaElite && (
-        <div className="absolute right-[2%] top-[24%] z-10 h-[26%] w-[34%] border-2 border-neonc/60 bg-neonc/5 p-2"
+        <div className="absolute right-[2%] top-[24%] z-10 h-[26%] w-[34%] border-2 border-neonc/60 bg-neonc/5 p-2 rounded-xl"
           style={{ boxShadow: "0 0 24px rgba(56,224,207,0.18) inset, 0 0 18px rgba(56,224,207,0.2)" }}>
           <div className="anim-neon flex items-center gap-1.5 font-cond text-[11px] uppercase tracking-[0.2em] text-neonc">
             <I n="trophy" className="h-3.5 w-3.5" /> Zona Élite VIP · +70% velocidad
@@ -310,15 +357,64 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
             <div className="pointer-events-none absolute inset-x-2 bottom-0 h-[45%] border-t-2 border-neonc/40 bg-neonc/5" />
             {asignacion.vip.map((b, i) => (
               <div key={b.id} className="absolute bottom-0" style={{ left: `${6 + i * 32}%` }}>
-                <Figura p={b} pose="guardia" escala={0.8} onClick={() => onAbrir(b.id)} />
+                <Figura p={b} pose="guardia" escala={0.8} onClick={() => seleccionarAtleta(b.id)} />
               </div>
             ))}
-            {asignacion.vip.length === 0 && <div className="mt-5 font-cond text-xs italic text-neonc/60">Asciende a tus 3 estrellas del ranking aquí.</div>}
+            {asignacion.vip.length === 0 && <div className="mt-5 font-cond text-xs italic text-neonc/60">Asciende a tus estrellas del ranking aquí.</div>}
           </div>
         </div>
       )}
 
-      {/* BARRA DE ESTADO */}
+      {/* ROSTER LATERAL RÁPIDO (DRAWER DESPLEGABLE) */}
+      {drawerAbierto && (
+        <div className="absolute inset-y-0 right-0 z-30 w-72 bg-ink/95 border-l border-line p-4 shadow-2xl flex flex-col justify-between backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-line pb-2">
+            <span className="font-display text-base text-cream uppercase tracking-wider">
+              Roster del Gimnasio ({todos.length})
+            </span>
+            <button
+              onClick={() => setDrawerAbierto(false)}
+              className="p-1 rounded text-mut hover:text-white cursor-pointer"
+            >
+              <I n="x" className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2 py-3 pr-1">
+            {todos.map(b => (
+              <div
+                key={b.id}
+                onClick={() => { seleccionarAtleta(b.id); setDrawerAbierto(false); }}
+                className="p-2.5 rounded-xl bg-panel hover:bg-panel2 border border-line cursor-pointer flex items-center gap-3 transition-colors group"
+              >
+                <RostroBoxeador atleta={b} className="w-10 h-10 shrink-0 rounded-lg" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-cond font-bold text-xs text-cream truncate group-hover:text-gold">
+                    {b.nombre}
+                  </div>
+                  <div className="font-cond text-[10px] text-mut uppercase">
+                    {b.division} · En. {Math.round(b.energia)}
+                  </div>
+                </div>
+                <div className="font-mono-data text-xs font-black text-gold">
+                  {valoracion(b.atrib)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-2 border-t border-line text-center">
+            <button
+              onClick={() => setDrawerAbierto(false)}
+              className="w-full py-1.5 rounded-lg bg-panel2 text-xs font-cond uppercase text-sand hover:text-white"
+            >
+              Cerrar Panel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BARRA INFERIOR DE ESTADO CON ACCESO AL ROSTER */}
       <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line bg-ink/92 px-4 py-2">
         <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
           <I n="users" className="h-4 w-4 text-gold" /> Alumnos <b className="text-cream">{state.plantel.filter(p => p.rol === "alumno").length}/{capacidadAlumnos(state)}</b>
@@ -334,13 +430,26 @@ export default function GymView({ onAbrir }: { onAbrir: (id: string) => void }) 
             <I n="house" className="h-3.5 w-3.5 text-mut" /> En vestuarios: <b className="text-cream">{asignacion.vestuarios}</b>
           </span>
         )}
-        <span className="ml-auto hidden font-cond text-[12px] uppercase tracking-wider text-mut lg:block">
-          Rotación activa: haz clic en un atleta para abrir su ficha técnica
-        </span>
+
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => setDrawerAbierto(!drawerAbierto)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-panel2 border border-line text-xs font-cond uppercase text-gold hover:border-gold2 transition-colors cursor-pointer"
+          >
+            <I n="users" className="w-3.5 h-3.5" />
+            <span>Roster Rápido ({todos.length})</span>
+          </button>
+          <span className="hidden font-cond text-[12px] uppercase tracking-wider text-mut xl:block">
+            Haz clic en un atleta para ver su ficha
+          </span>
+        </div>
       </div>
+
     </div>
   );
 }
+
+export default GymView;
 
 function Vacia() {
   return <div className="absolute bottom-3 left-2 font-cond text-[11px] italic text-mut">Estación libre…</div>;
