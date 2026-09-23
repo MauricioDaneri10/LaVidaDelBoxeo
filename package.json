@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:budget": "node scripts/check-budget.mjs",
+    "verify": "npm run typecheck && npm test -- --run && npm run build && npm run check:budget && node audit_engine.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

@@ -386,6 +386,11 @@ describe("reglas principales de La Vida del Boxeo", () => {
     almacenamiento.removeItem("prueba");
     expect(almacenamiento.getItem("prueba")).toBeNull();
   });
+
+  it("mantiene los atajos nuevos sin conflictos", () => {
+    expect(ATAJOS_DEFAULT.calendario).toBe("7");
+    expect(conflictosAtajos(ATAJOS_DEFAULT)).toHaveLength(0);
+  });
 });
 
 function azarSeguro(): number {
