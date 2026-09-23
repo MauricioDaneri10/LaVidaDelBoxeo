@@ -391,6 +391,29 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(ATAJOS_DEFAULT.calendario).toBe("7");
     expect(conflictosAtajos(ATAJOS_DEFAULT)).toHaveLength(0);
   });
+
+  it("completa un playtest prolongado con invariantes de economía y plantel", () => {
+    const restaurar = usarSemilla(90210);
+    let estado = { ...crearEstadoBase(), creado: true, dinero: 2_000, fama: 8 };
+    for (let semana = 0; semana < 52; semana++) {
+      if (semana === 0) estado = reductor(estado, { type: "COMPRAR_EQUIPO", id: "soga" });
+      if (semana === 1 && !estado.personal.some(p => p.tipo === "directorTecnico")) {
+        estado = reductor(estado, { type: "CONTRATAR", tipo: "directorTecnico" });
+      }
+      for (let dia = 0; dia < 6; dia++) estado = reductor(estado, { type: "AVANZAR_DIA" });
+      estado = reductor(estado, { type: "AVANZAR_DIA" });
+      estado = reductor(estado, { type: "CERRAR_DOMINGO" });
+      expect(estado.dia).toBe(1);
+      expect(estado.semana).toBe(semana + 2);
+      expect(estado.plantel.length).toBeLessThanOrEqual(30);
+      expect(Number.isFinite(estado.dinero)).toBe(true);
+      expect(Number.isFinite(estado.fama)).toBe(true);
+      expect(estado.fama).toBeGreaterThanOrEqual(0);
+      expect(estado.fama).toBeLessThanOrEqual(100);
+      expect(estado.plantel.every(p => p.energia >= 0 && p.energia <= 100)).toBe(true);
+    }
+    restaurar();
+  });
 });
 
 function azarSeguro(): number {
