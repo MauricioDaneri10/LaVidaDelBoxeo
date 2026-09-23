@@ -54,3 +54,14 @@ export function normalizarTecla(valor: string, fallback: string): string {
 export function teclaCoincide(eventKey: string, configurada: string): boolean {
   return eventKey.toLowerCase() === configurada.toLowerCase();
 }
+
+export function conflictosAtajos(atajos: Atajos): Array<[keyof Atajos, keyof Atajos]> {
+  const entradas = Object.entries(atajos) as Array<[keyof Atajos, string]>;
+  const conflictos: Array<[keyof Atajos, keyof Atajos]> = [];
+  for (let i = 0; i < entradas.length; i++) {
+    for (let j = i + 1; j < entradas.length; j++) {
+      if (entradas[i][1].toLowerCase() === entradas[j][1].toLowerCase()) conflictos.push([entradas[i][0], entradas[j][0]]);
+    }
+  }
+  return conflictos;
+}

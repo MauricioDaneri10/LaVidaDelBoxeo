@@ -4,7 +4,7 @@ import { CATEGORIAS, COMUNITARIOS, CURSOS, EQUIPOS, EVENTOS_CLUB_INFO, PERSONAL_
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
 import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sucursales, totalPeleas, valoracion } from "../game/engine";
 import { guardarEnRanura, useGame } from "../game/state";
-import { ATAJOS_DEFAULT, ATAJOS_LABELS, normalizarTecla, type Atajos } from "../game/shortcuts";
+import { ATAJOS_DEFAULT, ATAJOS_LABELS, conflictosAtajos, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { CategoriaMercado, CursoId, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
 
@@ -546,6 +546,7 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
   const [altoContraste, setAltoContraste] = useState(() => localStorage.getItem("vida-del-boxeo:altoContraste") === "1");
   const [movimientoReducido, setMovimientoReducido] = useState(() => localStorage.getItem("vida-del-boxeo:movimientoReducido") === "1");
   const [atajosEditados, setAtajosEditados] = useState<Atajos>(atajos);
+  const conflictos = conflictosAtajos(atajosEditados);
 
   useEffect(() => {
     document.documentElement.classList.toggle("texto-grande", textoGrande);
@@ -643,13 +644,16 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
             ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Btn small variant="gold" onClick={() => { onCambiarAtajos(atajosEditados); setMensaje("Atajos guardados."); }}>
+            <Btn small variant="gold" disabled={conflictos.length > 0} onClick={() => { onCambiarAtajos(atajosEditados); setMensaje("Atajos guardados."); }}>
               Guardar atajos
             </Btn>
             <Btn small variant="dark" onClick={() => { setAtajosEditados({ ...ATAJOS_DEFAULT }); onCambiarAtajos({ ...ATAJOS_DEFAULT }); setMensaje("Atajos restaurados."); }}>
               Restaurar predeterminados
             </Btn>
           </div>
+          {conflictos.length > 0 && <div className="mt-2 rounded-lg border border-blood/50 bg-blood/10 px-2.5 py-1.5 font-cond text-xs text-[#ff8a7e]">
+            Hay teclas repetidas. Asigná una tecla distinta a cada acción antes de guardar.
+          </div>}
           <div className="mt-2 grid gap-1.5 font-cond text-xs text-sand sm:grid-cols-2">
             <span><kbd className="keycap">{atajos.gimnasio}</kbd> Gimnasio · <kbd className="keycap">{atajos.ciudad}</kbd> Ciudad · <kbd className="keycap">{atajos.plantel}</kbd> Plantel</span>
             <span><kbd className="keycap">{atajos.avanzar === " " ? "Espacio" : atajos.avanzar}</kbd> Avanzar día · <kbd className="keycap">{atajos.semanaRapida}</kbd> Semana rápida · <kbd className="keycap">{atajos.cerrar}</kbd> Cerrar</span>

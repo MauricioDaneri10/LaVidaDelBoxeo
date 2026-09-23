@@ -44,7 +44,7 @@ export interface Pugilista {
   kosProfesionales: number;
   /** Club de procedencia en rankings y rivales generados. */
   club?: string;
-  /** 0 sin título · 1 Regional · 2 Nacional · 3 Continental · 4 Mundial */
+  /** 0 sin título · 1 Nacional · 2 Regional · 3 Continental · 4 Mundial */
   titulo: 0 | 1 | 2 | 3 | 4;
   /** Licencia individual del atleta para competir oficialmente. */
   licenciaFederativa: boolean;

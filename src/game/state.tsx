@@ -4,7 +4,7 @@ import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITU
 import {
   aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, chance, clamp, consejoEsquina, crearEstadoBase,
   elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
-  normalizarListaEspera, sucursales, uid, valoracion,
+  normalizarListaEspera, puedePactarPelea, sucursales, uid, valoracion,
 } from "./engine";
 import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PartidaGuardada, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
 
@@ -428,7 +428,18 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "BUSCAR_RIVAL": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "boxeador") return s;
-      if (s.pendientes.some(x => x.miId === p.id)) return conToast(s, "Ya tiene pelea agendada para el sábado.", "info");
+      const validacion = puedePactarPelea(p, s);
+      if (!validacion.ok) {
+        const mensajes = {
+          rol: "Solo un boxeador federado puede pactar peleas.",
+          licencia: "Primero emití la licencia individual del boxeador.",
+          pendiente: "Ya tiene pelea agendada para el sábado.",
+          cooldown: `Debe recuperarse de su última pelea. Disponible desde la semana ${validacion.disponibleSemana}.`,
+          energia: "Este boxeador necesita recuperar al menos 70% de energía.",
+          lesion: "No puede pactar mientras tenga una lesión activa.",
+        } satisfies Record<NonNullable<typeof validacion.motivo>, string>;
+        return conToast(s, mensajes[validacion.motivo!], "alerta");
+      }
       const ofertas = ofertasValidasPara(p, s);
       return { ...s, ofertas, ofertasPara: p.id };
     }
@@ -437,7 +448,16 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const of = s.ofertas.find(o => o.id === a.ofertaId);
       if (!of || !s.ofertasPara) return s;
       const peleador = s.plantel.find(p => p.id === s.ofertasPara);
-      if (peleador && (peleador.energia < 70 || peleador.lesion)) return conToast(s, "Este boxeador necesita recuperar al menos 70% de energía antes de pactar una pelea.", "alerta");
+      if (!peleador) return s;
+      const validacion = puedePactarPelea(peleador, s);
+      if (!validacion.ok) {
+        const mensaje = validacion.motivo === "cooldown"
+          ? `Debe recuperarse de su última pelea. Disponible desde la semana ${validacion.disponibleSemana}.`
+          : validacion.motivo === "pendiente" ? "Ya tiene pelea agendada para el sábado."
+          : validacion.motivo === "lesion" ? "No puede pactar mientras tenga una lesión activa."
+          : "Este boxeador necesita recuperar al menos 70% de energía antes de pactar una pelea.";
+        return conToast(s, mensaje, "alerta");
+      }
       const pelea: Pelea = { id: uid(), miId: s.ofertasPara, rival: of.rival, bolsa: of.bolsa, esTitulo: of.esTitulo, velada: s.veladaProgramada, semanaProgramada: s.semana, diaProgramado: 6 };
       return conToast({ ...s, pendientes: [...s.pendientes, pelea], ofertas: [], ofertasPara: null },
         `Cartelera confirmada: ${of.etiqueta}, bolsa de ${fmt(of.bolsa)}.`, "ok");
@@ -581,6 +601,8 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "RETIRAR_ATLETA": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p) return s;
+      const peleaPendiente = s.pendientes.some(x => x.miId === p.id);
+      if (peleaPendiente) return conToast(s, "No se puede transferir ni retirar a un boxeador con una pelea pendiente. Cancelá la cartelera primero.", "alerta");
       const nombre = p.nombre.split(" ")[0];
       const antes = alumnosEnEspera(s).map(x => x.id);
       const esLeyenda = p.rol === "boxeador" && (p.titulo >= 3 || p.record.v >= 15 || p.record.ko >= 10);
@@ -620,6 +642,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const acc = op.accion;
       if (acc.tipo === "programarComunitario" && acc.comunitario && acc.monto) {
         if (st.dinero < acc.monto) return conToast(s, `Necesitás ${fmt(acc.monto)} para organizarlo.`, "alerta");
+        if (st.comunitarios.length > 0) return conToast(s, "Ya hay una actividad social agendada para esta semana.", "info");
         st.dinero -= acc.monto;
         st.comunitarios = [...st.comunitarios, { tipo: acc.comunitario, nombre: acc.nombre ?? acc.comunitario }];
         st = conToast(st, `${acc.nombre} anotado para el domingo.`, "ok");

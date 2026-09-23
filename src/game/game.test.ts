@@ -14,12 +14,15 @@ import {
   puedeHabilitar,
   rankingMundial,
   tituloAspirable,
+  puedePactarPelea,
   prepararLuchador,
   resolverPelea,
   sanitizarEstado,
   valoracion,
 } from "./engine";
 import { reductor } from "./state";
+import { conflictosAtajos, ATAJOS_DEFAULT } from "./shortcuts";
+import { formatearMoneda, formatearNumero } from "../i18n";
 
 describe("reglas principales de La Vida del Boxeo", () => {
   it("entrena una sola vez por semana aunque se avancen varios días", () => {
@@ -183,8 +186,34 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const base = crearEstadoBase();
     expect(base.rivales.length).toBe(20);
     const pro = { ...base.plantel[0], rol: "boxeador" as const, circuito: "pro" as const, peleasAmateur: 50, peleasProfesionales: 10, victoriasProfesionales: 7, derrotasProfesionales: 2, empatesProfesionales: 1, kosProfesionales: 4, record: { v: 7, d: 2, e: 1, ko: 4 } };
-    expect(tituloAspirable(pro)).toBe(2);
+    expect(tituloAspirable(pro)).toBe(1);
     expect(rankingMundial({ ...base, plantel: [pro] }).some(item => item.pugilista.id === pro.id)).toBe(true);
+  });
+
+  it("bloquea peleas por cooldown en búsqueda y confirmación", () => {
+    const base = { ...crearEstadoBase(), creado: true, dia: 1, semana: 5 };
+    const boxeador = { ...base.plantel[0], rol: "boxeador" as const, licenciaFederativa: true, energia: 100, proximaPeleaSemana: 7 };
+    const estado = { ...base, plantel: [boxeador] };
+    expect(puedePactarPelea(boxeador, estado)).toEqual({ ok: false, motivo: "cooldown", disponibleSemana: 7 });
+    const bloqueado = reductor(estado, { type: "BUSCAR_RIVAL", id: boxeador.id });
+    expect(bloqueado.ofertas).toHaveLength(0);
+    expect(bloqueado.toasts[bloqueado.toasts.length - 1]?.texto).toContain("semana 7");
+
+    const oferta = generarOfertas(boxeador)[0];
+    const conOfertaVieja = { ...estado, ofertas: [oferta], ofertasPara: boxeador.id };
+    const confirmado = reductor(conOfertaVieja, { type: "ELEGIR_OFERTA", ofertaId: oferta.id });
+    expect(confirmado.pendientes).toHaveLength(0);
+    expect(confirmado.toasts[confirmado.toasts.length - 1]?.texto).toContain("semana 7");
+  });
+
+  it("no deja transferir un boxeador con cartelera pendiente", () => {
+    const base = { ...crearEstadoBase(), creado: true };
+    const boxeador = { ...base.plantel[0], rol: "boxeador" as const, licenciaFederativa: true };
+    const estado = { ...base, plantel: [boxeador], pendientes: [{ id: "p1", miId: boxeador.id, rival: genPugilista({ rol: "boxeador" }), bolsa: 500, esTitulo: 0 as const, velada: false }] };
+    const siguiente = reductor(estado, { type: "RETIRAR_ATLETA", id: boxeador.id });
+    expect(siguiente.plantel).toHaveLength(1);
+    expect(siguiente.pendientes).toHaveLength(1);
+    expect(siguiente.toasts[siguiente.toasts.length - 1]?.tono).toBe("alerta");
   });
 
   it("centraliza los efectos de recuperación, cupos y entrenamiento", () => {
@@ -222,5 +251,17 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const pelea = crearEstadoPelea({ id: "p3", miId: mio.id, rival, bolsa: 100, esTitulo: 0, velada: false }, mio, ["bucal", "botas"]);
     expect(equipado.evasion - limpio.evasion).toBeCloseTo(0.1, 5);
     expect(pelea.B.evasion).toBeCloseTo(prepararLuchador(rival, [], "equilibrado").evasion, 5);
+  });
+
+  it("detecta conflictos de atajos antes de guardarlos", () => {
+    expect(conflictosAtajos({ ...ATAJOS_DEFAULT, ciudad: "1" })).toContainEqual(["gimnasio", "ciudad"]);
+    expect(conflictosAtajos(ATAJOS_DEFAULT)).toHaveLength(0);
+  });
+
+  it("prepara formatos internacionales sin alterar el valor económico", () => {
+    expect(formatearNumero(1200, "es")).toContain("1.200");
+    expect(formatearNumero(1200, "en")).toContain("1,200");
+    expect(formatearMoneda(500, "es")).toContain("500");
+    expect(formatearMoneda(500, "en")).toContain("500");
   });
 });

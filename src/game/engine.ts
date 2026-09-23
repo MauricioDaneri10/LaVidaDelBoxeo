@@ -296,13 +296,27 @@ export function consejoEsquina(b: Pugilista, rival: Pugilista | null): ComboId {
 
 // ==================== TÍTULOS Y SELECCIÓN DE RIVAL ====================
 export function tituloAspirable(p: Pugilista): 0 | 1 | 2 | 3 | 4 {
-  const { v, ko } = p.record;
   const pro = p.circuito === "pro";
+  // Progresión única y explícita: nacional desde 10 peleas, regional
+  // desde 25 y títulos internacionales solo con trayectoria consolidada.
   if (p.titulo < 4 && p.peleasProfesionales >= 25 && p.victoriasProfesionales >= 20 && p.kosProfesionales >= 10 && pro) return 4;
   if (p.titulo < 3 && p.peleasProfesionales >= 25 && p.victoriasProfesionales >= 15 && p.kosProfesionales >= 6 && pro) return 3;
-  if (p.titulo < 2 && p.peleasProfesionales >= 10 && p.victoriasProfesionales >= 6 && p.kosProfesionales >= 3 && pro) return 2;
-  if (p.titulo < 1 && p.peleasProfesionales >= 4 && p.victoriasProfesionales >= 3 && pro) return 1;
+  if (p.titulo < 2 && p.peleasProfesionales >= 25 && p.victoriasProfesionales >= 12 && p.kosProfesionales >= 4 && pro) return 2;
+  if (p.titulo < 1 && p.peleasProfesionales >= 10 && p.victoriasProfesionales >= 6 && p.kosProfesionales >= 3 && pro) return 1;
   return 0;
+}
+
+export type BloqueoPelea = "rol" | "licencia" | "pendiente" | "cooldown" | "energia" | "lesion";
+
+/** Fuente única para cualquier acción que intente pactar una pelea. */
+export function puedePactarPelea(p: Pugilista, e: EstadoJuego): { ok: boolean; motivo?: BloqueoPelea; disponibleSemana?: number } {
+  if (p.rol !== "boxeador") return { ok: false, motivo: "rol" };
+  if (!p.licenciaFederativa) return { ok: false, motivo: "licencia" };
+  if (e.pendientes.some(x => x.miId === p.id)) return { ok: false, motivo: "pendiente" };
+  if (p.proximaPeleaSemana && p.proximaPeleaSemana > e.semana) return { ok: false, motivo: "cooldown", disponibleSemana: p.proximaPeleaSemana };
+  if (p.energia < 70) return { ok: false, motivo: "energia" };
+  if (p.lesion) return { ok: false, motivo: "lesion" };
+  return { ok: true };
 }
 
 export function generarOfertas(p: Pugilista): OfertaRival[] {

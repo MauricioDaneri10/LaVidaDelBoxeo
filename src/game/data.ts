@@ -168,8 +168,8 @@ export const PERSONAL_INFO: Record<PersonalId, { nombre: string; sueldo: number;
 
 // ==================== TÍTULOS Y CINTURONES ====================
 export const TITULOS: Record<1 | 2 | 3 | 4, { nombre: string; cinturon: string; bolsa: number; req: string; colores: [string, string] }> = {
-  1: { nombre: "Título Regional", cinturon: "Cinturón de Bronce y Cuero", bolsa: 1500, req: "Profesional, 25 peleas y 15 victorias (6+ por KO)", colores: ["#b06a2e", "#7a4218"] },
-  2: { nombre: "Título Nacional", cinturon: "Cinturón Nacional Plateado", bolsa: 5000, req: "Profesional, 10 peleas y 6 victorias (3+ por KO)", colores: ["#c9cdd4", "#8d949e"] },
+    1: { nombre: "Título Nacional", cinturon: "Cinturón Nacional Plateado", bolsa: 5000, req: "Profesional, 10 peleas y 6 victorias (3+ por KO)", colores: ["#c9cdd4", "#8d949e"] },
+    2: { nombre: "Título Regional", cinturon: "Cinturón de Bronce y Cuero", bolsa: 15000, req: "Profesional, 25 peleas y 12 victorias (4+ por KO)", colores: ["#b06a2e", "#7a4218"] },
   3: { nombre: "Título Continental", cinturon: "Cinturón Continental Verde y Oro", bolsa: 18000, req: "Profesional, 25 peleas y 15 victorias (6+ por KO) + TV", colores: ["#2e9e63", "#e8b23a"] },
   4: { nombre: "Título Mundial", cinturon: "Cinturón Absoluto de Oro y Diamantes", bolsa: 150000, req: "Profesional, 25 peleas y 20 victorias (10+ por KO)", colores: ["#f2c94c", "#e8b23a"] },
 };
