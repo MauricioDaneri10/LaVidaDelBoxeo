@@ -124,6 +124,19 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
         <span className="font-cond text-[11px] font-bold uppercase tracking-wider text-mut">Mejoras activas</span>
         {mejoras.length ? mejoras.map(m => <span key={m} className="rounded-full border border-gold2/50 bg-gold/10 px-2.5 py-0.5 font-cond text-xs text-gold">{m}</span>) : <span className="font-cond text-xs text-mut">Todavía no hay mejoras instaladas</span>}
       </div>
+      <div className="mx-auto grid max-w-[1560px] grid-cols-7 gap-1 border-t border-line/60 bg-ink/40 px-4 py-1.5">
+        {DIAS.map((dia, i) => {
+          const numero = i + 1;
+          const pelea = state.pendientes.some(p => (p.semanaProgramada ?? state.semana) === state.semana && (p.diaProgramado ?? 6) === numero);
+          const etiqueta = numero <= 5 ? "Entreno" : numero === 6 ? (pelea ? "Pelea" : "Guanteo") : "Balance";
+          return (
+            <div key={dia} className={`min-w-0 rounded-md border px-1.5 py-0.5 text-center ${state.dia === numero ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-mut"}`}>
+              <div className="font-display text-[10px] uppercase tracking-wide">{dia.slice(0, 3)}</div>
+              <div className={`truncate font-cond text-[9px] ${pelea ? "text-blood" : ""}`}>{etiqueta}</div>
+            </div>
+          );
+        })}
+      </div>
     </header>
   );
 }

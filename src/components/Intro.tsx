@@ -1,26 +1,34 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { LOGOS_DISPONIBLES } from "../game/data";
-import { useGame } from "../game/state";
+import { borrarPartida, listarPartidas, useGame } from "../game/state";
 import { Btn, I } from "./ui";
 
 export default function Intro() {
   const { state, dispatch } = useGame();
   const [nombre, setNombre] = useState("");
   const [gimnasio, setGimnasio] = useState("");
+  const [partidas, setPartidas] = useState(() => listarPartidas());
   const [logoSeleccionado, setLogoSeleccionado] = useState<string>("guante");
   const hayCarrera = state.nombreJugador !== "";
 
   const logoActual = LOGOS_DISPONIBLES.find(l => l.id === logoSeleccionado) || LOGOS_DISPONIBLES[0];
 
   const iniciarNuevoJuego = () => {
-    if (hayCarrera && !window.confirm("Ya tenés una carrera guardada. ¿Querés reemplazarla por una nueva?")) return;
+    if (hayCarrera && !window.confirm("Vas a iniciar una partida nueva. La carrera actual seguirá guardada. ¿Continuar?")) return;
     dispatch({
       type: "NUEVO_JUEGO",
       nombre: nombre.trim() || "El Coach",
       gimnasio: gimnasio.trim() || "Puños de Oro",
       logoGimnasio: logoSeleccionado,
     });
+  };
+
+  const cargarPartida = (id: string) => dispatch({ type: "CARGAR_PARTIDA", id });
+  const eliminarPartida = (id: string) => {
+    if (!window.confirm("¿Borrar esta partida guardada? No se puede deshacer.")) return;
+    borrarPartida(id);
+    setPartidas(listarPartidas());
   };
 
   return (
@@ -124,12 +132,24 @@ export default function Intro() {
               <Btn variant="gold" onClick={iniciarNuevoJuego} className="w-full text-lg py-2">
                 <I n="glove" className="h-5 w-5" /> ¡Que suene la campana!
               </Btn>
-              {hayCarrera && (
-                <Btn variant="dark" onClick={() => dispatch({ type: "CONTINUAR" })} className="w-full">
-                  <I n="play" className="h-4 w-4" /> Continuar carrera de {state.nombreJugador}
-                </Btn>
-              )}
             </div>
+
+            {partidas.length > 0 && (
+              <div className="mt-1 rounded-xl border border-line bg-ink/60 p-2.5">
+                <div className="mb-1 font-display text-sm uppercase tracking-wide text-gold">Continuar partida</div>
+                <div className="space-y-1.5">
+                  {partidas.map(partida => (
+                    <div key={partida.id} className="flex items-center gap-2 rounded-lg border border-line bg-panel2 px-2 py-1.5">
+                      <button onClick={() => cargarPartida(partida.id)} className="min-w-0 flex-1 text-left font-cond text-xs text-cream hover:text-gold">
+                        <span className="block truncate font-bold">{partida.nombre}</span>
+                        <span className="block truncate text-mut">{partida.coach} · {partida.gimnasio} · Semana {partida.semana} · {new Date(partida.guardadaEn).toLocaleDateString("es-AR")}</span>
+                      </button>
+                      <button onClick={() => eliminarPartida(partida.id)} aria-label={`Borrar partida ${partida.nombre}`} className="rounded px-1.5 py-1 text-xs text-mut hover:bg-blood/15 hover:text-blood">×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {state.legados > 0 && hayCarrera && (
               <div className="border border-neonc/60 bg-neonc/10 px-3 py-2 font-cond text-sm text-neonc">

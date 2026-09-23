@@ -1,52 +1,12 @@
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sanitizarEstado, sucursales, totalPeleas, valoracion } from "../game/engine";
-import { CLAVE_GUARDADO, guardarPartida, useGame } from "../game/state";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sucursales, totalPeleas, valoracion } from "../game/engine";
+import { guardarEnRanura, useGame } from "../game/state";
 import { ATAJOS_DEFAULT, ATAJOS_LABELS, normalizarTecla, type Atajos } from "../game/shortcuts";
-import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
+import type { CategoriaMercado, CursoId, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
-
-// ==================== EXPORTACIÓN / IMPORTACIÓN DE PARTIDA JSON ====================
-export function exportarPartidaJSON(estado: EstadoJuego) {
-  const blob = new Blob([JSON.stringify(estado, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `partida-${(estado.nombreGimnasio || "vida-del-boxeo").toLowerCase().replace(/\s+/g, "-")}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function importarPartidaJSON(
-  archivo: File,
-  dispatch: (a: Accion) => void,
-  onExito?: () => void,
-  onError?: () => void
-) {
-  const lector = new FileReader();
-  if (archivo.size > 2_000_000) {
-    dispatch({ type: "TOAST", texto: "El archivo es demasiado grande (máximo 2 MB).", tono: "alerta" });
-    if (onError) onError();
-    return;
-  }
-  lector.onload = () => {
-    try {
-      const bruto: unknown = JSON.parse(String(lector.result));
-      if (!bruto || typeof bruto !== "object" || !Array.isArray((bruto as { plantel?: unknown }).plantel)) {
-        throw new Error("formato inválido");
-      }
-      const estado = sanitizarEstado(bruto);
-      dispatch({ type: "IMPORTAR", estado });
-      if (onExito) onExito();
-    } catch {
-      dispatch({ type: "TOAST", texto: "El archivo no parece una partida válida.", tono: "alerta" });
-      if (onError) onError();
-    }
-  };
-  lector.readAsText(archivo);
-}
 
 interface PanelPlantelProps {
   onAbrir?: (id: string) => void;
@@ -117,7 +77,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           {p.rol === "alumno" ? (
             <>
               <span className="font-cond text-[11px] uppercase tracking-wide text-sand">
-                Prácticas <b className="text-gold">{p.fogueo}/{p.fogueoMeta}</b>
+                Guanteos <b className="text-gold">{p.fogueo}/{p.fogueoMeta}</b>
               </span>
               <div className="stat-bar w-16">
                 <i style={{ width: `${(p.fogueo / p.fogueoMeta) * 100}%`, background: "var(--color-gold)" }} />
@@ -260,10 +220,10 @@ export function PanelMercado() {
 
   return (
     <div className="game-screen h-full overflow-hidden space-y-2">
-      <div className="panel flex flex-wrap items-center gap-4 p-4">
-        <h2 className="font-display text-2xl tracking-wide text-gold">Equipamiento e Instalaciones</h2>
-        <span className="font-cond text-sm text-sand">Caja disponible: <b className="text-gold">{fmt(state.dinero)}</b></span>
-        <span className="font-cond text-sm text-sand">Instalado: <b className="text-cream">{state.equipamiento.length}/21</b></span>
+      <div className="panel flex flex-wrap items-center gap-2 p-2.5">
+        <h2 className="font-display text-xl tracking-wide text-gold">Equipamiento e Instalaciones</h2>
+        <span className="font-cond text-xs text-sand">Caja: <b className="text-gold">{fmt(state.dinero)}</b></span>
+        <span className="font-cond text-xs text-sand">Instalado: <b className="text-cream">{state.equipamiento.length}/21</b></span>
         {recomendadoId && <span className="rounded-full border border-neonc/50 bg-neonc/10 px-2.5 py-1 font-cond text-xs text-neonc">Sugerencia: empezá por una mejora de recuperación</span>}
       </div>
 
@@ -281,36 +241,37 @@ export function PanelMercado() {
         ))}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {items.map(([id, eq]) => {
           const comprado = state.equipamiento.includes(id as never);
           const bloqueado = id === "zonaElite" && !state.cursos.includes("altoRendimiento");
           return (
-            <div key={id} className={`panel p-4 ${comprado ? "border-win/50" : ""}`}>
-              <div className="flex items-start justify-between gap-2">
+            <div key={id} title={`${eq.nombre}: ${eq.desc} ${eq.efecto}`} className={`panel flex min-h-[132px] flex-col p-2 ${comprado ? "border-win/50" : ""}`}>
+              <div className="flex min-h-[42px] items-start justify-between gap-1">
                 <div className="flex items-center gap-2.5">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-gold2/50 bg-gold/10 text-gold shadow-inner"><I n={eq.icono} className="h-6 w-6" /></div>
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-gold2/50 bg-gold/10 text-gold shadow-inner"><I n={eq.icono} className="h-4 w-4" /></div>
                   <div>
-                    <div className="font-display text-lg leading-tight tracking-wide text-cream">{eq.nombre}</div>
-                    <div className="font-display text-base text-gold">{fmt(eq.costo)}</div>
+                    <div className="font-display text-sm leading-tight tracking-wide text-cream">{eq.nombre}</div>
+                    <div className="font-display text-sm text-gold">{fmt(eq.costo)}</div>
                   </div>
                 </div>
                 {comprado && <Chip tone="win"><I n="check" className="h-3 w-3" /> Instalado</Chip>}
                 {!comprado && id === recomendadoId && <Chip tone="neon">Recomendado ahora</Chip>}
               </div>
-              <p className="mt-2 font-cond text-sm text-sand">{eq.desc}</p>
-              <p className="mt-1 font-cond text-xs text-neonc">{eq.efecto}</p>
+              <p className="mt-1 min-h-[24px] font-cond text-[10px] text-sand">{eq.desc}</p>
+              <p className="mt-1 min-h-[22px] font-cond text-[10px] text-neonc">{eq.efecto}</p>
               {!comprado && (
                 <Btn
                   small
                   variant={state.dinero >= eq.costo && !bloqueado ? "gold" : "dark"}
-                  className="mt-3 w-full"
+                  className="mt-auto w-full"
                   disabled={state.dinero < eq.costo || bloqueado}
                   onClick={() => dispatch({ type: "COMPRAR_EQUIPO", id: id as never })}
                 >
                   {bloqueado ? "Requiere Alto Rendimiento" : `Comprar · ${fmt(eq.costo)}`}
                 </Btn>
               )}
+              {comprado && <div className="mt-auto pt-3"><div className="h-8" /></div>}
               {id === "estudioMarca" && comprado && (
                 <div className="mt-3 border-t border-line pt-2">
                   {state.marcaRopa ? (
@@ -341,6 +302,8 @@ export function PanelMercado() {
 export function PanelPerfil() {
   const { state, dispatch } = useGame();
   const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
+  const [ramaActiva, setRamaActiva] = useState<RamaCurso>("deportiva");
+  const [detalleRama, setDetalleRama] = useState<RamaCurso | null>(null);
   const ramas: { id: RamaCurso; nombre: string; icono: string; color: string }[] = [
     { id: "deportiva", nombre: "Rama Deportiva", icono: "glove", color: "text-blood" },
     { id: "promotora", nombre: "Rama Promotora", icono: "ring", color: "text-gold" },
@@ -391,14 +354,17 @@ export function PanelPerfil() {
 
       {/* CURSOS */}
       {seccionPerfil === "cursos" && <section className="min-h-0">
-        <h3 className="mb-2 font-display text-xl tracking-wide text-cream">Cursos del Coach · 3 ramas de especialización</h3>
-        <div className="grid gap-2 lg:grid-cols-3">
-          {ramas.map(rama => (
-            <div key={rama.id} className="panel p-2.5">
-              <div className={`mb-1.5 flex items-center gap-2 font-display text-lg tracking-wide ${rama.color}`}>
-                <I n={rama.icono} className="h-5 w-5" /> {rama.nombre}
+        <h3 className="mb-2 font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>
+        <div className="mb-2 grid grid-cols-3 gap-1.5">
+          {ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`rounded-lg border px-2 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="mr-1 inline h-3.5 w-3.5" />{rama.nombre.replace("Rama ", "")}</button>)}
+        </div>
+        <div className="grid gap-2">
+          {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
+            <div key={rama.id} className="panel p-2">
+              <div className={`mb-1 flex items-center gap-2 font-display text-base tracking-wide ${rama.color}`}>
+                <I n={rama.icono} className="h-4 w-4" /> {rama.nombre}
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1 hidden">
                 {(Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === rama.id)
                   .sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel)
                   .map(cid => {
@@ -406,9 +372,9 @@ export function PanelPerfil() {
                     const aprobado = state.cursos.includes(cid);
                     const reqOk = !c.req || state.cursos.includes(c.req);
                     return (
-                      <div key={cid} className={`border p-2 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
+                      <div key={cid} className={`border p-1.5 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
                         <div className="flex items-center justify-between gap-2">
-                          <div className="font-display text-base tracking-wide text-cream">
+                          <div className="font-display text-sm tracking-wide text-cream">
                             <span className="mr-1.5 text-mut">Nv.{c.nivel}</span>{c.nombre}
                           </div>
                           {aprobado ? (
@@ -424,15 +390,32 @@ export function PanelPerfil() {
                             </Btn>
                           )}
                         </div>
-                        <p className="mt-1 font-cond text-[10px] leading-tight text-sand">{c.desc}</p>
+                        <p className="mt-0.5 font-cond text-[10px] leading-tight text-sand">{c.desc}</p>
                       </div>
                     );
                   })}
               </div>
+              <Btn small variant="gold" className="mt-2 w-full" onClick={() => setDetalleRama(rama.id)}>Ver cursos de esta rama</Btn>
             </div>
           ))}
         </div>
       </section>}
+
+      {detalleRama && (
+        <Modal wide fit title={`Cursos · ${ramas.find(r => r.id === detalleRama)?.nombre ?? "Rama"}`} icon="cap" onClose={() => setDetalleRama(null)}>
+          <div className="space-y-2">
+            {(Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === detalleRama).sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel).map(cid => {
+              const c = CURSOS[cid];
+              const aprobado = state.cursos.includes(cid);
+              const reqOk = !c.req || state.cursos.includes(c.req);
+              return <div key={cid} className={`border p-2 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
+                <div className="flex items-center justify-between gap-2"><div className="font-display text-base text-cream">Nv.{c.nivel} · {c.nombre}</div>{aprobado ? <Chip tone="win">Aprobado</Chip> : <Btn small variant={reqOk && state.dinero >= c.costo ? "gold" : "dark"} disabled={!reqOk || state.dinero < c.costo} onClick={() => dispatch({ type: "COMPRAR_CURSO", id: cid })}>Comprar · {fmt(c.costo)}</Btn>}</div>
+                <p className="mt-1 font-cond text-xs text-sand">{c.desc}</p>
+              </div>;
+            })}
+          </div>
+        </Modal>
+      )}
 
       {/* PROPIEDADES */}
       {seccionPerfil === "bienes" && <section className="min-h-0">
@@ -515,12 +498,9 @@ export function PanelPersonal() {
 // ==================== AJUSTES: EXPORTAR / IMPORTAR ====================
 export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: () => void; atajos: Atajos; onCambiarAtajos: (atajos: Atajos) => void }) {
   const { state, dispatch } = useGame();
-  const archivoRef = useRef<HTMLInputElement>(null);
-  const [guardadoEn, setGuardadoEn] = useState(() => {
-    try { return localStorage.getItem(`${CLAVE_GUARDADO}:guardadoEn`); } catch { return null; }
-  });
   const [sonido, setSonido] = useState(audioHabilitado);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [nombrePartida, setNombrePartida] = useState(state.nombrePartida || state.nombreGimnasio || "Mi carrera");
   const [textoGrande, setTextoGrande] = useState(() => localStorage.getItem("vida-del-boxeo:textoGrande") === "1");
   const [altoContraste, setAltoContraste] = useState(() => localStorage.getItem("vida-del-boxeo:altoContraste") === "1");
   const [movimientoReducido, setMovimientoReducido] = useState(() => localStorage.getItem("vida-del-boxeo:movimientoReducido") === "1");
@@ -535,24 +515,14 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
     localStorage.setItem("vida-del-boxeo:movimientoReducido", movimientoReducido ? "1" : "0");
   }, [textoGrande, altoContraste, movimientoReducido]);
 
-  const exportar = () => {
-    exportarPartidaJSON(state);
-    setMensaje("Archivo preparado para descargar.");
-  };
-
   const guardarAhora = () => {
-    if (guardarPartida(state)) {
-      const ahora = new Date().toISOString();
-      setGuardadoEn(ahora);
-      setMensaje("Partida guardada en este navegador.");
+    const guardada = guardarEnRanura({ ...state, nombrePartida: nombrePartida.trim() || "Mi carrera" }, nombrePartida);
+    if (guardada) {
+      setMensaje("Partida guardada. Podés continuarla desde el inicio.");
       dispatch({ type: "TOAST", texto: "Partida guardada correctamente.", tono: "ok" });
     } else {
-      setMensaje("No se pudo guardar. Exportá un archivo .json como respaldo.");
+      setMensaje("No se pudo guardar esta partida en el navegador.");
     }
-  };
-
-  const importar = (archivo: File) => {
-    importarPartidaJSON(archivo, dispatch, onCerrar);
   };
 
   return (
@@ -560,25 +530,11 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
       <div className="space-y-2 text-sm">
         <div className="border border-line bg-panel2 p-2.5 rounded-xl">
           <div className="font-display text-base text-cream">Guardar y cargar</div>
-          <p className="font-cond text-xs text-sand">La partida se guarda sola después de cada acción. También podés crear un respaldo para moverla a otra computadora.</p>
+          <p className="font-cond text-xs text-sand">La partida se guarda sola después de cada acción. Poné un nombre para encontrarla en “Continuar partida”.</p>
+          <input value={nombrePartida} onChange={e => setNombrePartida(e.target.value)} maxLength={32} aria-label="Nombre de la partida"
+            className="mt-2 w-full rounded-lg border border-line bg-ink px-2 py-1.5 font-cond text-sm text-cream outline-none focus:border-gold" placeholder="Nombre de la partida" />
           <div className="mt-2 flex flex-wrap gap-2">
             <Btn small variant="gold" onClick={guardarAhora}><I n="check" className="h-3.5 w-3.5" /> Guardar ahora</Btn>
-            <Btn small variant="gold" onClick={exportar}><I n="download" className="h-3.5 w-3.5" /> Exportar .json</Btn>
-            <Btn small variant="dark" onClick={() => archivoRef.current?.click()}><I n="upload" className="h-3.5 w-3.5" /> Importar .json</Btn>
-            <input
-              ref={archivoRef}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={e => {
-                const f = e.target.files?.[0];
-                if (f) importar(f);
-                e.target.value = "";
-              }}
-            />
-          </div>
-          <div className="mt-2 font-cond text-[11px] text-mut">
-            {guardadoEn ? `Último guardado: ${new Date(guardadoEn).toLocaleString()}` : "Todavía no hay un guardado registrado."}
           </div>
           {mensaje && <div className="mt-2 rounded-lg border border-gold2/40 bg-gold/10 px-2.5 py-1.5 font-cond text-xs text-gold">{mensaje}</div>}
         </div>

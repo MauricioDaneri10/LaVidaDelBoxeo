@@ -6,11 +6,41 @@ import {
   elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
   normalizarListaEspera, sucursales, uid, valoracion,
 } from "./engine";
-import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
+import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PartidaGuardada, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
 
 const CLAVE = "vida-del-boxeo-v2";
+const CLAVE_PARTIDAS = `${CLAVE}:partidas`;
 export const CLAVE_GUARDADO = CLAVE;
 let toastId = 1;
+
+export function listarPartidas(): PartidaGuardada[] {
+  try {
+    const raw = localStorage.getItem(CLAVE_PARTIDAS);
+    const partidas = raw ? JSON.parse(raw) as PartidaGuardada[] : [];
+    return Array.isArray(partidas) ? partidas.filter(p => p && p.id && p.estado) : [];
+  } catch { return []; }
+}
+
+function guardarLista(partidas: PartidaGuardada[]) {
+  localStorage.setItem(CLAVE_PARTIDAS, JSON.stringify(partidas.slice(0, 5)));
+}
+
+export function borrarPartida(id: string) {
+  try { guardarLista(listarPartidas().filter(p => p.id !== id)); } catch {}
+}
+
+export function guardarEnRanura(estado: EstadoJuego, nombre = estado.nombrePartida || estado.nombreGimnasio || "Mi carrera"): boolean {
+  try {
+    const ahora = new Date().toISOString();
+    const id = estado.partidaId || uid();
+    const estadoGuardado = { ...estado, nombrePartida: nombre.trim() || "Mi carrera", partidaId: id };
+    const partida: PartidaGuardada = { id, nombre: estadoGuardado.nombrePartida, coach: estadoGuardado.nombreJugador, gimnasio: estadoGuardado.nombreGimnasio, semana: estadoGuardado.semana, dia: estadoGuardado.dia, dinero: estadoGuardado.dinero, guardadaEn: ahora, estado: estadoGuardado };
+    guardarLista([partida, ...listarPartidas().filter(p => p.id !== id)]);
+    localStorage.setItem(CLAVE, JSON.stringify(estadoGuardado));
+    localStorage.setItem(`${CLAVE}:guardadoEn`, ahora);
+    return true;
+  } catch { return false; }
+}
 
 export function guardarPartida(estado: EstadoJuego): boolean {
   try {
@@ -18,6 +48,7 @@ export function guardarPartida(estado: EstadoJuego): boolean {
     if (anterior) localStorage.setItem(`${CLAVE}:respaldo`, anterior);
     localStorage.setItem(CLAVE, JSON.stringify(estado));
     localStorage.setItem(`${CLAVE}:guardadoEn`, new Date().toISOString());
+    if (estado.creado) guardarEnRanura(estado);
     return true;
   } catch {
     return false;
@@ -57,7 +88,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   // boca a boca del barrio (sin costo, solo oportunidad)
   const alumnos = alumnosActivos(st).length;
   const probBoca = 0.3 + st.fama / 160 + (st.personal.some(p => p.tipo === "asistente") ? 0.15 : 0) + (st.equipamiento.includes("carteles") ? 0.1 : 0);
-  if (alumnos < capacidadAlumnos(st) && chance(probBoca)) {
+  if (st.semana > 1 && alumnos < capacidadAlumnos(st) && chance(probBoca)) {
     const nuevo = genPugilista({ rol: "alumno", joven: chance(0.4) });
     st.plantel = [...st.plantel, nuevo];
     st = conToast(st, `Boca a boca: ${nuevo.nombre.split(" ")[0]} se suma a las clases.`, "ok");
@@ -89,24 +120,28 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
   let st: EstadoJuego = { ...s };
   st.stats = { ...st.stats };
 
-  // Guanteos de Fogueo de los alumnos (sábado de práctica)
-  const conEnergia = alumnosActivos(st).filter(p => p.energia >= 20 && p.fogueo < p.fogueoMeta);
+  // Guanteos (sparring): alumnos, amateurs y profesionales pueden hacerlos.
+  const conEnergia = st.plantel.filter(p => !p.enEspera && p.energia >= 20 && (p.rol === "boxeador" || p.fogueo < p.fogueoMeta));
   if (conEnergia.length > 0 && st.plantel.length >= 2) {
     const lugares = ["en el gimnasio", "con el " + elegir(["Club La Loma", "Club Ferro"]), "en una exhibición de barrio"];
     const lugar = elegir(lugares);
     let guanteos = 0;
     st.plantel = st.plantel.map(p => {
-      if (p.rol !== "alumno" || p.enEspera || p.energia < 20 || p.fogueo >= p.fogueoMeta) return p;
+      if (p.enEspera || p.energia < 20 || (p.rol === "alumno" && p.fogueo >= p.fogueoMeta)) return p;
       const avance = azar(1, 2);
       guanteos += avance;
       const n = { ...p, atrib: { ...p.atrib } };
       n.fogueo = Math.min(p.fogueoMeta, p.fogueo + avance);
+      n.guanteosRealizados = (p.guanteosRealizados ?? p.fogueo) + 1;
       n.energia = clamp(p.energia - 6, 0, 100);
       n.atrib.tecnica = clamp(n.atrib.tecnica + 0.4, 0, Math.min(99, p.atrib.talento + 3));
       n.atrib.defensa = clamp(n.atrib.defensa + 0.3, 0, Math.min(99, p.atrib.talento + 3));
+      if (!p.lesion && chance(p.rol === "alumno" ? 0.015 : 0.025)) {
+        n.lesion = { tipo: elegir(["golpe", "muscular", "mano", "corte"] as const), semanas: 1, gravedad: "leve", tratamiento: 80 };
+      }
       return n;
     });
-    if (guanteos > 0) st = conToast(st, `Sábado de guanteos de fogueo ${lugar}: ${guanteos} guanteos sumados.`, "ok");
+    if (guanteos > 0) st = conToast(st, `Guanteo (sparring) del sábado ${lugar}: ${guanteos} sesiones.`, "ok");
     const listos = st.plantel.filter(p => p.rol === "alumno" && !p.enEspera && p.fogueo >= p.fogueoMeta);
     if (listos.length > 0 && st.cursos.includes("dt")) {
       st = conToast(st, `${listos[0].nombre.split(" ")[0]} ya puede tramitar su Licencia Federativa.`, "oro");
@@ -116,7 +151,7 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
   // El Representante agenda solo la cartelera del sábado
   if (st.personal.some(p => p.tipo === "representante") && st.cursos.includes("dt")) {
     const libres = st.plantel.filter(p =>
-      p.rol === "boxeador" && p.energia >= 45 && !st.pendientes.some(x => x.miId === p.id)
+      p.rol === "boxeador" && p.energia >= 70 && !p.lesion && (!p.proximaPeleaSemana || p.proximaPeleaSemana <= st.semana) && !st.pendientes.some(x => x.miId === p.id)
     );
     libres.slice(0, 1).forEach(p => {
       const ofertas = ofertasValidasPara(p, st);
@@ -124,7 +159,7 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
       // La automatización respeta las mismas reglas que la elección manual:
       // un representante no puede prometer un título internacional sin TV.
       const elegida = fuerte ? ofertas[2] : ofertas[1];
-      st.pendientes = [...st.pendientes, { id: uid(), miId: p.id, rival: elegida.rival, bolsa: elegida.bolsa, esTitulo: elegida.esTitulo, velada: st.veladaProgramada }];
+      st.pendientes = [...st.pendientes, { id: uid(), miId: p.id, rival: elegida.rival, bolsa: elegida.bolsa, esTitulo: elegida.esTitulo, velada: st.veladaProgramada, semanaProgramada: st.semana, diaProgramado: 6 }];
       st = conToast(st, `Tu Representante agendó a ${p.nombre.split(" ")[0]} vs ${elegida.rival.nombre.split(" ")[0]}.`, "info");
     });
   }
@@ -253,7 +288,10 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
 
   // recuperación de energía dominical
   const recup = calcularModificadores(st).recuperacionEnergia;
-  st.plantel = st.plantel.map(p => ({ ...p, energia: clamp(p.energia + recup, 0, 100) }));
+  st.plantel = st.plantel.map(p => {
+    const lesion = p.lesion ? (p.lesion.semanas <= 1 ? null : { ...p.lesion, semanas: p.lesion.semanas - 1 }) : null;
+    return { ...p, energia: clamp(p.energia + recup, 0, 100), lesion };
+  });
 
   // prensa semanal
   const ultimo = st.historial[0];
@@ -305,6 +343,8 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         dinero: base.dinero + s.legados * 400,
         fama: base.fama + s.legados * 8,
         logoGimnasio: a.logoGimnasio ?? base.logoGimnasio,
+        nombrePartida: `${a.gimnasio} · Semana 1`,
+        partidaId: uid(),
       };
       st = conToast(st, `Bienvenido a ${a.gimnasio}. El barrio espera.`, "oro");
       return st;
@@ -382,7 +422,9 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.dia >= 6) return s;
       const of = s.ofertas.find(o => o.id === a.ofertaId);
       if (!of || !s.ofertasPara) return s;
-      const pelea: Pelea = { id: uid(), miId: s.ofertasPara, rival: of.rival, bolsa: of.bolsa, esTitulo: of.esTitulo, velada: s.veladaProgramada };
+      const peleador = s.plantel.find(p => p.id === s.ofertasPara);
+      if (peleador && (peleador.energia < 70 || peleador.lesion)) return conToast(s, "Este boxeador necesita recuperar al menos 70% de energía antes de pactar una pelea.", "alerta");
+      const pelea: Pelea = { id: uid(), miId: s.ofertasPara, rival: of.rival, bolsa: of.bolsa, esTitulo: of.esTitulo, velada: s.veladaProgramada, semanaProgramada: s.semana, diaProgramado: 6 };
       return conToast({ ...s, pendientes: [...s.pendientes, pelea], ofertas: [], ofertasPara: null },
         `Cartelera confirmada: ${of.etiqueta}, bolsa de ${fmt(of.bolsa)}.`, "ok");
     }
@@ -428,6 +470,9 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
           kosProfesionales: p.kosProfesionales + (p.circuito === "pro" && r.gane && (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") ? 1 : 0),
           energia: clamp(p.energia - 18, 0, 100),
           bonusDebut: false,
+          ultimaPeleaSemana: st.semana,
+          proximaPeleaSemana: st.semana + (p.circuito === "pro" ? 3 : 2),
+          lesion: p.lesion || (chance(r.gane ? 0.16 : 0.24) ? { tipo: elegir(["golpe", "muscular", "mano", "corte"] as const), semanas: r.gane ? 1 : 2, gravedad: r.gane ? "leve" : "media", tratamiento: r.gane ? 120 : 220 } : null),
           titulo: r.tituloGanado > p.titulo ? r.tituloGanado : p.titulo,
         };
         return n;
@@ -502,6 +547,10 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!m) return s;
       return conToast(normalizarListaEspera({ ...s, personal: s.personal.filter(p => p.id !== a.id) }),
         `${m.nombre} deja el club en buenos términos.`, "info");
+    }
+    case "CARGAR_PARTIDA": {
+      const partida = listarPartidas().find(p => p.id === a.id);
+      return partida ? conToast({ ...sanitizarEstado(partida.estado), creado: true }, `Partida cargada: ${partida.nombre}.`, "ok") : s;
     }
     case "RETIRAR_ATLETA": {
       const p = s.plantel.find(x => x.id === a.id);

@@ -4,7 +4,7 @@ import { COMUNITARIOS, EVENTOS_CLUB_INFO, GIMNASIOS_RIVALES, PROPIEDADES } from 
 import { fmt, rankingMundial, sucursales } from "../game/engine";
 import { useGame } from "../game/state";
 import type { PropiedadId } from "../game/types";
-import { BotonBrillante, Btn, I, Iconos } from "./ui";
+import { BotonBrillante, Btn, I, Iconos, Modal } from "./ui";
 
 interface CityMapProps {
   onIrAPestaña?: (pestana: string) => void;
@@ -13,6 +13,7 @@ interface CityMapProps {
 export function CityMap({ onIrAPestaña }: CityMapProps) {
   const { state, dispatch, nivel } = useGame();
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
+  const [rankingAbierto, setRankingAbierto] = useState(false);
 
   const nSuc = sucursales(state);
   const ranking = rankingMundial(state);
@@ -323,6 +324,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             <p className="font-cond text-xs text-sand">Los mejores récords, nocauts y títulos de todos los clubes de la ciudad.</p>
           </div>
           <span className="font-mono-data text-xs text-mut">{ranking.length} competidores registrados</span>
+          <Btn small variant="gold" onClick={() => setRankingAbierto(true)}>Ver ranking mundial</Btn>
         </div>
         <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
           {ranking.slice(0, 3).map((item, i) => (
@@ -413,6 +415,20 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           </div>
         </div>
       </div>
+      {rankingAbierto && (
+        <Modal wide fit title="Ranking Mundial" icon="trophy" onClose={() => setRankingAbierto(false)}>
+          <div className="space-y-1.5">
+            <p className="mb-2 font-cond text-xs text-sand">Récord, nocauts, títulos y circuito de todos los clubes.</p>
+            {ranking.map((item, i) => (
+              <div key={item.pugilista.id} className={`grid grid-cols-[28px_1fr_auto] items-center gap-2 rounded-lg border p-2 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
+                <span className="text-center font-display text-lg text-gold">{i + 1}</span>
+                <div className="min-w-0"><div className="truncate font-display text-sm text-cream">{item.pugilista.nombre}</div><div className="truncate font-cond text-[10px] uppercase text-mut">{item.club} · {item.pugilista.circuito === "pro" ? "Profesional" : "Amateur"} · {item.pugilista.division}</div></div>
+                <div className="text-right font-mono-data text-[11px] text-sand"><div>{item.pugilista.record.v}-{item.pugilista.record.d}-{item.pugilista.record.e ?? 0}</div><div className="text-gold">{item.pugilista.record.ko} KO · {item.puntos} pts</div></div>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
 
     </div>
   );

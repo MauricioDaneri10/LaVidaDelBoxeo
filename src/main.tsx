@@ -3,29 +3,19 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 
-class PantallaError extends React.Component<React.PropsWithChildren, { error: boolean }> {
-  state = { error: false };
+class PantallaError extends React.Component<React.PropsWithChildren, { error: boolean; message: string }> {
+  state = { error: false, message: "" };
   static getDerivedStateFromError() { return { error: true }; }
-  descargarRespaldo = () => {
-    try {
-      const partida = localStorage.getItem("vida-del-boxeo-v2");
-      if (!partida) return;
-      const enlace = document.createElement("a");
-      enlace.href = URL.createObjectURL(new Blob([partida], { type: "application/json" }));
-      enlace.download = "respaldo-vida-del-boxeo.json";
-      enlace.click();
-      URL.revokeObjectURL(enlace.href);
-    } catch { /* la pantalla de emergencia no debe romperse de nuevo */ }
-  };
+  componentDidCatch(error: Error) { console.error("Error de renderizado:", error); this.setState({ error: true, message: error.message }); }
   render() {
     if (!this.state.error) return this.props.children;
     return React.createElement("main", { className: "min-h-screen bg-[#17130f] p-8 text-[#f5e6c8]" },
       React.createElement("div", { className: "mx-auto max-w-xl rounded-2xl border border-[#a64b3c] bg-[#241b15] p-6" },
         React.createElement("h1", { className: "text-2xl font-bold" }, "El gimnasio necesita reiniciarse"),
-        React.createElement("p", { className: "mt-2" }, "La partida sigue guardada. Podés intentar volver al ring o descargar un respaldo antes de recargar."),
+        React.createElement("p", { className: "mt-2" }, "La partida sigue guardada. Podés intentar volver al ring o recargar el juego."),
+        this.state.message && React.createElement("p", { className: "mt-2 text-xs text-[#ffb0a8]" }, this.state.message),
         React.createElement("div", { className: "mt-5 flex flex-wrap gap-2" },
-          React.createElement("button", { className: "rounded-lg bg-[#e8b23a] px-4 py-2 text-[#17130f]", onClick: () => this.setState({ error: false }) }, "Volver a intentar"),
-          React.createElement("button", { className: "rounded-lg border border-[#a58d68] px-4 py-2 text-[#f5e6c8]", onClick: this.descargarRespaldo }, "Descargar respaldo"),
+          React.createElement("button", { className: "rounded-lg bg-[#e8b23a] px-4 py-2 text-[#17130f]", onClick: () => this.setState({ error: false, message: "" }) }, "Volver a intentar"),
           React.createElement("button", { className: "rounded-lg border border-[#a64b3c] px-4 py-2 text-[#ffb0a8]", onClick: () => window.location.reload() }, "Recargar juego")
         )
       )

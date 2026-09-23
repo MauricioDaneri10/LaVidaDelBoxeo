@@ -3,10 +3,10 @@
 // títulos y simulación de combate con jueces y Registro Oficial.
 // ============================================================
 
-import { APELLIDOS, COMBOS, CONSEJOS_INICIALES, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, RASGOS, SPONSORS, TITULOS } from "./data";
+import { APELLIDOS, COMBOS, CONSEJOS_INICIALES, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
 import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
-  OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez,
+  OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
 } from "./types";
 
 // ==================== UTILIDADES ====================
@@ -119,7 +119,11 @@ export function genPugilista(opts: { rol?: "alumno" | "boxeador"; joven?: boolea
     energia: 100,
     combo: rol === "alumno" ? "acondicionamiento" : elegir(["noqueador", "estilista", "presion", "tactico"] as ComboId[]),
     fogueo: azar(0, 3),
-    fogueoMeta: azar(8, 10),
+    fogueoMeta: 10,
+    guanteosRealizados: 0,
+    lesion: null,
+    proximaPeleaSemana: null,
+    ultimaPeleaSemana: null,
     rasgo: chance(0.65) ? elegir(RASGOS).id : "",
     elite: false,
     bonusDebut: false,
@@ -178,6 +182,25 @@ export function estadoRecord(p: Pugilista): { etiqueta: string; tono: "oro" | "o
   if (p.record.v >= 15 && p.record.ko >= 8 && porcentaje >= 0.7) return { etiqueta: "Estrella de nocaut", tono: "oro", multiplicadorBolsa: 1.45 };
   if (porcentaje >= 0.6) return { etiqueta: "Récord positivo", tono: "ok", multiplicadorBolsa: 1.15 };
   return { etiqueta: "Récord equilibrado", tono: "info", multiplicadorBolsa: 0.9 };
+}
+
+/** Proyección conservadora compartida por el encabezado y el balance semanal. */
+export function proyeccionSemanal(e: EstadoJuego): { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number } {
+  const nivel = nivelGimnasio(e);
+  const alumnos = alumnosActivos(e).length;
+  const boxeadores = e.plantel.filter(p => p.rol === "boxeador").length;
+  const cuota = 18 + 2 * (nivel - 1);
+  const ingresos: LineaLibro[] = [{ concepto: `Cuotas de alumnos (${alumnos} × ${fmt(cuota)})`, monto: alumnos * cuota }];
+  if (boxeadores > 0) ingresos.push({ concepto: `Aporte del plantel federado (${boxeadores} × $12)`, monto: boxeadores * 12 });
+  if (e.semana === 1) ingresos.push({ concepto: "Ayuda de apertura del club", monto: 240 });
+  if (e.patrocinio) ingresos.push({ concepto: `Patrocinio de ${e.patrocinio.nombre}`, monto: e.patrocinio.semanal });
+  const gastos: LineaLibro[] = [];
+  if (!e.propiedades.includes("local")) gastos.push({ concepto: "Alquiler del local", monto: 150 });
+  const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
+  if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
+  const totalIngresos = ingresos.reduce((total, l) => total + l.monto, 0);
+  const totalGastos = gastos.reduce((total, l) => total + l.monto, 0);
+  return { ingresos, gastos, total: totalIngresos - totalGastos };
 }
 export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
   const activos = e.plantel.filter(p => p.rol !== "alumno" || !p.enEspera);
@@ -622,6 +645,7 @@ export function crearEstadoBase(): EstadoJuego {
   alumnos.forEach(a => { a.fogueo = azar(0, 2); });
   return {
     version: 2,
+    schemaVersion: 3,
     creado: false,
     nombreJugador: "", nombreGimnasio: "",
     dinero: 900, fama: 4,
@@ -662,6 +686,8 @@ export function crearEstadoBase(): EstadoJuego {
     toasts: [],
     logoGimnasio: "guante",
     ultimaSemanaEntrenada: 0,
+    nombrePartida: "Mi primera carrera",
+    partidaId: "",
   };
 }
 
@@ -691,7 +717,11 @@ function sanitizarPugilista(raw: Partial<Pugilista>): Pugilista {
   p.kosProfesionales = clamp(Number(raw.kosProfesionales) || (p.circuito === "pro" ? p.record.ko : 0), 0, p.victoriasProfesionales);
   p.energia = clamp(Number(p.energia) || 100, 0, 100);
   p.fogueo = Math.max(0, Number(p.fogueo) || 0);
-  p.fogueoMeta = clamp(Number(p.fogueoMeta) || 9, 8, 10);
+  p.fogueoMeta = 10;
+  p.guanteosRealizados = Math.max(Number(raw.guanteosRealizados) || p.fogueo, p.fogueo);
+  p.lesion = raw.lesion && typeof raw.lesion === "object" ? raw.lesion as Pugilista["lesion"] : null;
+  p.proximaPeleaSemana = raw.proximaPeleaSemana == null ? null : Math.max(1, Number(raw.proximaPeleaSemana) || 1);
+  p.ultimaPeleaSemana = raw.ultimaPeleaSemana == null ? null : Math.max(1, Number(raw.ultimaPeleaSemana) || 1);
   p.titulo = clamp(Number(p.titulo) || 0, 0, 4) as 0 | 1 | 2 | 3 | 4;
   return p;
 }
@@ -707,6 +737,8 @@ function sanitizarPelea(raw: unknown): Pelea | null {
     bolsa: Math.max(0, Number(x.bolsa) || 0),
     esTitulo: clamp(Number(x.esTitulo) || 0, 0, 4) as Pelea["esTitulo"],
     velada: !!x.velada,
+    semanaProgramada: Math.max(1, Number(x.semanaProgramada) || 1),
+    diaProgramado: clamp(Number(x.diaProgramado) || 6, 1, 7),
   };
 }
 
@@ -715,7 +747,7 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   const base = crearEstadoBase();
   if (!raw || typeof raw !== "object") return base;
   const r = raw as Partial<EstadoJuego>;
-  const s: EstadoJuego = { ...base, ...r, version: 2 };
+  const s: EstadoJuego = { ...base, ...r, version: 2, schemaVersion: 3 };
   s.plantel = Array.isArray(r.plantel) ? r.plantel.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : base.plantel;
   s.rivales = Array.isArray(r.rivales) ? r.rivales.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : [];
   s.rivales = s.rivales.map((rival, i) => ({ ...rival, club: rival.club || GIMNASIOS_RIVALES[i % GIMNASIOS_RIVALES.length] }));
@@ -759,6 +791,8 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.stats = { ...base.stats, ...(r.stats ?? {}) };
   s.logoGimnasio = typeof r.logoGimnasio === "string" ? r.logoGimnasio : base.logoGimnasio;
   s.ultimaSemanaEntrenada = Math.max(0, Number(r.ultimaSemanaEntrenada) || 0);
+  s.nombrePartida = typeof r.nombrePartida === "string" && r.nombrePartida ? r.nombrePartida : (s.nombreGimnasio || "Mi carrera");
+  s.partidaId = typeof r.partidaId === "string" && r.partidaId ? r.partidaId : uid();
   s.dinero = Math.max(0, Number(r.dinero) || 0);
   s.fama = clamp(Number(r.fama) || 0, 0, 100);
   s.dia = clamp(Number(r.dia) || 1, 1, 7);

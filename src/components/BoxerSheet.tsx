@@ -312,7 +312,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       Progreso de prácticas de combate
                     </span>
                     <span className="font-mono-data text-xs text-gold font-bold">
-                      {p.fogueo}/{p.fogueoMeta} prácticas completadas
+                      {p.fogueo}/{p.fogueoMeta} guanteos (sparring)
                     </span>
                   </div>
                   <div className="stat-bar h-3">
@@ -330,7 +330,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                         ? "Está en lista de espera: cuando se libere una plaza podrá continuar."
                         : p.fogueo >= p.fogueoMeta
                         ? "¡Atleta listo para tramitar su licencia individual!"
-                        : `Requiere ${p.fogueoMeta - p.fogueo} prácticas adicionales los sábados.`}
+                        : `Requiere ${p.fogueoMeta - p.fogueo} guanteos más para tramitar la licencia.`}
                     </p>
                     {!state.cursos.includes("dt") && onIrAPestana && (
                       <Btn small variant="ghost" onClick={() => onIrAPestana("perfil")}>
@@ -364,7 +364,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       Gestión Profesional del Pugilista
                     </span>
                     <span className="font-cond text-xs text-mut">
-                      {peleaAgendada ? "En preparación para combate oficial de cartelera." : "Disponible para pactar peleas."}
+                      {peleaAgendada ? "Pelea pactada: respetá el descanso y la recuperación." : p.lesion ? `Lesión ${p.lesion.gravedad}: ${p.lesion.semanas} semana(s) de recuperación.` : p.energia < 70 ? "Necesita descansar antes de pactar una pelea." : "Disponible para pactar una pelea."}
                     </span>
                   </div>
 

@@ -52,12 +52,23 @@ export interface Pugilista {
   combo: ComboId;
   fogueo: number;
   fogueoMeta: number;
+  guanteosRealizados: number;
+  lesion: Lesion | null;
+  proximaPeleaSemana: number | null;
+  ultimaPeleaSemana: number | null;
   rasgo: string;
   elite: boolean;
   /** Bono de Madurez: +10% Temple Mental y Defensa en su debut oficial */
   bonusDebut: boolean;
   /** Si es alumno y el gimnasio no tiene cupo, espera hasta que se libere un lugar. */
   enEspera?: boolean;
+}
+
+export interface Lesion {
+  tipo: "golpe" | "muscular" | "mano" | "corte";
+  semanas: number;
+  gravedad: "leve" | "media" | "grave";
+  tratamiento: number;
 }
 
 export interface OfertaRival {
@@ -77,6 +88,8 @@ export interface Pelea {
   bolsa: number;
   esTitulo: 0 | 1 | 2 | 3 | 4;
   velada: boolean;
+  semanaProgramada?: number;
+  diaProgramado?: number;
 }
 
 export interface CajaGolpes { lanzados: number; conectados: number; }
@@ -151,6 +164,7 @@ export type PropiedadId = "local" | "terreno" | "sucursal" | "apartamento" | "ma
 
 export interface EstadoJuego {
   version: number;
+  schemaVersion: number;
   creado: boolean;
   nombreJugador: string;
   nombreGimnasio: string;
@@ -188,12 +202,27 @@ export interface EstadoJuego {
   toasts: Toast[];
   logoGimnasio: string;
   ultimaSemanaEntrenada: number;
+  nombrePartida: string;
+  partidaId: string;
+}
+
+export interface PartidaGuardada {
+  id: string;
+  nombre: string;
+  coach: string;
+  gimnasio: string;
+  semana: number;
+  dia: number;
+  dinero: number;
+  guardadaEn: string;
+  estado: EstadoJuego;
 }
 
 export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro" | "alerta"; }
 
 export type Accion =
   | { type: "NUEVO_JUEGO"; nombre: string; gimnasio: string; logoGimnasio?: string }
+  | { type: "CARGAR_PARTIDA"; id: string }
   | { type: "CONTINUAR" }
   | { type: "IMPORTAR"; estado: EstadoJuego }
   | { type: "REINICIAR" }

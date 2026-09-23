@@ -9,8 +9,8 @@ import { ModalAjustes, PanelMercado, PanelPerfil, PanelPersonal, PanelPlantel } 
 import TopBar from "./components/TopBar";
 import { Btn, Chip, ContenedorToast, I, Modal } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
-import { PERSONAL_INFO, TITULOS } from "./game/data";
-import { alumnosActivos, fmt, nivelGimnasio, puedeHabilitar, valoracion } from "./game/engine";
+import { TITULOS } from "./game/data";
+import { fmt, puedeHabilitar, proyeccionSemanal, valoracion } from "./game/engine";
 import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/shortcuts";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
@@ -91,10 +91,10 @@ function PantallaPrincipal() {
   const resolverOferta = (ofertaId: string) => dispatch({ type: "ELEGIR_OFERTA", ofertaId });
 
   const primerAlumnoListo = state.plantel.find(p => puedeHabilitar(p, state));
-  const ingresosEstimados = alumnosActivos(state).length * (18 + 2 * (nivelGimnasio(state) - 1))
-    + state.plantel.filter(p => p.rol === "boxeador").length * 12 + (state.patrocinio?.semanal ?? 0);
-  const gastosEstimados = 150 + state.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
-  const balanceEstimado = ingresosEstimados - gastosEstimados;
+  const proyeccion = proyeccionSemanal(state);
+  const ingresosEstimados = proyeccion.ingresos.reduce((total, l) => total + l.monto, 0);
+  const gastosEstimados = proyeccion.gastos.reduce((total, l) => total + l.monto, 0);
+  const balanceEstimado = proyeccion.total;
   const guiaInicial = [
     { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
     { texto: "Elegir un enfoque de entrenamiento", hecho: state.plantel.some(p => p.rol === "alumno" && p.combo !== "acondicionamiento"), tab: "plantel" as Pestana },
@@ -213,7 +213,7 @@ function PantallaPrincipal() {
               <span className={balanceEstimado >= 0 ? "text-gold font-bold" : "text-blood font-bold"}>
                 {balanceEstimado >= 0 ? "A favor" : "En pérdida"} {balanceEstimado >= 0 ? "+" : "−"}{fmt(Math.abs(balanceEstimado))}
               </span>
-              <span className="text-mut">No incluye eventos, peleas ni veladas: son ingresos variables.</span>
+              <span className="text-mut">Incluye ayuda inicial, cuotas y gastos fijos. Peleas y eventos son variables.</span>
             </div>
           )}
 
