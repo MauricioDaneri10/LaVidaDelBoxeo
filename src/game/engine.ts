@@ -17,6 +17,50 @@ export const azar = (min: number, max: number) => Math.floor(Math.random() * (ma
 export const elegir = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 export const chance = (p: number) => Math.random() < p;
 
+export interface ModificadoresClub {
+  recuperacionEnergia: number;
+  energiaEntrenamiento: number;
+  capacidadAlumnos: number;
+  gananciaAtributo: Record<ClaveAtributo, number>;
+  multiplicadorVelada: number;
+  multiplicadorEventos: number;
+  multiplicadorMarca: number;
+}
+
+/** Fuente única de verdad para los efectos que atraviesan varios sistemas. */
+export function calcularModificadores(e: EstadoJuego): ModificadoresClub {
+  const gananciaAtributo = Object.fromEntries((Object.keys(e.plantel[0]?.atrib ?? {
+    fuerza: 0, velocidad: 0, potencia: 0, resistencia: 0, ataque: 0, defensa: 0,
+    tecnica: 0, eficacia: 0, inteligencia: 0, mentalidad: 0, talento: 0,
+  }) as ClaveAtributo[]).map(k => [k, 1])) as Record<ClaveAtributo, number>;
+  const multiplicar = (claves: ClaveAtributo[], valor: number) => claves.forEach(k => { gananciaAtributo[k] *= valor; });
+  if (e.equipamiento.includes("sacosCuero")) multiplicar(["fuerza", "potencia"], 1.25);
+  if (e.equipamiento.includes("perasDoble")) multiplicar(["velocidad", "eficacia"], 1.25);
+  if (e.equipamiento.includes("manoplasPro")) multiplicar(["ataque", "tecnica"], 1.25);
+  if (e.equipamiento.includes("ringReglamentario")) multiplicar(["tecnica", "defensa"], 1.25);
+  if (e.equipamiento.includes("soga")) multiplicar(["resistencia"], 1.15);
+  if (e.equipamiento.includes("barraProteinas")) multiplicar(["fuerza"], 1.2);
+  if (e.equipamiento.includes("sonido")) Object.keys(gananciaAtributo).forEach(k => { gananciaAtributo[k as ClaveAtributo] *= 1.1; });
+  if (e.cursos.includes("altoRendimiento")) Object.keys(gananciaAtributo).forEach(k => { gananciaAtributo[k as ClaveAtributo] *= 1.2; });
+  if (e.personal.some(p => p.tipo === "preparador")) multiplicar(["fuerza", "velocidad", "potencia", "resistencia"], 1.2);
+  let recuperacionEnergia = 30;
+  if (e.equipamiento.includes("vendasGel")) recuperacionEnergia += 4;
+  if (e.equipamiento.includes("pisoGoma")) recuperacionEnergia += 2;
+  if (e.equipamiento.includes("botiquin")) recuperacionEnergia += 6;
+  if (e.equipamiento.includes("vestuarios")) recuperacionEnergia += 2;
+  if (e.equipamiento.includes("sauna")) recuperacionEnergia += 10;
+  if (e.cursos.includes("nutricion")) recuperacionEnergia += 6;
+  return {
+    recuperacionEnergia,
+    energiaEntrenamiento: e.cursos.includes("nutricion") ? 6 : 0,
+    capacidadAlumnos: (e.equipamiento.includes("vestuarios") ? 4 : 0) + (e.personal.some(p => p.tipo === "asistente") ? 4 : 0) + (e.propiedades.includes("sucursal") ? 10 : 0),
+    gananciaAtributo,
+    multiplicadorVelada: (e.cursos.includes("prensa") ? 1.25 : 1) * (e.cursos.includes("tv") ? 1.4 : 1) * (e.propiedades.includes("arena") ? 1.5 : 1) * (e.personal.some(p => p.tipo === "difusion") ? 1.15 : 1),
+    multiplicadorEventos: e.personal.some(p => p.tipo === "difusion") ? 1.15 : 1,
+    multiplicadorMarca: (e.personal.some(p => p.tipo === "difusion") ? 1.8 : 1) * (e.cursos.includes("imperio") ? 1.5 : 1),
+  };
+}
+
 // ==================== VALORACIÓN GENERAL (fórmula oficial) ====================
 export function valoracion(a: Atributos): number {
   return Math.round(
@@ -93,7 +137,7 @@ export function sucursales(e: EstadoJuego): number {
   return e.propiedades.filter(p => p === "sucursal").length;
 }
 export function capacidadAlumnos(e: EstadoJuego): number {
-  return 10 + (e.equipamiento.includes("vestuarios") ? 4 : 0) + (e.personal.some(p => p.tipo === "asistente") ? 4 : 0) + (e.propiedades.includes("sucursal") ? 10 : 0);
+  return 10 + calcularModificadores(e).capacidadAlumnos;
 }
 export function alumnosActivos(e: EstadoJuego): Pugilista[] {
   return e.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
@@ -131,6 +175,7 @@ export function cuposElite(e: EstadoJuego): number {
 export interface ResultadoEntrenamiento { plantel: Pugilista[]; lineas: string[]; }
 
 export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamiento {
+  const modificadores = calcularModificadores(e);
   const tieneDT = e.personal.some(p => p.tipo === "directorTecnico");
   const rivalSabado = e.pendientes[0]?.rival ?? null;
   const lineas: string[] = [];
@@ -150,15 +195,7 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
     const ganancia = (k: ClaveAtributo): number => {
       let g = base * combo.bonus;
       if (b.elite && e.equipamiento.includes("zonaElite")) g *= 1.7;
-      if (e.personal.some(p => p.tipo === "preparador") && ["fuerza", "velocidad", "potencia", "resistencia"].includes(k)) g *= 1.2;
-      if (e.equipamiento.includes("sacosCuero") && (k === "fuerza" || k === "potencia")) g *= 1.25;
-      if (e.equipamiento.includes("perasDoble") && (k === "velocidad" || k === "eficacia")) g *= 1.25;
-      if (e.equipamiento.includes("manoplasPro") && (k === "ataque" || k === "tecnica")) g *= 1.25;
-      if (e.equipamiento.includes("ringReglamentario") && (k === "tecnica" || k === "defensa")) g *= 1.25;
-      if (e.equipamiento.includes("soga") && k === "resistencia") g *= 1.15;
-      if (e.equipamiento.includes("barraProteinas") && k === "fuerza") g *= 1.2;
-      if (e.equipamiento.includes("sonido")) g *= 1.1;
-      if (e.cursos.includes("altoRendimiento")) g *= 1.2;
+      g *= modificadores.gananciaAtributo[k];
       if (b.rasgo === "hijo" && (k === "mentalidad" || k === "inteligencia")) g *= 1.4;
       if (b.rasgo === "espejo" && k === "eficacia") g *= 1.3;
       if (b.rasgo === "tren" && k === "potencia") g *= 1.3;
@@ -172,7 +209,7 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
       n.atrib[k] = clamp(n.atrib[k] + g, 0, k === "talento" ? 99 : techo);
       if (g >= 0.9) subidas.push(k.slice(0, 3).toUpperCase());
     });
-    if (e.cursos.includes("nutricion")) energia += 6;
+    energia += modificadores.energiaEntrenamiento;
     n.energia = clamp(energia, 0, 100);
     if (subidas.length > 0 && chance(0.5)) {
       lineas.push(`${b.nombre.split(" ")[0]} (${combo.corto}) subió: ${subidas.join(", ")}.`);

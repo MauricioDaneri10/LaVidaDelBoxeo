@@ -3,6 +3,7 @@ import {
   alumnosActivos,
   alumnosEnEspera,
   aplicarEntrenamientoSemanal,
+  calcularModificadores,
   capacidadAlumnos,
   cerrarAsalto,
   crearEstadoBase,
@@ -34,6 +35,18 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(estado.ultimaSemanaEntrenada).toBe(1);
     expect(estado.plantel[0].atrib).toEqual(despuesPrimerDia);
     expect(antes).not.toBe(estado.plantel[0].atrib);
+  });
+
+  it("completa el ciclo semanal y deja la caja lista para la semana siguiente", () => {
+    let estado = { ...crearEstadoBase(), creado: true };
+    for (let i = 0; i < 6; i++) estado = reductor(estado, { type: "AVANZAR_DIA" });
+    expect(estado.dia).toBe(7);
+    expect(estado.resumen).not.toBeNull();
+    expect(estado.libroIngresos.length).toBeGreaterThan(0);
+    estado = reductor(estado, { type: "CERRAR_DOMINGO" });
+    expect(estado.dia).toBe(1);
+    expect(estado.semana).toBe(2);
+    expect(estado.resumen).toBeNull();
   });
 
   it("mantiene género, división y circuito al generar ofertas", () => {
@@ -116,6 +129,20 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const conLicencia = { ...base, cursos: ["dt"] as typeof base.cursos };
     expect(puedeHabilitar(alumno, conLicencia)).toBe(true);
     expect(puedeHabilitar({ ...alumno, enEspera: true }, conLicencia)).toBe(false);
+  });
+
+  it("centraliza los efectos de recuperación, cupos y entrenamiento", () => {
+    const base = crearEstadoBase();
+    const mejorado = {
+      ...base,
+      equipamiento: ["vendasGel", "vestuarios", "soga"] as typeof base.equipamiento,
+      cursos: ["nutricion"] as typeof base.cursos,
+    };
+    const mods = calcularModificadores(mejorado);
+    expect(mods.recuperacionEnergia).toBe(42);
+    expect(mods.energiaEntrenamiento).toBe(6);
+    expect(mods.capacidadAlumnos).toBe(4);
+    expect(mods.gananciaAtributo.resistencia).toBeCloseTo(1.15);
   });
 
   it("aplica la caída al boxeador que cayó aunque haya ganado el asalto por daño", () => {

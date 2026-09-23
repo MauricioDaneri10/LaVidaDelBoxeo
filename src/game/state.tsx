@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useReducer } from "react";
 import type { ReactNode } from "react";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
-  aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, capacidadAlumnos, chance, clamp, consejoEsquina, crearEstadoBase,
+  aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, chance, clamp, consejoEsquina, crearEstadoBase,
   elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
   normalizarListaEspera, sucursales, uid, valoracion,
 } from "./engine";
@@ -131,11 +131,9 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
 
   // Recaudación de la velada propia (se cobra el sábado)
   if (st.veladaProgramada) {
+    const modificadores = calcularModificadores(st);
     let recaudado = 300 + st.fama * 18 + (st.equipamiento.includes("ringReglamentario") ? 200 : 0);
-    if (st.cursos.includes("prensa")) recaudado *= 1.25;
-    if (st.cursos.includes("tv")) recaudado *= 1.4;
-    if (st.propiedades.includes("arena")) recaudado *= 1.5;
-    if (st.personal.some(p => p.tipo === "difusion")) recaudado *= 1.15;
+    recaudado *= modificadores.multiplicadorVelada;
     recaudado = Math.round(recaudado + azar(0, 120));
     const costos = 250 + st.pendientes.length * 80;
     const neto = recaudado - costos;
@@ -186,8 +184,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
 
   if (st.marcaRopa && st.equipamiento.includes("estudioMarca")) {
     let ventas = Math.round(st.fama * 6 + 40);
-    if (st.personal.some(p => p.tipo === "difusion")) ventas = Math.round(ventas * 1.8);
-    if (st.cursos.includes("imperio")) ventas = Math.round(ventas * 1.5);
+    ventas = Math.round(ventas * calcularModificadores(st).multiplicadorMarca);
     ingresos = linea(ingresos, `Ventas de la marca "${st.marcaRopa}"`, ventas);
   }
 
@@ -203,7 +200,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   st.comunitarios.forEach(c => {
     const info = COMUNITARIOS[c.tipo];
     let recaudado = azar(info.min, info.max);
-    if (st.personal.some(p => p.tipo === "difusion")) recaudado = Math.round(recaudado * 1.15);
+    recaudado = Math.round(recaudado * calcularModificadores(st).multiplicadorEventos);
     ingresos = linea(ingresos, `Dividendos: ${c.nombre}`, recaudado);
     if (c.tipo === "festival") st.fama = clamp(st.fama + 3, 0, 100);
     if (c.tipo === "bingo" && chance(0.5) && alumnos < capacidadAlumnos(st)) {
@@ -255,13 +252,7 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
   }
 
   // recuperación de energía dominical
-  let recup = 30;
-  if (st.equipamiento.includes("vendasGel")) recup += 4;
-  if (st.equipamiento.includes("pisoGoma")) recup += 2;
-  if (st.equipamiento.includes("botiquin")) recup += 6;
-  if (st.equipamiento.includes("vestuarios")) recup += 2;
-  if (st.equipamiento.includes("sauna")) recup += 10;
-  if (st.cursos.includes("nutricion")) recup += 6;
+  const recup = calcularModificadores(st).recuperacionEnergia;
   st.plantel = st.plantel.map(p => ({ ...p, energia: clamp(p.energia + recup, 0, 100) }));
 
   // prensa semanal
