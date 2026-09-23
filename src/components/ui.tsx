@@ -6,7 +6,7 @@ import type { Atributos, Pugilista } from "../game/types";
 // CONTRATOS DE UI AUXILIARES
 // ============================================================================
 export interface MensajeToast {
-  id: number | string;
+  id: number;
   texto: string;
   tono?: "oro" | "ok" | "alerta" | "info";
   tiempo?: number;
@@ -394,7 +394,15 @@ export function IconoArticuloMercado({ id }: { id: string }) {
 // RETRATO / CARA VECTORIAL GENERATIVA DEL BOXEADOR (ESTILO MINIMALISTA PULIDO)
 // ============================================================================
 
-export function RostroBoxeador({ atleta, className = "w-14 h-14" }: { atleta: any; className?: string }) {
+type DatosRostro = Partial<Pugilista> & {
+  tonoPiel?: string;
+  colorPantalon?: string;
+  cortePelo?: number;
+  tieneBarba?: boolean;
+  tieneCicatriz?: boolean;
+};
+
+export function RostroBoxeador({ atleta, className = "w-14 h-14" }: { atleta: DatosRostro; className?: string }) {
   const tonoPiel = atleta.piel || atleta.tonoPiel || "#e2a77a";
   const cortePelo = atleta.cortePelo ?? 1;
   const tieneBarba = atleta.tieneBarba ?? false;
@@ -463,7 +471,7 @@ export function ContenedorToast({
   onCerrar,
 }: {
   toasts: MensajeToast[];
-  onCerrar: (id: any) => void;
+  onCerrar: (id: number) => void;
 }) {
   if (!toasts || toasts.length === 0) return null;
 
@@ -589,7 +597,7 @@ export function TarjetaElegante({
 // ============================================================================
 // MATRIZ DE RENDIMIENTO RADAR (11 ATRIBUTOS CANÓNICOS CON FALLBACK)
 // ============================================================================
-export function RadarCapacidades({ atributos }: { atributos: Atributos | Record<string, number> | any }) {
+export function RadarCapacidades({ atributos }: { atributos: Atributos | Record<string, number> }) {
   // 11 Atributos canónicos oficiales de La Vida del Boxeo
   const llaves: string[] = [
     "fuerza", "velocidad", "potencia", "resistencia", "ataque", "defensa",
@@ -607,7 +615,8 @@ export function RadarCapacidades({ atributos }: { atributos: Atributos | Record<
 
   const puntos = llaves.map((k, i) => {
     const angulo = (Math.PI * 2 / total) * i - Math.PI / 2;
-    const valRaw = (atributos as any)?.[k] ?? (atributos as any)?.[aliasMap[k]] ?? 50;
+    const valores = atributos as Record<string, number>;
+    const valRaw = valores[k] ?? valores[aliasMap[k]] ?? 50;
     const valor = Math.min(100, Math.max(10, valRaw));
     const r = (valor / 100) * radio;
     return {

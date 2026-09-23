@@ -132,7 +132,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const todos = state.plantel;
   const tieneZonaElite = state.equipamiento.includes("zonaElite");
 
-  const logoActual = LOGOS_DISPONIBLES.find(l => l.id === (state as any).logoGimnasio) || LOGOS_DISPONIBLES[0];
+  const logoActual = LOGOS_DISPONIBLES.find(l => l.id === state.logoGimnasio) || LOGOS_DISPONIBLES[0];
 
   const seleccionarAtleta = (id: string) => {
     if (onAbrir) onAbrir(id);

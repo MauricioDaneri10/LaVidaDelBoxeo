@@ -16,7 +16,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
   const semanaRapida = () => dispatch({ type: "SEMANA_RAPIDA" });
 
   // Selección de emblema del club (respetando catálogo local y fallback canónico)
-  const logoActual = LOGOS_DISPONIBLES.find(l => l.id === (state as any).logoGimnasio) || LOGOS_DISPONIBLES[0];
+  const logoActual = LOGOS_DISPONIBLES.find(l => l.id === state.logoGimnasio) || LOGOS_DISPONIBLES[0];
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur-sm select-none">

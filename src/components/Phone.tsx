@@ -46,7 +46,7 @@ interface DockLateralProps {
   pestana?: PestanaDock;
   setPestana?: (p: PestanaDock) => void;
   lado?: "escritorio" | "movil";
-  onNavegarPestana?: (p: any) => void;
+  onNavegarPestana?: (p: "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal") => void;
   onSeleccionarBoxeador?: (id: string) => void;
 }
 
@@ -65,7 +65,7 @@ export default function DockLateral({
   const esEscritorio = lado === "escritorio";
 
   // Inteligencia Contextual: Detección proactiva del estado del plantel
-  const alumnoListoParaFederar = state.plantel?.find(b => b.rol === "alumno" && ((b.fogueo ?? 0) >= 10 || (b as any).guanteosPrevios >= 10));
+  const alumnoListoParaFederar = state.plantel?.find(b => b.rol === "alumno" && b.fogueo >= b.fogueoMeta);
   const saldoCritico = state.dinero < 300;
 
   const tabs: { id: PestanaDock; nombre: string; icono: string; badge: number; pulso: boolean }[] = [

@@ -34,9 +34,12 @@ function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[]
 
 function diaDeGestion(s: EstadoJuego): EstadoJuego {
   let st: EstadoJuego = { ...s };
-  const entreno = aplicarEntrenamientoSemanal(st);
-  st.plantel = entreno.plantel;
-  if (entreno.lineas.length > 0 && st.dia === 1) st = conToast(st, "Semana de entrenamiento en marcha.", "info");
+  if (st.ultimaSemanaEntrenada !== st.semana) {
+    const entreno = aplicarEntrenamientoSemanal(st);
+    st.plantel = entreno.plantel;
+    st.ultimaSemanaEntrenada = st.semana;
+    if (entreno.lineas.length > 0) st = conToast(st, "Semana de entrenamiento en marcha.", "info");
+  }
 
   // boca a boca del barrio (sin costo, solo oportunidad)
   const alumnos = st.plantel.filter(p => p.rol === "alumno").length;
@@ -56,7 +59,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   }
 
   // eventos del teléfono
-  if (st.dia === 1) {
+  if (st.dia === 2) {
     const nuevos = generarEventos(st);
     if (nuevos.length > 0) st = { ...st, eventos: [...st.eventos, ...nuevos].slice(-6) };
   }
@@ -71,6 +74,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
 
 function diaSabado(s: EstadoJuego): EstadoJuego {
   let st: EstadoJuego = { ...s };
+  st.stats = { ...st.stats };
 
   // Guanteos de Fogueo de los alumnos (sábado de práctica)
   const conEnergia = st.plantel.filter(p => p.rol === "alumno" && p.energia >= 20 && p.fogueo < p.fogueoMeta);
@@ -135,6 +139,7 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
 
 function domingoBalance(s: EstadoJuego): EstadoJuego {
   let st: EstadoJuego = { ...s };
+  st.stats = { ...st.stats };
   const nivel = nivelGimnasio(st);
   let ingresos: LineaLibro[] = [];
   let gastos: LineaLibro[] = [];
@@ -173,6 +178,11 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   if (st.patrocinio) {
     ingresos = linea(ingresos, `Patrocinio de ${st.patrocinio.nombre}`, st.patrocinio.semanal);
   }
+
+  const famaEquipamiento = (st.equipamiento.includes("carteles") ? 1 : 0)
+    + (st.equipamiento.includes("marquesina") ? 2 : 0)
+    + (st.equipamiento.includes("vitrina") ? 1 : 0);
+  if (famaEquipamiento > 0) st.fama = clamp(st.fama + famaEquipamiento, 0, 100);
 
   st.comunitarios.forEach(c => {
     const info = COMUNITARIOS[c.tipo];
@@ -284,6 +294,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         legados: s.legados,
         dinero: base.dinero + s.legados * 400,
         fama: base.fama + s.legados * 8,
+        logoGimnasio: a.logoGimnasio ?? base.logoGimnasio,
       };
       st = conToast(st, `Bienvenido a ${a.gimnasio}. El barrio espera.`, "oro");
       return st;
@@ -305,6 +316,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       return st;
     }
     case "SEMANA_RAPIDA": {
+      if (s.dia >= 6) return s;
       if (s.dia === 6 && s.pendientes.length > 0) {
         return conToast(s, "Hay peleas en la cartelera del sábado: resolvelas antes de avanzar.", "alerta");
       }
@@ -321,6 +333,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       return st;
     }
     case "CERRAR_DOMINGO":
+      if (s.dia !== 7) return s;
       return cerrarDomingo(s);
 
     case "CAMBIAR_COMBO":
@@ -353,6 +366,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       return { ...s, ofertas: generarOfertas(p), ofertasPara: p.id };
     }
     case "ELEGIR_OFERTA": {
+      if (s.dia >= 6) return s;
       const of = s.ofertas.find(o => o.id === a.ofertaId);
       if (!of || !s.ofertasPara) return s;
       const pelea: Pelea = { id: uid(), miId: s.ofertasPara, rival: of.rival, bolsa: of.bolsa, esTitulo: of.esTitulo, velada: s.veladaProgramada };
@@ -369,8 +383,11 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "RESOLVER_PELEA": {
       const pelea = s.pendientes.find(p => p.id === a.peleaId);
       if (!pelea) return s;
-      const r = a.resultado;
+      const r: ResultadoPelea = s.equipamiento.includes("batas") && a.resultado.gane
+        ? { ...a.resultado, fama: Math.round(a.resultado.fama * 1.25) }
+        : a.resultado;
       let st: EstadoJuego = { ...s };
+      st.stats = { ...st.stats };
       st.pendientes = st.pendientes.filter(p => p.id !== a.peleaId);
       st.dinero += r.bolsa;
       st.stats.dineroGanado += r.bolsa;
@@ -385,7 +402,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
           ...p,
           record: {
             v: p.record.v + (r.gane ? 1 : 0),
-            d: p.record.d + (r.gane ? 0 : 1),
+            d: p.record.d + (!r.gane && !r.empate ? 1 : 0),
             ko: p.record.ko + (r.gane && (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") ? 1 : 0),
           },
           energia: clamp(p.energia - 18, 0, 100),
@@ -403,7 +420,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         st = conToast(st, `¡${info.cinturon} para ${p?.nombre.split(" ")[0]}! Ya cuelga en la pared del gimnasio.`, "oro");
         st.prensa = [{ id: uid(), semana: st.semana, texto: `${elegir(MEDIOS)}: "¡Nuevo campeón! ${p?.nombre} conquista el ${info.nombre}."` }, ...st.prensa].slice(0, 10);
       } else {
-        st = conToast(st, r.gane ? `Victoria: ${r.metodo}. Bolsa de ${fmt(r.bolsa)}.` : `Derrota: ${r.metodo}. La esquina aprende y sigue.`, r.gane ? "ok" : "info");
+        st = conToast(st, r.gane ? `Victoria: ${r.metodo}. Bolsa de ${fmt(r.bolsa)}.` : r.empate ? `Empate: ${r.metodo}. La esquina aprende y sigue.` : `Derrota: ${r.metodo}. La esquina aprende y sigue.`, r.gane ? "ok" : "info");
       }
       return st;
     }
@@ -550,6 +567,9 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     }
   }
 }
+
+// Exportado para que el motor de reglas pueda probarse sin montar React.
+export { reductor };
 
 // ==================== CONTEXTO ====================
 interface Ctx { state: EstadoJuego; dispatch: React.Dispatch<Accion>; nivel: number; }

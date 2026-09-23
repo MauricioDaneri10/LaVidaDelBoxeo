@@ -110,8 +110,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
   };
 
   const callbackTerminar = (r: ResultadoPelea) => {
-    if (alTerminar) alTerminar(r);
-    if (onTerminar) onTerminar(r);
+    (onTerminar ?? alTerminar)?.(r);
   };
 
   const consumirAcciones = () => {
@@ -636,10 +635,10 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                 <div className="border-b border-line pb-2">
                   <div
                     className={`font-display text-2xl font-black ${
-                      resultado.gane ? "text-emerald-400" : "text-blood"
+                      resultado.gane ? "text-emerald-400" : resultado.empate ? "text-gold" : "text-blood"
                     }`}
                   >
-                    {resultado.gane ? "¡VICTORIA OFICIAL!" : "DERROTA"}
+                    {resultado.gane ? "¡VICTORIA OFICIAL!" : resultado.empate ? "EMPATE OFICIAL" : "DERROTA"}
                   </div>
                   <div className="font-cond text-xs text-sand mt-0.5">
                     {resultado.metodo} · {resultado.resumen}

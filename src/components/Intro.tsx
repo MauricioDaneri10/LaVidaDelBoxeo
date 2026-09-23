@@ -19,7 +19,7 @@ export default function Intro() {
       nombre: nombre.trim() || "El Coach",
       gimnasio: gimnasio.trim() || "Puños de Oro",
       logoGimnasio: logoSeleccionado,
-    } as any);
+    });
   };
 
   return (

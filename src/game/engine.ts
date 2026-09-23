@@ -5,7 +5,7 @@
 
 import { APELLIDOS, COMBOS, CONSEJOS_INICIALES, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, RASGOS, SPONSORS, TITULOS } from "./data";
 import type {
-  Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId,
+  Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
   OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez,
 } from "./types";
 
@@ -36,8 +36,8 @@ export function nombreAleatorio(genero: "M" | "F"): string {
   return `${elegir(genero === "M" ? NOMBRES_H : NOMBRES_M)} ${elegir(APELLIDOS)}`;
 }
 
-export function genPugilista(opts: { rol?: "alumno" | "boxeador"; joven?: boolean; vgBase?: number } = {}): Pugilista {
-  const genero = chance(0.5) ? "M" as const : "F" as const;
+export function genPugilista(opts: { rol?: "alumno" | "boxeador"; joven?: boolean; vgBase?: number; genero?: Genero } = {}): Pugilista {
+  const genero = opts.genero ?? (chance(0.5) ? "M" as const : "F" as const);
   const talento = clamp(azar(35, 68) + (chance(0.28) ? azar(14, 30) : 0), 30, 97);
   const techo = talento + 3;
   const base = () => clamp(Math.round(azar(24, 50) + talento * 0.22), 20, techo);
@@ -75,11 +75,11 @@ export function genPugilista(opts: { rol?: "alumno" | "boxeador"; joven?: boolea
   };
 }
 
-export function genRivalPorVG(vgObjetivo: number, division: string, energia: number): Pugilista {
-  const p = genPugilista({ rol: "boxeador", vgBase: vgObjetivo });
+export function genRivalPorVG(vgObjetivo: number, division: string, energia: number, genero?: Genero, circuito?: Circuito): Pugilista {
+  const p = genPugilista({ rol: "boxeador", vgBase: vgObjetivo, genero });
   p.division = division;
   p.energia = energia;
-  p.circuito = vgObjetivo >= 60 ? "pro" : "amateur";
+  p.circuito = circuito ?? (vgObjetivo >= 60 ? "pro" : "amateur");
   p.record = { v: Math.max(0, Math.round(vgObjetivo / 9) + azar(-1, 2)), d: azar(0, 3), ko: azar(0, 3) };
   return p;
 }
@@ -93,7 +93,7 @@ export function sucursales(e: EstadoJuego): number {
   return e.propiedades.filter(p => p === "sucursal").length;
 }
 export function capacidadAlumnos(e: EstadoJuego): number {
-  return 10 + (e.equipamiento.includes("vestuarios") ? 4 : 0) + (e.personal.some(p => p.tipo === "asistente") ? 4 : 0);
+  return 10 + (e.equipamiento.includes("vestuarios") ? 4 : 0) + (e.personal.some(p => p.tipo === "asistente") ? 4 : 0) + (e.propiedades.includes("sucursal") ? 10 : 0);
 }
 export function nivelGimnasio(e: EstadoJuego): number {
   let n = 1;
@@ -132,6 +132,7 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
       if (e.equipamiento.includes("sacosCuero") && (k === "fuerza" || k === "potencia")) g *= 1.25;
       if (e.equipamiento.includes("perasDoble") && (k === "velocidad" || k === "eficacia")) g *= 1.25;
       if (e.equipamiento.includes("manoplasPro") && (k === "ataque" || k === "tecnica")) g *= 1.25;
+      if (e.equipamiento.includes("ringReglamentario") && (k === "tecnica" || k === "defensa")) g *= 1.25;
       if (e.equipamiento.includes("soga") && k === "resistencia") g *= 1.15;
       if (e.equipamiento.includes("barraProteinas") && k === "fuerza") g *= 1.2;
       if (e.equipamiento.includes("sonido")) g *= 1.1;
@@ -194,17 +195,17 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
   const ofertas: OfertaRival[] = [
     {
       id: uid(), nivel: "accesible", bolsa: 250, esTitulo: 0,
-      rival: genRivalPorVG(clamp(vg - 5, 22, 95), p.division, azar(40, 70)),
+      rival: genRivalPorVG(clamp(vg - 5, 22, 95), p.division, azar(40, 70), p.genero, p.circuito),
       etiqueta: "Rival Accesible", detalle: "Nivel menor (−5). Victoria segura para cuidar el invicto.",
     },
     {
       id: uid(), nivel: "parejo", bolsa: 600, esTitulo: 0,
-      rival: genRivalPorVG(clamp(vg + azar(-2, 2), 22, 96), p.division, azar(45, 75)),
+      rival: genRivalPorVG(clamp(vg + azar(-2, 2), 22, 96), p.division, azar(45, 75), p.genero, p.circuito),
       etiqueta: "Rival Parejo", detalle: "Nivel idéntico (±2). Combate equilibrado para subir en el ranking.",
     },
     {
       id: uid(), nivel: "desafio", bolsa: 1800, esTitulo: 0,
-      rival: genRivalPorVG(clamp(vg + azar(6, 10), 25, 97), p.division, azar(50, 80)),
+      rival: genRivalPorVG(clamp(vg + azar(6, 10), 25, 97), p.division, azar(50, 80), p.genero, p.circuito),
       etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking.",
     },
   ];
@@ -212,7 +213,7 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
   if (tit > 0) {
     const info = TITULOS[tit as 1 | 2 | 3 | 4];
     const bolsa = tit === 4 ? azar(60, 150) * 1000 : info.bolsa;
-    const campeon = genRivalPorVG(clamp(vg + azar(6, 9), 30, 97), p.division, azar(65, 85));
+    const campeon = genRivalPorVG(clamp(vg + azar(6, 9), 30, 97), p.division, azar(65, 85), p.genero, "pro");
     campeon.circuito = "pro";
     campeon.titulo = tit;
     ofertas[2] = {
@@ -418,28 +419,25 @@ export function planSugerido(e: EstadoPelea): PlanId {
 
 export function resolverPelea(e: EstadoPelea): ResultadoPelea {
   e.finalizada = true;
+  let jA = 0, jB = 0;
+  e.tarjetas.forEach(t => { if (t.a > t.b) jA++; else if (t.b > t.a) jB++; });
+  const empate = !e.ko && jA === jB;
   const gane = e.ko ? e.ko === "b" : (() => {
-    let jA = 0, jB = 0;
-    e.tarjetas.forEach(t => { if (t.a > t.b) jA++; else if (t.b > t.a) jB++; });
     if (jA !== jB) return jA > jB;
-    return e.A.dmgDado >= e.B.dmgDado;
+    return false;
   })();
   const metodo: ResultadoPelea["metodo"] = e.ko
     ? (e.A.caidas >= 3 || e.B.caidas >= 3 ? "Nocaut Técnico" : "Nocaut")
-    : (() => {
-      let jA = 0, jB = 0;
-      e.tarjetas.forEach(t => { if (t.a > t.b) jA++; else if (t.b > t.a) jB++; });
-      return (jA >= 2 || (jA === jB)) ? "Decisión Unánime" : "Decisión Dividida";
-    })();
+    : empate ? "Empate" : (jA >= 2 ? "Decisión Unánime" : "Decisión Dividida");
   const vgMio = valoracion(e.A.p.atrib), vgRival = valoracion(e.B.p.atrib);
-  let fama = gane ? clamp(2 + Math.round((vgRival - vgMio + 10) / 6) + e.pelea.esTitulo * 2, 2, 12) : 1;
+  let fama = gane ? clamp(2 + Math.round((vgRival - vgMio + 10) / 6) + e.pelea.esTitulo * 2, 2, 12) : empate ? 1 : 1;
   if (gane && e.A.p.rasgo === "volcan") fama += 1;
   const tarjetas = e.tarjetas.map(t => ({ a: t.a, b: t.b }));
   const resumen = e.ko
     ? `${metodo} en el asalto ${e.asalto}`
     : `${metodo} (${tarjetas.map(t => `${t.a}-${t.b}`).join(", ")})`;
   return {
-    gane, metodo, tarjetas,
+    gane, empate, metodo, tarjetas,
     caidasA: e.B.caidas, caidasB: e.A.caidas,
     registroA: e.A.registro, registroB: e.B.registro,
     bolsa: gane ? e.pelea.bolsa : Math.round(e.pelea.bolsa * 0.3),
@@ -551,18 +549,45 @@ export function crearEstadoBase(): EstadoJuego {
     legados: 0,
     stats: { peleas: 0, victorias: 0, kos: 0, veladas: 0, dineroGanado: 0, titulos: 0 },
     toasts: [],
+    logoGimnasio: "guante",
+    ultimaSemanaEntrenada: 0,
   };
 }
 
 function sanitizarPugilista(raw: Partial<Pugilista>): Pugilista {
   const base = genPugilista({ rol: "alumno" });
   const p: Pugilista = { ...base, ...raw, atrib: { ...ATRIBUTOS_BASE, ...(raw?.atrib ?? {}) } };
+  const claves: ClaveAtributo[] = ["fuerza", "velocidad", "potencia", "resistencia", "ataque", "defensa", "tecnica", "eficacia", "inteligencia", "mentalidad", "talento"];
+  for (const clave of claves) p.atrib[clave] = clamp(Number(p.atrib[clave]) || 0, 0, 99);
+  p.id = typeof raw.id === "string" && raw.id ? raw.id : base.id;
+  p.nombre = typeof raw.nombre === "string" && raw.nombre ? raw.nombre : base.nombre;
+  p.genero = raw.genero === "F" ? "F" : "M";
+  p.rol = raw.rol === "boxeador" ? "boxeador" : "alumno";
+  p.circuito = raw.circuito === "pro" ? "pro" : "amateur";
+  p.edad = clamp(Number(raw.edad) || base.edad, 12, 80);
   p.record = { v: 0, d: 0, ko: 0, ...(raw?.record ?? {}) };
+  p.record.v = Math.max(0, Number(p.record.v) || 0);
+  p.record.d = Math.max(0, Number(p.record.d) || 0);
+  p.record.ko = clamp(Number(p.record.ko) || 0, 0, p.record.v);
   p.energia = clamp(Number(p.energia) || 100, 0, 100);
   p.fogueo = Math.max(0, Number(p.fogueo) || 0);
   p.fogueoMeta = clamp(Number(p.fogueoMeta) || 9, 8, 10);
   p.titulo = clamp(Number(p.titulo) || 0, 0, 4) as 0 | 1 | 2 | 3 | 4;
   return p;
+}
+
+function sanitizarPelea(raw: unknown): Pelea | null {
+  if (!raw || typeof raw !== "object") return null;
+  const x = raw as Partial<Pelea>;
+  if (typeof x.miId !== "string" || !x.rival || typeof x.rival !== "object") return null;
+  return {
+    id: typeof x.id === "string" && x.id ? x.id : uid(),
+    miId: x.miId,
+    rival: sanitizarPugilista(x.rival as Partial<Pugilista>),
+    bolsa: Math.max(0, Number(x.bolsa) || 0),
+    esTitulo: clamp(Number(x.esTitulo) || 0, 0, 4) as Pelea["esTitulo"],
+    velada: !!x.velada,
+  };
 }
 
 /** Compatibilidad segura de partidas guardadas en localStorage. */
@@ -573,14 +598,24 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   const s: EstadoJuego = { ...base, ...r, version: 2 };
   s.plantel = Array.isArray(r.plantel) ? r.plantel.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : base.plantel;
   s.rivales = Array.isArray(r.rivales) ? r.rivales.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : [];
-  s.ofertas = Array.isArray(r.ofertas) ? (r.ofertas as OfertaRival[]) : [];
-  s.pendientes = Array.isArray(r.pendientes) ? (r.pendientes as Pelea[]) : [];
+  s.ofertas = Array.isArray(r.ofertas) ? (r.ofertas as unknown[]).flatMap(raw => {
+    if (!raw || typeof raw !== "object") return [];
+    const x = raw as Partial<OfertaRival>;
+    if (typeof x.id !== "string" || !x.rival || typeof x.rival !== "object") return [];
+    return [{ ...x, rival: sanitizarPugilista(x.rival as Partial<Pugilista>), bolsa: Math.max(0, Number(x.bolsa) || 0) } as OfertaRival];
+  }) : [];
+  s.pendientes = Array.isArray(r.pendientes) ? (r.pendientes as unknown[]).flatMap(raw => {
+    const pelea = sanitizarPelea(raw);
+    return pelea ? [pelea] : [];
+  }) : [];
   s.historial = Array.isArray(r.historial) ? (r.historial as ResultadoPelea[]) : [];
   const equiposValidos = ["vendasGel", "sacosCuero", "perasDoble", "manoplasPro", "soga", "pisoGoma", "ringReglamentario", "zonaElite", "bucal", "cabezal", "botas", "batas", "botiquin", "vestuarios", "barraProteinas", "sauna", "carteles", "sonido", "marquesina", "vitrina", "estudioMarca"];
   s.equipamiento = Array.isArray(r.equipamiento) ? (r.equipamiento as GearId[]).filter(g => equiposValidos.includes(g)) : [];
   s.cursos = Array.isArray(r.cursos) ? (r.cursos as EstadoJuego["cursos"]) : [];
-  s.personal = Array.isArray(r.personal) ? (r.personal as EstadoJuego["personal"]) : [];
-  s.propiedades = Array.isArray(r.propiedades) ? (r.propiedades as EstadoJuego["propiedades"]) : [];
+  const personalValidos = ["directorTecnico", "representante", "preparador", "asistente", "difusion", "gerente", "entrenadorLocal"];
+  s.personal = Array.isArray(r.personal) ? (r.personal as EstadoJuego["personal"]).filter(p => p && personalValidos.includes(p.tipo)) : [];
+  const propiedadesValidas = ["local", "terreno", "sucursal", "apartamento", "mansion", "arena"];
+  s.propiedades = Array.isArray(r.propiedades) ? (r.propiedades as EstadoJuego["propiedades"]).filter(p => propiedadesValidas.includes(p)) : [];
   s.eventos = Array.isArray(r.eventos) ? (r.eventos as EventoJuego[]) : [];
   s.comunitarios = Array.isArray(r.comunitarios) ? (r.comunitarios as EstadoJuego["comunitarios"]) : [];
   s.prensa = Array.isArray(r.prensa) ? (r.prensa as EstadoJuego["prensa"]) : [];
@@ -592,13 +627,17 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.libroIngresos = Array.isArray(r.libroIngresos) ? (r.libroIngresos as EstadoJuego["libroIngresos"]) : [];
   s.libroGastos = Array.isArray(r.libroGastos) ? (r.libroGastos as EstadoJuego["libroGastos"]) : [];
   s.stats = { ...base.stats, ...(r.stats ?? {}) };
+  s.logoGimnasio = typeof r.logoGimnasio === "string" ? r.logoGimnasio : base.logoGimnasio;
+  s.ultimaSemanaEntrenada = Math.max(0, Number(r.ultimaSemanaEntrenada) || 0);
   s.dinero = Math.max(0, Number(r.dinero) || 0);
   s.fama = clamp(Number(r.fama) || 0, 0, 100);
   s.dia = clamp(Number(r.dia) || 1, 1, 7);
   s.semana = Math.max(1, Number(r.semana) || 1);
   s.toasts = [];
   s.resumen = null;
-  s.patrocinio = r.patrocinio && typeof r.patrocinio === "object" ? r.patrocinio : null;
+  s.patrocinio = r.patrocinio && typeof r.patrocinio === "object" && typeof r.patrocinio.nombre === "string"
+    ? { nombre: r.patrocinio.nombre, semanal: Math.max(0, Number(r.patrocinio.semanal) || 0), semanas: Math.max(0, Number(r.patrocinio.semanas) || 0) }
+    : null;
   s.marcaRopa = typeof r.marcaRopa === "string" ? r.marcaRopa : "";
   s.nombreJugador = typeof r.nombreJugador === "string" ? r.nombreJugador : "";
   s.nombreGimnasio = typeof r.nombreGimnasio === "string" ? r.nombreGimnasio : "Puños de Oro";

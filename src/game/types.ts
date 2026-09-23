@@ -70,7 +70,8 @@ export interface TarjetaJuez { a: number; b: number; }
 
 export interface ResultadoPelea {
   gane: boolean;
-  metodo: "Nocaut" | "Nocaut Técnico" | "Decisión Unánime" | "Decisión Dividida";
+  empate: boolean;
+  metodo: "Nocaut" | "Nocaut Técnico" | "Decisión Unánime" | "Decisión Dividida" | "Empate";
   tarjetas: TarjetaJuez[];
   caidasA: number;
   caidasB: number;
@@ -165,12 +166,14 @@ export interface EstadoJuego {
   legados: number;
   stats: { peleas: number; victorias: number; kos: number; veladas: number; dineroGanado: number; titulos: number };
   toasts: Toast[];
+  logoGimnasio: string;
+  ultimaSemanaEntrenada: number;
 }
 
 export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro" | "alerta"; }
 
 export type Accion =
-  | { type: "NUEVO_JUEGO"; nombre: string; gimnasio: string }
+  | { type: "NUEVO_JUEGO"; nombre: string; gimnasio: string; logoGimnasio?: string }
   | { type: "CONTINUAR" }
   | { type: "IMPORTAR"; estado: EstadoJuego }
   | { type: "REINICIAR" }

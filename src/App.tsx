@@ -170,7 +170,6 @@ function PantallaPrincipal() {
         <FightScreen
           key={peleaActual.id}
           pelea={peleaActual}
-          alTerminar={alTerminarPelea}
           onTerminar={alTerminarPelea}
         />
       )}
