@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
   aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, capacidadAlumnos, chance, clamp, consejoEsquina, crearEstadoBase,
-  elegir, fmt, generarEventos, generarOfertas, genPugilista, nivelGimnasio, sanitizarEstado,
+  elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
   normalizarListaEspera, sucursales, uid, valoracion,
 } from "./engine";
 import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
@@ -105,7 +105,7 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
       return n;
     });
     if (guanteos > 0) st = conToast(st, `Sábado de guanteos de fogueo ${lugar}: ${guanteos} guanteos sumados.`, "ok");
-    const listos = st.plantel.filter(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta);
+    const listos = st.plantel.filter(p => p.rol === "alumno" && !p.enEspera && p.fogueo >= p.fogueoMeta);
     if (listos.length > 0 && st.cursos.includes("dt")) {
       st = conToast(st, `${listos[0].nombre.split(" ")[0]} ya puede tramitar su Licencia Federativa.`, "oro");
     }
@@ -117,14 +117,11 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
       p.rol === "boxeador" && p.energia >= 45 && !st.pendientes.some(x => x.miId === p.id)
     );
     libres.slice(0, 1).forEach(p => {
-      const ofertas = generarOfertas(p);
+      const ofertas = ofertasValidasPara(p, st);
       const fuerte = valoracion(p.atrib) >= 55;
       // La automatización respeta las mismas reglas que la elección manual:
       // un representante no puede prometer un título internacional sin TV.
-      const ofertasValidas = ofertas.map(of => of.esTitulo >= 3 && !st.cursos.includes("tv")
-        ? { ...of, esTitulo: 0 as const, etiqueta: "Pelea de experiencia", detalle: "Necesitás el curso de Televisión para aspirar a títulos internacionales." }
-        : of);
-      const elegida = fuerte ? ofertasValidas[2] : ofertasValidas[1];
+      const elegida = fuerte ? ofertas[2] : ofertas[1];
       st.pendientes = [...st.pendientes, { id: uid(), miId: p.id, rival: elegida.rival, bolsa: elegida.bolsa, esTitulo: elegida.esTitulo, velada: st.veladaProgramada }];
       st = conToast(st, `Tu Representante agendó a ${p.nombre.split(" ")[0]} vs ${elegida.rival.nombre.split(" ")[0]}.`, "info");
     });
@@ -360,8 +357,9 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "LICENCIAR": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "alumno") return s;
-      if (!s.cursos.includes("dt")) return conToast(s, "Necesitás el curso de Director Técnico Federado.", "alerta");
-      if (p.fogueo < p.fogueoMeta) return conToast(s, `Le faltan guanteos de fogueo (${p.fogueo}/${p.fogueoMeta}).`, "alerta");
+      if (!s.cursos.includes("dt")) return conToast(s, "Necesitás comprar la Licencia para Competir.", "alerta");
+      if (p.enEspera) return conToast(s, "Está en lista de espera: primero liberá una plaza del gimnasio.", "alerta");
+      if (p.fogueo < p.fogueoMeta) return conToast(s, `Le faltan prácticas de combate (${p.fogueo}/${p.fogueoMeta}).`, "alerta");
       if (s.dinero < 200) return conToast(s, "La Licencia Federativa cuesta $200.", "alerta");
       const nuevo: Pugilista = { ...p, rol: "boxeador", enEspera: false, bonusDebut: true, energia: clamp(p.energia, 30, 100) };
       return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - 200, plantel: s.plantel.map(x => x.id === a.id ? nuevo : x) }),
@@ -381,9 +379,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "boxeador") return s;
       if (s.pendientes.some(x => x.miId === p.id)) return conToast(s, "Ya tiene pelea agendada para el sábado.", "info");
-      const ofertas = generarOfertas(p).map(of => of.esTitulo >= 3 && !s.cursos.includes("tv")
-        ? { ...of, esTitulo: 0 as const, etiqueta: "Pelea de experiencia", detalle: "Necesitás el curso de televisión para aspirar a títulos internacionales." }
-        : of);
+      const ofertas = ofertasValidasPara(p, s);
       return { ...s, ofertas, ofertasPara: p.id };
     }
     case "ELEGIR_OFERTA": {

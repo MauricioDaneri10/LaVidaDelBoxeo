@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, nivelGimnasio, sanitizarEstado, sucursales, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, nivelGimnasio, puedeHabilitar, sanitizarEstado, sucursales, valoracion } from "../game/engine";
 import { CLAVE_GUARDADO, guardarPartida, useGame } from "../game/state";
 import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
@@ -69,7 +69,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
   const Tarjeta = ({ p }: { p: Pugilista }) => {
     const agendada = state.pendientes.some(x => x.miId === p.id);
-    const listoSabado = p.rol === "alumno" && p.fogueo >= p.fogueoMeta && tieneDT;
+    const listoSabado = puedeHabilitar(p, state);
 
     return (
       <motion.button
@@ -227,7 +227,11 @@ export function PanelMercado() {
   const { state, dispatch } = useGame();
   const [cat, setCat] = useState<CategoriaMercado>("equipamiento");
   const [nombreMarca, setNombreMarca] = useState("");
-  const items = Object.entries(EQUIPOS).filter(([, v]) => v.cat === cat);
+  const ordenInicial = ["vendasGel", "botiquin", "soga", "pisoGoma"];
+  const recomendadoId = ordenInicial.find(id => !state.equipamiento.includes(id as never) && EQUIPOS[id as keyof typeof EQUIPOS].cat === cat);
+  const items = Object.entries(EQUIPOS)
+    .filter(([, v]) => v.cat === cat)
+    .sort(([a], [b]) => (a === recomendadoId ? -1 : b === recomendadoId ? 1 : 0));
 
   return (
     <div className="space-y-4">
@@ -235,6 +239,7 @@ export function PanelMercado() {
         <h2 className="font-display text-2xl tracking-wide text-gold">Equipamiento e Instalaciones</h2>
         <span className="font-cond text-sm text-sand">Caja disponible: <b className="text-gold">{fmt(state.dinero)}</b></span>
         <span className="font-cond text-sm text-sand">Instalado: <b className="text-cream">{state.equipamiento.length}/21</b></span>
+        {recomendadoId && <span className="rounded-full border border-neonc/50 bg-neonc/10 px-2.5 py-1 font-cond text-xs text-neonc">Sugerencia: empezá por una mejora de recuperación</span>}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -266,6 +271,7 @@ export function PanelMercado() {
                   </div>
                 </div>
                 {comprado && <Chip tone="win"><I n="check" className="h-3 w-3" /> Instalado</Chip>}
+                {!comprado && id === recomendadoId && <Chip tone="neon">Recomendado ahora</Chip>}
               </div>
               <p className="mt-2 font-cond text-sm text-sand">{eq.desc}</p>
               <p className="mt-1 font-cond text-xs text-neonc">{eq.efecto}</p>

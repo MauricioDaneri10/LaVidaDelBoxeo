@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { alumnosActivos, fmt } from "../game/engine";
+import { alumnosActivos, fmt, puedeHabilitar } from "../game/engine";
 import { notificacion } from "../game/audio";
 import { useGame } from "../game/state";
 import type { EventoJuego } from "../game/types";
@@ -65,7 +65,7 @@ export default function DockLateral({
   const esEscritorio = lado === "escritorio";
 
   // Inteligencia Contextual: Detección proactiva del estado del plantel
-  const alumnoListoParaFederar = alumnosActivos(state).find(b => b.fogueo >= b.fogueoMeta && state.cursos.includes("dt"));
+  const alumnoListoParaFederar = alumnosActivos(state).find(b => puedeHabilitar(b, state));
   const saldoCritico = state.dinero < 300;
 
   const tabs: { id: PestanaDock; nombre: string; icono: string; badge: number; pulso: boolean }[] = [

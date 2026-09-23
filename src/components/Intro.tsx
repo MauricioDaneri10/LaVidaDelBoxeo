@@ -59,7 +59,7 @@ export default function Intro() {
             <div className="space-y-2.5 font-cond text-sm text-sand">
               {[
                 ["LUN–VIE", "Gestión pura: 6 combos de entrenamiento, mercado, personal y cursos"],
-                ["SÁBADO", "Guanteos de fogueo, veladas propias y peleas con jueces de 10 puntos"],
+                ["SÁBADO", "Prácticas de combate, noches de boxeo y peleas con jueces de 10 puntos"],
                 ["DOMINGO", "Balance semanal: cuotas, sucursales, sponsors y eventos comunitarios"],
                 ["TU META", "Los 4 cinturones: Regional, Nacional, Continental y el Mundial Absoluto"],
               ].map(([k, v]) => (

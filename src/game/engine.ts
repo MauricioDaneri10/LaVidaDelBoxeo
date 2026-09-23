@@ -101,6 +101,9 @@ export function alumnosActivos(e: EstadoJuego): Pugilista[] {
 export function alumnosEnEspera(e: EstadoJuego): Pugilista[] {
   return e.plantel.filter(p => p.rol === "alumno" && p.enEspera);
 }
+export function puedeHabilitar(p: Pugilista, e: EstadoJuego): boolean {
+  return p.rol === "alumno" && !p.enEspera && p.fogueo >= p.fogueoMeta && e.cursos.includes("dt");
+}
 export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
   const activos = e.plantel.filter(p => p.rol !== "alumno" || !p.enEspera);
   const alumnos = e.plantel.filter(p => p.rol === "alumno").sort((a, b) => Number(a.enEspera) - Number(b.enEspera));
@@ -243,6 +246,12 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
     };
   }
   return ofertas;
+}
+
+export function ofertasValidasPara(p: Pugilista, e: EstadoJuego): OfertaRival[] {
+  return generarOfertas(p).map(of => of.esTitulo >= 3 && !e.cursos.includes("tv")
+    ? { ...of, esTitulo: 0 as const, etiqueta: "Pelea de experiencia", detalle: "Necesitás el curso de Televisión para aspirar a títulos internacionales." }
+    : of);
 }
 
 // ==================== MOTOR DE COMBATE ====================

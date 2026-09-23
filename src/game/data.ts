@@ -141,7 +141,7 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
 
 // ==================== CURSOS: 3 RAMAS × 3 NIVELES ====================
 export const CURSOS: Record<CursoId, { nombre: string; rama: RamaCurso; nivel: 1 | 2 | 3; costo: number; desc: string; req: CursoId | null }> = {
-  dt: { nombre: "Director Técnico Federado", rama: "deportiva", nivel: 1, costo: 500, desc: "Licencia oficial para federar boxeadores y dirigirlos en el circuito amateur.", req: null },
+  dt: { nombre: "Licencia para Competir", rama: "deportiva", nivel: 1, costo: 500, desc: "Habilita a tus alumnos para convertirse en boxeadores federados y competir oficialmente.", req: null },
   nutricion: { nombre: "Nutrición Deportiva", rama: "deportiva", nivel: 2, costo: 1500, desc: "Planes de alimentación para el plantel: +6 de recuperación de energía semanal.", req: "dt" },
   altoRendimiento: { nombre: "Alto Rendimiento", rama: "deportiva", nivel: 3, costo: 4000, desc: "Metodología de élite: +20% de ganancia en todo y habilita la Zona Élite VIP.", req: "nutricion" },
   veladas: { nombre: "Organización de Veladas", rama: "promotora", nivel: 1, costo: 800, desc: "Arma tu propia cartelera de los sábados y cobra entradas.", req: null },
@@ -154,7 +154,7 @@ export const CURSOS: Record<CursoId, { nombre: string; rama: RamaCurso; nivel: 1
 
 // ==================== PERSONAL DEL GIMNASIO ====================
 export const PERSONAL_INFO: Record<PersonalId, { nombre: string; sueldo: number; desc: string; multiple: boolean; icono: string }> = {
-  directorTecnico: { nombre: "Director Técnico Principal", sueldo: 120, desc: "Automatiza al 100% los entrenamientos: asigna el combo ideal a cada atleta cada semana.", multiple: false, icono: "glove" },
+  directorTecnico: { nombre: "Entrenador Automático", sueldo: 120, desc: "Organiza al 100% los entrenamientos: asigna el enfoque ideal a cada atleta cada semana.", multiple: false, icono: "glove" },
   representante: { nombre: "Representante Deportivo y Promotor", sueldo: 150, desc: "Agenda solo las peleas del sábado eligiendo la mejor oferta de Selección de Rival.", multiple: false, icono: "case" },
   preparador: { nombre: "Preparador Físico", sueldo: 90, desc: "+20% de ganancia en todo el Pilar Físico.", multiple: false, icono: "dumbbell" },
   asistente: { nombre: "Asistente de Clases", sueldo: 70, desc: "+4 cupos de alumnos y mejora el boca a boca del barrio.", multiple: false, icono: "users" },

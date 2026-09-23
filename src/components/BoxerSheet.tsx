@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { COMBOS, TITULOS } from "../game/data";
-import { consejoEsquina, fmt, rasgoInfo, tituloAspirable, valoracion } from "../game/engine";
+import { consejoEsquina, fmt, puedeHabilitar, rasgoInfo, tituloAspirable, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { ComboId, Pugilista } from "../game/types";
 import { Figura } from "./GymView";
@@ -84,7 +84,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
   const rivalSabado = peleaAgendada?.rival ?? null;
   const consejo = consejoEsquina(p, rivalSabado);
   const aspirable = tituloAspirable(p);
-  const puedeLicenciar = p.rol === "alumno" && p.fogueo >= p.fogueoMeta && state.cursos.includes("dt");
+  const puedeLicenciar = puedeHabilitar(p, state);
   const tieneDT = state.personal.some(x => x.tipo === "directorTecnico");
 
   const cambiarCombo = (c: ComboId) => dispatch({ type: "CAMBIAR_COMBO", id: p.id, combo: c });
@@ -305,7 +305,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       Progreso de prácticas de combate
                     </span>
                     <span className="font-mono-data text-xs text-gold font-bold">
-                      {p.fogueo}/{p.fogueoMeta} asaltos completados
+                      {p.fogueo}/{p.fogueoMeta} prácticas completadas
                     </span>
                   </div>
                   <div className="stat-bar h-3">
@@ -319,9 +319,11 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
 
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <p className="font-cond text-xs text-mut">
-                      {p.fogueo >= p.fogueoMeta
+                      {p.enEspera
+                        ? "Está en lista de espera: cuando se libere una plaza podrá continuar."
+                        : p.fogueo >= p.fogueoMeta
                         ? "¡Atleta listo para tramitar la Licencia Federativa de combate!"
-                        : `Requiere ${p.fogueoMeta - p.fogueo} guanteos adicionales los sábados.`}
+                        : `Requiere ${p.fogueoMeta - p.fogueo} prácticas adicionales los sábados.`}
                     </p>
                     {!state.cursos.includes("dt") && onIrAPestana && (
                       <Btn small variant="ghost" onClick={() => onIrAPestana("perfil")}>
@@ -339,7 +341,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     )}
                   </div>
                   <div className="rounded-xl border border-gold2/50 bg-gold/10 p-2.5 text-xs font-cond text-sand">
-                    <b className="text-gold">Cómo habilitarlo:</b> completá la licencia de entrenador, reuní las prácticas requeridas y después usá el botón de habilitación aquí mismo.
+                    <b className="text-gold">Cómo habilitarlo:</b> comprá la licencia para competir, completá las prácticas requeridas y después usá el botón de habilitación aquí mismo.
                   </div>
                 </div>
               ) : (

@@ -10,7 +10,7 @@ import TopBar from "./components/TopBar";
 import { Btn, Chip, ContenedorToast, I, Modal } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
 import { PERSONAL_INFO, TITULOS } from "./game/data";
-import { alumnosActivos, fmt, nivelGimnasio, valoracion } from "./game/engine";
+import { alumnosActivos, fmt, nivelGimnasio, puedeHabilitar, valoracion } from "./game/engine";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
 
@@ -84,7 +84,7 @@ function PantallaPrincipal() {
 
   const resolverOferta = (ofertaId: string) => dispatch({ type: "ELEGIR_OFERTA", ofertaId });
 
-  const primerAlumnoListo = alumnosActivos(state).find(p => p.fogueo >= p.fogueoMeta);
+  const primerAlumnoListo = state.plantel.find(p => puedeHabilitar(p, state));
   const ingresosEstimados = alumnosActivos(state).length * (18 + 2 * (nivelGimnasio(state) - 1))
     + state.plantel.filter(p => p.rol === "boxeador").length * 12 + (state.patrocinio?.semanal ?? 0);
   const gastosEstimados = 150 + state.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
@@ -107,7 +107,7 @@ function PantallaPrincipal() {
       pulso:
         state.dia <= 5 &&
         state.plantel.some(
-          p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta && state.cursos.includes("dt")
+          p => puedeHabilitar(p, state)
         ),
     },
     { id: "mercado", nombre: "Mercado", icono: "cart", pulso: false },

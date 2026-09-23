@@ -10,6 +10,7 @@ import {
   genPugilista,
   generarOfertas,
   normalizarListaEspera,
+  puedeHabilitar,
   prepararLuchador,
   resolverPelea,
   sanitizarEstado,
@@ -105,6 +106,16 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(alumnosEnEspera(estado)).toHaveLength(2);
     const antes = alumnosEnEspera(estado)[0].atrib;
     expect(aplicarEntrenamientoSemanal(estado).plantel.find(p => p.id === alumnosEnEspera(estado)[0].id)?.atrib).toEqual(antes);
+  });
+
+  it("solo marca como habilitable a un alumno activo con licencia y prácticas", () => {
+    const base = crearEstadoBase();
+    const alumno = { ...base.plantel.find(p => p.rol === "alumno")! };
+    alumno.fogueo = alumno.fogueoMeta;
+    expect(puedeHabilitar(alumno, base)).toBe(false);
+    const conLicencia = { ...base, cursos: ["dt"] as typeof base.cursos };
+    expect(puedeHabilitar(alumno, conLicencia)).toBe(true);
+    expect(puedeHabilitar({ ...alumno, enEspera: true }, conLicencia)).toBe(false);
   });
 
   it("aplica la caída al boxeador que cayó aunque haya ganado el asalto por daño", () => {
