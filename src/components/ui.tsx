@@ -114,10 +114,10 @@ export function BarraStat({ v, color = "auto" }: { v: number; color?: string }) 
 // Fila de estadística con etiqueta y valor
 export function FilaStat({ label, v }: { label: string; v: number }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-24 shrink-0 font-cond text-[12px] uppercase tracking-wide text-sand">{label}</span>
+    <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)_auto] items-center gap-2">
+      <span className="min-w-0 truncate font-cond text-[12px] uppercase tracking-wide text-sand">{label}</span>
       <BarraStat v={v} color="auto" />
-      <span className="w-7 text-right font-cond text-sm font-bold text-cream">{Math.round(v)}</span>
+      <span className="text-right font-cond text-sm font-bold text-cream">{Math.round(v)}</span>
     </div>
   );
 }

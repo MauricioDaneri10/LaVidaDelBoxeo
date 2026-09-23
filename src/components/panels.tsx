@@ -49,6 +49,8 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   const alumnos = state.plantel.filter(p => p.rol === "alumno");
   const boxeadores = state.plantel.filter(p => p.rol === "boxeador");
   const tieneDT = state.cursos.includes("dt");
+  const cupoAlumnos = capacidadAlumnos(state);
+  const alumnosEnEspera = Math.max(0, alumnos.length - cupoAlumnos);
 
   const seleccionarAtleta = (p: Pugilista) => {
     if (onAbrir) onAbrir(p.id);
@@ -148,7 +150,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     <div className="space-y-5">
       <div className="panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Atletas</h2>
-        <Chip tone="gold"><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{capacidadAlumnos(state)}</Chip>
+        <Chip tone={alumnosEnEspera ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEnEspera ? ` · ${alumnosEnEspera} en espera` : ""}</Chip>
         <Chip tone="blood"><I n="glove" className="h-3 w-3" /> Federados {boxeadores.length}</Chip>
         <Chip><I n="bell" className="h-3 w-3" /> Cartelera del sábado: {state.pendientes.length} pelea(s)</Chip>
         <div className="ml-auto flex gap-2">
@@ -185,7 +187,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
       {/* SECCIÓN ALUMNOS EN FORMACIÓN */}
       <section>
         <h3 className="mb-2 font-display text-xl tracking-wide text-sand flex items-center gap-2">
-          <span>🥋 Alumnos en Formación & Guanteo ({alumnos.length}/{capacidadAlumnos(state)})</span>
+          <span>🥋 Alumnos en Formación & Guanteo ({alumnos.length}/{cupoAlumnos}{alumnosEnEspera ? ` · ${alumnosEnEspera} en espera` : ""})</span>
         </h3>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {alumnos.map(p => <Tarjeta key={p.id} p={p} />)}
@@ -237,7 +239,7 @@ export function PanelMercado() {
             <div key={id} className={`panel p-4 ${comprado ? "border-win/50" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="grid h-10 w-10 place-items-center border border-line bg-ink text-gold"><I n={eq.icono} className="h-5 w-5" /></div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-gold2/50 bg-gold/10 text-gold shadow-inner"><I n={eq.icono} className="h-6 w-6" /></div>
                   <div>
                     <div className="font-display text-lg leading-tight tracking-wide text-cream">{eq.nombre}</div>
                     <div className="font-display text-base text-gold">{fmt(eq.costo)}</div>

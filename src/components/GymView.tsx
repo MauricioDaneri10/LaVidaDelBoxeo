@@ -130,6 +130,9 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const { state, nivel } = useGame();
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const todos = state.plantel;
+  const alumnos = todos.filter(p => p.rol === "alumno");
+  const cupoAlumnos = capacidadAlumnos(state);
+  const alumnosEnEspera = Math.max(0, alumnos.length - cupoAlumnos);
   const tieneZonaElite = state.equipamiento.includes("zonaElite");
 
   const logoActual = LOGOS_DISPONIBLES.find(l => l.id === state.logoGimnasio) || LOGOS_DISPONIBLES[0];
@@ -179,7 +182,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
       
       {/* PARED DEL GIMNASIO */}
       <div className="absolute inset-x-0 top-0 h-[56%]" style={{ background: pared }}>
-        {[14, 50, 86].map((x, i) => (
+        {[16, 84].map((x, i) => (
           <div key={x} className="absolute top-0" style={{ left: `${x}%` }}>
             <div className="mx-auto h-7 w-px bg-line2" />
             <div className="mx-auto h-2.5 w-5 rounded-b-full border border-line2 bg-[#2c2418]" />
@@ -189,10 +192,10 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         ))}
 
         {/* MARQUESINA CENTRAL DEL GIMNASIO CON EMBLEMA Y NIVEL */}
-        <div className={`absolute left-1/2 top-6 -translate-x-1/2 text-center ${nivel >= 3 ? "anim-neon" : ""}`}>
+        <div className={`absolute left-1/2 top-12 -translate-x-1/2 text-center ${nivel >= 3 ? "anim-neon" : ""}`}>
           <div className="flex items-center justify-center gap-3">
             <span className="text-2xl filter drop-shadow">{logoActual.emoji}</span>
-            <div className={`border-2 px-5 py-1 font-display text-2xl tracking-[0.12em] sm:text-3xl ${nivel >= 3 ? "border-neonc text-neonc" : "border-gold2 text-gold"}`}
+            <div className={`rounded-lg border-2 bg-ink/75 px-5 py-2 font-display text-2xl tracking-[0.08em] shadow-lg sm:text-3xl ${nivel >= 3 ? "border-neonc text-neonc" : "border-gold2 text-gold"}`}
               style={nivel >= 3
                 ? { textShadow: "0 0 16px rgba(56,224,207,0.85), 0 0 38px rgba(255,79,160,0.4)", boxShadow: "0 0 22px rgba(56,224,207,0.22) inset" }
                 : { textShadow: "0 0 12px rgba(232,178,58,0.55)" }}>
@@ -226,7 +229,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
       <div className="absolute inset-x-0 bottom-[7%] top-[52%] grid grid-cols-5 gap-1 px-2">
 
         {/* ZONA 1: SOGA Y CARDIO */}
-        <div className="relative border border-line/60 bg-black/15">
+        <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
           <EtiquetaZona n="1" titulo="Soga y Cardio" />
           {asignacion.soga.map((b, i) => (
             <div key={b.id} className="absolute bottom-1" style={{ left: `${12 + i * 40}%` }}>
@@ -243,7 +246,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
 
         {/* ZONA 2: SACOS Y POTENCIA */}
-        <div className="relative border border-line/60 bg-black/15">
+        <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
           <EtiquetaZona n="2" titulo="Sacos y Potencia" />
           <svg viewBox="0 0 100 90" className="pointer-events-none absolute inset-x-0 top-2 h-[85%] w-full">
             <g className="anim-saco-hit" style={{ transformOrigin: "24px 6px" }}>
@@ -267,7 +270,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
 
         {/* ZONA 3: RING DE PRÁCTICA Y TÉCNICA */}
-        <div className="relative border border-gold2/40 bg-black/20">
+        <div className="relative overflow-hidden rounded-xl border border-gold2/40 bg-black/20">
           <EtiquetaZona n="3" titulo="Ring de Práctica" />
           <svg viewBox="0 0 120 70" className="pointer-events-none absolute inset-x-1 bottom-0 h-[72%] w-[94%]">
             <rect x="6" y="46" width="108" height="9" fill="#5d452c" stroke="#2c2013" strokeWidth="1.2" />
@@ -301,11 +304,12 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
           {asignacion.ring.length === 0 && <Vacia />}
         </div>
 
-        {/* ZONA 4: MANOPLAS Y SOMBRA */}
-        <div className="relative border border-line/60 bg-black/15">
-          <EtiquetaZona n="4" titulo="Manoplas y Sombra" />
-          <div className="pointer-events-none absolute right-1 top-4 h-[70%] w-[46%] border-2 border-line2 bg-gradient-to-b from-[#3d4a55] to-[#232b33] opacity-80">
+        {/* ZONA 4: TÉCNICA Y ESPEJO */}
+        <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
+          <EtiquetaZona n="4" titulo="Técnica y Espejo" />
+          <div className="pointer-events-none absolute right-2 top-5 h-[68%] w-[43%] rounded border-2 border-sky-200/30 bg-gradient-to-b from-[#4a5964] to-[#1d252c] opacity-90 shadow-inner">
             <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(255,255,255,0.08)_45%,transparent_60%)]" />
+            <div className="absolute inset-x-2 bottom-2 h-1 rounded bg-sky-200/30" />
           </div>
           {asignacion.manoplas.map(b => (
             <div key={b.id} className="absolute bottom-1 left-[8%]">
@@ -370,7 +374,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         <div className="absolute inset-y-0 right-0 z-30 w-72 bg-ink/95 border-l border-line p-4 shadow-2xl flex flex-col justify-between backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-line pb-2">
             <span className="font-display text-base text-cream uppercase tracking-wider">
-              Roster del Gimnasio ({todos.length})
+              Plantel del Gimnasio ({todos.length})
             </span>
             <button
               onClick={() => setDrawerAbierto(false)}
@@ -417,7 +421,8 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
       {/* BARRA INFERIOR DE ESTADO CON ACCESO AL ROSTER */}
       <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line bg-ink/92 px-4 py-2">
         <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
-          <I n="users" className="h-4 w-4 text-gold" /> Alumnos <b className="text-cream">{state.plantel.filter(p => p.rol === "alumno").length}/{capacidadAlumnos(state)}</b>
+          <I n="users" className="h-4 w-4 text-gold" /> Alumnos <b className={alumnosEnEspera ? "text-blood" : "text-cream"}>{alumnos.length}/{cupoAlumnos}</b>
+          {alumnosEnEspera > 0 && <span className="text-[11px] text-blood">· {alumnosEnEspera} en espera</span>}
         </span>
         <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
           <I n="glove" className="h-4 w-4 text-blood" /> Federados <b className="text-cream">{state.plantel.filter(p => p.rol === "boxeador").length}</b>
@@ -437,7 +442,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-panel2 border border-line text-xs font-cond uppercase text-gold hover:border-gold2 transition-colors cursor-pointer"
           >
             <I n="users" className="w-3.5 h-3.5" />
-            <span>Roster Rápido ({todos.length})</span>
+            <span>Plantel rápido ({todos.length})</span>
           </button>
           <span className="hidden font-cond text-[12px] uppercase tracking-wider text-mut xl:block">
             Haz clic en un atleta para ver su ficha

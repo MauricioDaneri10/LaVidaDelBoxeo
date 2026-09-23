@@ -43,9 +43,10 @@ export interface BoxerSheetProps {
   boxeadorId?: string;
   onCerrar: () => void;
   onCambiarBoxeador?: (id: string) => void;
+  onIrAPestana?: (tab: "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal") => void;
 }
 
-export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador }: BoxerSheetProps) {
+export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAPestana }: BoxerSheetProps) {
   const { state, dispatch } = useGame();
   const inicialId = id || boxeadorId || state.plantel[0]?.id || "";
   const [activoId, setActivoId] = useState<string>(inicialId);
@@ -152,7 +153,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador }: Boxe
         </div>
 
         {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (IZQ: HERO + RADAR, DER: ATRIBUTOS + ENTRENAMIENTO + HISTORIAL) */}
-        <div className="grid gap-5 md:grid-cols-[280px_1fr]">
+        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           
           {/* COLUMNA IZQUIERDA: HERO + FIGURA PROCEDIMENTAL + RADAR PENTAGONAL */}
           <div className="space-y-3">
@@ -228,7 +229,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador }: Boxe
           <div className="space-y-4">
             
             {/* LOS 3 PILARES CANÓNICOS (11 ATRIBUTOS) */}
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {PILARES.map(pil => (
                 <div key={pil.titulo} className="panel p-3 rounded-2xl space-y-2">
                   <div className={`font-display text-base tracking-wide border-b border-line pb-1 ${pil.color}`}>
@@ -258,7 +259,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador }: Boxe
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {(Object.keys(COMBOS) as ComboId[]).map(cid => {
                   const cb = COMBOS[cid];
                   const esActivo = p.combo === cid;
@@ -321,6 +322,11 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador }: Boxe
                         ? "¡Atleta listo para tramitar la Licencia Federativa de combate!"
                         : `Requiere ${p.fogueoMeta - p.fogueo} guanteos adicionales los sábados.`}
                     </p>
+                    {!state.cursos.includes("dt") && onIrAPestana && (
+                      <Btn small variant="ghost" onClick={() => onIrAPestana("perfil")}>
+                        Comprar curso de DT
+                      </Btn>
+                    )}
                     {puedeLicenciar && (
                       <Btn
                         small
@@ -330,6 +336,9 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador }: Boxe
                         Licenciar para Debut Oficial ({fmt(200)})
                       </Btn>
                     )}
+                  </div>
+                  <div className="rounded-xl border border-gold2/50 bg-gold/10 p-2.5 text-xs font-cond text-sand">
+                    <b className="text-gold">Ruta para federar:</b> completá el curso de Director Técnico, reuní los guanteos requeridos y después usá el botón de licencia aquí mismo.
                   </div>
                 </div>
               ) : (

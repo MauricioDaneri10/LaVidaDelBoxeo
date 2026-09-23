@@ -17,6 +17,12 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
 
   // Selección de emblema del club (respetando catálogo local y fallback canónico)
   const logoActual = LOGOS_DISPONIBLES.find(l => l.id === state.logoGimnasio) || LOGOS_DISPONIBLES[0];
+  const mejoras = [
+    state.equipamiento.includes("soga") && "Soga · +15% resistencia",
+    state.equipamiento.includes("ringReglamentario") && "Ring · +25% técnica/defensa",
+    state.equipamiento.includes("botiquin") && "Botiquín · +4 energía semanal",
+    state.patrocinio && `${state.patrocinio.nombre} · patrocinio activo`,
+  ].filter(Boolean) as string[];
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur-sm select-none">
@@ -113,6 +119,10 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
             </Btn>
           )}
         </div>
+      </div>
+      <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-2 border-t border-line/70 px-4 py-1.5">
+        <span className="font-cond text-[11px] font-bold uppercase tracking-wider text-mut">Mejoras activas</span>
+        {mejoras.length ? mejoras.map(m => <span key={m} className="rounded-full border border-gold2/50 bg-gold/10 px-2.5 py-0.5 font-cond text-xs text-gold">{m}</span>) : <span className="font-cond text-xs text-mut">Todavía no hay mejoras instaladas</span>}
       </div>
     </header>
   );

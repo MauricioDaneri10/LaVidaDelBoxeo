@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import BoxerSheet from "./components/BoxerSheet";
 import CityMap from "./components/CityMap";
@@ -58,6 +57,15 @@ function PantallaPrincipal() {
   };
 
   const resolverOferta = (ofertaId: string) => dispatch({ type: "ELEGIR_OFERTA", ofertaId });
+
+  const primerAlumnoListo = state.plantel.find(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta);
+  const siguientePaso = !state.equipamiento.length
+    ? { texto: "Empezá por equipar el gimnasio: una mejora activa beneficios para toda la semana.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
+    : !state.cursos.includes("dt")
+      ? { texto: "Formá al Director Técnico para habilitar la ruta de licencia federativa.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
+      : primerAlumnoListo
+        ? { texto: `${primerAlumnoListo.nombre} ya está listo: abrí su ficha y tramitá la licencia federativa.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
+        : null;
 
   const pestanas: { id: Pestana; nombre: string; icono: string; pulso: boolean }[] = [
     { id: "gimnasio", nombre: "Gimnasio", icono: "ring", pulso: false },
@@ -129,15 +137,19 @@ function PantallaPrincipal() {
             )}
           </nav>
 
+          {siguientePaso && state.dia <= 5 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gold2/60 bg-gold/10 px-4 py-3 shadow-sm">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold text-ink font-bold">→</div>
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-sm uppercase tracking-wide text-gold">Siguiente paso</div>
+                <p className="font-cond text-sm text-cream">{siguientePaso.texto}</p>
+              </div>
+              <Btn small variant="gold" onClick={() => setPestana(siguientePaso.tab)}>{siguientePaso.boton}</Btn>
+            </div>
+          )}
+
           {/* ESCENARIO / VISTA CENTRAL CON TRANSICIONES FLUIDAS */}
-          <AnimatePresence mode="wait">
-            <motion.main
-              key={pestana}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.16 }}
-            >
+          <main>
               {pestana === "gimnasio" && <GymView onAbrir={setFichaId} onSeleccionarBoxeador={(b) => setFichaId(b.id)} />}
               {pestana === "ciudad" && <CityMap onIrAPestaña={(tab) => setPestana(tab as Pestana)} />}
               {pestana === "plantel" && (
@@ -150,19 +162,18 @@ function PantallaPrincipal() {
               {pestana === "mercado" && <PanelMercado />}
               {pestana === "perfil" && <PanelPerfil />}
               {pestana === "personal" && <PanelPersonal />}
-            </motion.main>
-          </AnimatePresence>
+          </main>
         </div>
 
         {/* DOCK LATERAL DEL TELÉFONO (PANTALLAS ANCHAS) */}
         <div className="sticky top-[84px] hidden h-fit xl:block">
-          <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="escritorio" />
+          <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="escritorio" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
         </div>
       </div>
 
       {/* DOCK COMPACTO EN DISPOSITIVOS MÓVILES */}
       <div className="sticky bottom-0 z-30 xl:hidden">
-        <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" />
+        <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
       </div>
 
       {/* PANTALLA DE COMBATE EN VIVO */}
@@ -347,6 +358,7 @@ function PantallaPrincipal() {
           id={fichaId}
           onCerrar={() => setFichaId(null)}
           onCambiarBoxeador={setFichaId}
+          onIrAPestana={(tab) => { setFichaId(null); setPestana(tab); }}
         />
       )}
 

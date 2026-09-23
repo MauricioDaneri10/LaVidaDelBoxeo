@@ -16,9 +16,9 @@
   --color-win: #4ecb71;
   --color-neonc: #38e0cf;
   --color-neonm: #ff4fa0;
-  --font-display: "Bebas Neue", "Barlow Condensed", sans-serif;
-  --font-cond: "Barlow Condensed", "Barlow", sans-serif;
-  --font-body: "Barlow", sans-serif;
+  --font-display: "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-cond: "Segoe UI", Tahoma, sans-serif;
+  --font-body: "Segoe UI", Tahoma, sans-serif;
 }
 
 html, body {
@@ -26,6 +26,7 @@ html, body {
   color: var(--color-cream);
   font-family: var(--font-body);
   min-height: 100%;
+  line-height: 1.35;
 }
 
 /* fondo ambiental de sala de boxeo */
@@ -86,8 +87,8 @@ html, body {
 
 @keyframes ropeJump { 0%, 100% { transform: translateY(0) scaleY(1); } 40% { transform: translateY(-9px) scaleY(1.02); } 60% { transform: translateY(-9px); } }
 .anim-salto { animation: ropeJump 0.72s ease-in-out infinite; }
-@keyframes ropeArc { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.anim-cuerda { animation: ropeArc 0.72s linear infinite; transform-origin: 50% 12%; }
+@keyframes ropeSwing { 0%, 100% { transform: rotate(-10deg) scaleY(0.98); } 50% { transform: rotate(10deg) scaleY(1); } }
+.anim-cuerda { animation: ropeSwing 0.72s ease-in-out infinite; transform-origin: 50% 50%; }
 
 @keyframes sombraBox { 0%, 100% { transform: translateX(0) rotate(0); } 30% { transform: translateX(-3px) rotate(-2deg); } 60% { transform: translateX(3px) rotate(2deg); } }
 .anim-sombra { animation: sombraBox 1.6s ease-in-out infinite; }
@@ -133,3 +134,10 @@ html, body {
 
 @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 .anim-latido { animation: latido 1.6s ease-in-out infinite; }
+
+button, input { font: inherit; }
+button { line-height: 1.2; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}

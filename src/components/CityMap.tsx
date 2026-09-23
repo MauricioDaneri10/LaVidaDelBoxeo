@@ -54,7 +54,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </div>
 
       {/* PLANO URBANÍSTICO VECTORIAL ISOMÉTRICO 1000x600 + PANEL LATERAL */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
         <div className="lg:col-span-8 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative aspect-[16/10] min-h-[440px] shadow-2xl flex items-center justify-center p-2">
@@ -202,8 +202,8 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                     {pinEmoji}
                   </text>
 
-                  {/* Cartel Flotante del Nombre */}
-                  <g transform="translate(0, -32)">
+                  {/* Mostramos etiquetas sólo cuando ayudan a decidir: evita el mapa ilegible. */}
+                  {(esSeleccionado || esMio) && <g transform="translate(0, -32)">
                     <rect
                       x="-80"
                       y="-12"
@@ -225,7 +225,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                     >
                       {data.nombre} {esMio ? "✓" : ""}
                     </text>
-                  </g>
+                  </g>}
                 </g>
               );
             })}
@@ -241,7 +241,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* COLUMNA DERECHA: INSPECTOR DE PROPIEDAD SELECCIONADA (4 COLS) */}
-        <div className="lg:col-span-4 bg-panel border border-line rounded-3xl p-6 flex flex-col justify-between gap-5 shadow-2xl">
+        <div className="xl:col-span-4 bg-panel border border-line rounded-3xl p-4 xl:p-6 flex flex-col justify-between gap-5 shadow-2xl min-w-0">
           {propActual ? (
             <>
               <div className="space-y-4">
@@ -311,10 +311,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </div>
 
       {/* SECCIÓN INFERIOR: SCOUTING & ACTIVIDADES DE LA CIUDAD */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 border-t border-line pt-4">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 border-t border-line pt-4">
         
         {/* SCOUTING EN CLUBES RIVALES (4 COLS) */}
-        <div className="lg:col-span-4 p-4 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-3 shadow-lg">
+        <div className="xl:col-span-4 p-4 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-3 shadow-lg">
           <div>
             <div className="flex items-center gap-2">
               <I n="users" className="h-4 w-4 text-blood" />
@@ -330,7 +330,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* ACTIVIDADES Y EVENTOS SOCIALES DEL CLUB (8 COLS) */}
-        <div className="lg:col-span-8 p-4 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-3 shadow-lg">
+        <div className="xl:col-span-8 p-4 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-3 shadow-lg">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2.5 py-0.5 rounded border border-gold/40">
