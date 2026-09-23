@@ -352,13 +352,14 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "LICENCIAR": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "alumno") return s;
-      if (!s.cursos.includes("dt")) return conToast(s, "Necesitás comprar la Licencia para Competir.", "alerta");
+      if (!s.cursos.includes("dt")) return conToast(s, "Primero necesitás la Licencia de Entrenador del club.", "alerta");
       if (p.enEspera) return conToast(s, "Está en lista de espera: primero liberá una plaza del gimnasio.", "alerta");
       if (p.fogueo < p.fogueoMeta) return conToast(s, `Le faltan prácticas de combate (${p.fogueo}/${p.fogueoMeta}).`, "alerta");
+      if (p.licenciaFederativa) return conToast(s, "Este atleta ya tiene su licencia individual.", "info");
       if (s.dinero < 200) return conToast(s, "La Licencia Federativa cuesta $200.", "alerta");
-      const nuevo: Pugilista = { ...p, rol: "boxeador", enEspera: false, bonusDebut: true, energia: clamp(p.energia, 30, 100) };
+      const nuevo: Pugilista = { ...p, rol: "boxeador", licenciaFederativa: true, enEspera: false, bonusDebut: true, energia: clamp(p.energia, 30, 100) };
       return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - 200, plantel: s.plantel.map(x => x.id === a.id ? nuevo : x) }),
-        `${p.nombre.split(" ")[0]} ya es boxeador federado. ¡Bono de Madurez activo en su debut!`, "oro");
+        `${p.nombre.split(" ")[0]} ya tiene su licencia individual y es boxeador federado. ¡Bono de Madurez activo en su debut!`, "oro");
     }
 
     case "ALTERNAR_ELITE": {

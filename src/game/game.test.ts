@@ -131,6 +131,19 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(puedeHabilitar({ ...alumno, enEspera: true }, conLicencia)).toBe(false);
   });
 
+  it("separa la licencia del entrenador de la licencia individual del pugilista", () => {
+    const base = crearEstadoBase();
+    const alumno = { ...base.plantel.find(p => p.rol === "alumno")!, fogueo: 10, fogueoMeta: 10 };
+    const conLicenciaEntrenador = { ...base, cursos: ["dt"] as typeof base.cursos, dinero: 500 };
+    expect(conLicenciaEntrenador.cursos).toContain("dt");
+    expect(alumno.licenciaFederativa).toBe(false);
+    const federado = reductor({ ...conLicenciaEntrenador, plantel: [alumno] }, { type: "LICENCIAR", id: alumno.id });
+    expect(federado.plantel[0].rol).toBe("boxeador");
+    expect(federado.plantel[0].licenciaFederativa).toBe(true);
+    expect(federado.plantel[0].record).toEqual({ v: 0, d: 0, ko: 0 });
+    expect(federado.dinero).toBe(300);
+  });
+
   it("centraliza los efectos de recuperación, cupos y entrenamiento", () => {
     const base = crearEstadoBase();
     const mejorado = {

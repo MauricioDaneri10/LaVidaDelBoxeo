@@ -126,14 +126,14 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
                   }}
                   className="btn-poster guia-luminica ml-auto border border-[#ffe0a0]/50 bg-gold px-3 py-1 text-sm text-ink cursor-pointer"
                 >
-                  <span>Licenciar {fmt(200)}</span>
+                  <span>Emitir licencia {fmt(200)}</span>
                 </button>
               )}
             </>
           ) : (
             <>
               <span className="font-cond text-[11px] uppercase text-sand">
-                Récord: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
+                Récord oficial: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
               </span>
               <div className="ml-auto">
                 {agendada ? (
@@ -178,8 +178,8 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
       {!tieneDT && (
         <div className="border border-gold2/50 bg-gold/5 px-4 py-2.5 font-cond text-sm text-sand rounded-xl">
-          <b className="text-gold">Cómo habilitar a tu primer boxeador:</b> aprobá la licencia de entrenador en Mi Perfil,
-          completá sus <b>prácticas de combate</b> (8 a 10, los sábados) y luego pagá la habilitación.
+          <b className="text-gold">Cómo habilitar a tu primer boxeador:</b> obtené la Licencia de Entrenador en Mi Perfil,
+          completá sus <b>prácticas de combate</b> (8 a 10, los sábados) y luego emití su licencia individual.
         </div>
       )}
 

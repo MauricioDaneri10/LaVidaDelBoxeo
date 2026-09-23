@@ -98,7 +98,7 @@ function PantallaPrincipal() {
   const siguientePaso = !state.equipamiento.length
     ? { texto: "Empezá por equipar el gimnasio: una mejora activa beneficios para toda la semana.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
     : !state.cursos.includes("dt")
-      ? { texto: "Conseguí la licencia de entrenador para habilitar a tus boxeadores.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
+      ? { texto: "Obtené la Licencia de Entrenador del club para poder registrar atletas.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
       : primerAlumnoListo
         ? { texto: `${primerAlumnoListo.nombre} ya está listo: abrí su ficha y habilitalo para competir.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
         : null;

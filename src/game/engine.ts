@@ -109,6 +109,7 @@ export function genPugilista(opts: { rol?: "alumno" | "boxeador"; joven?: boolea
     division: elegir(DIVISIONES),
     record: { v: 0, d: 0, ko: 0 },
     titulo: 0,
+    licenciaFederativa: rol === "boxeador",
     energia: 100,
     combo: rol === "alumno" ? "acondicionamiento" : elegir(["noqueador", "estilista", "presion", "tactico"] as ComboId[]),
     fogueo: azar(0, 3),
@@ -146,7 +147,7 @@ export function alumnosEnEspera(e: EstadoJuego): Pugilista[] {
   return e.plantel.filter(p => p.rol === "alumno" && p.enEspera);
 }
 export function puedeHabilitar(p: Pugilista, e: EstadoJuego): boolean {
-  return p.rol === "alumno" && !p.enEspera && p.fogueo >= p.fogueoMeta && e.cursos.includes("dt");
+  return p.rol === "alumno" && !p.licenciaFederativa && !p.enEspera && p.fogueo >= p.fogueoMeta && e.cursos.includes("dt");
 }
 export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
   const activos = e.plantel.filter(p => p.rol !== "alumno" || !p.enEspera);
@@ -630,6 +631,7 @@ function sanitizarPugilista(raw: Partial<Pugilista>): Pugilista {
   p.nombre = typeof raw.nombre === "string" && raw.nombre ? raw.nombre : base.nombre;
   p.genero = raw.genero === "F" ? "F" : "M";
   p.rol = raw.rol === "boxeador" ? "boxeador" : "alumno";
+  p.licenciaFederativa = p.rol === "boxeador" || raw.licenciaFederativa === true;
   p.enEspera = p.rol === "alumno" && !!raw.enEspera;
   p.circuito = raw.circuito === "pro" ? "pro" : "amateur";
   p.edad = clamp(Number(raw.edad) || base.edad, 12, 80);

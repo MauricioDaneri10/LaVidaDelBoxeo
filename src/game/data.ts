@@ -141,7 +141,7 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
 
 // ==================== CURSOS: 3 RAMAS × 3 NIVELES ====================
 export const CURSOS: Record<CursoId, { nombre: string; rama: RamaCurso; nivel: 1 | 2 | 3; costo: number; desc: string; req: CursoId | null }> = {
-  dt: { nombre: "Licencia para Competir", rama: "deportiva", nivel: 1, costo: 500, desc: "Habilita a tus alumnos para convertirse en boxeadores federados y competir oficialmente.", req: null },
+  dt: { nombre: "Licencia de Entrenador", rama: "deportiva", nivel: 1, costo: 500, desc: "Te habilita como entrenador responsable para registrar y dirigir atletas federados.", req: null },
   nutricion: { nombre: "Nutrición Deportiva", rama: "deportiva", nivel: 2, costo: 1500, desc: "Planes de alimentación para el plantel: +6 de recuperación de energía semanal.", req: "dt" },
   altoRendimiento: { nombre: "Alto Rendimiento", rama: "deportiva", nivel: 3, costo: 4000, desc: "Metodología de élite: +20% de ganancia en todo y habilita la Zona Élite VIP.", req: "nutricion" },
   veladas: { nombre: "Organización de Veladas", rama: "promotora", nivel: 1, costo: 800, desc: "Arma tu propia cartelera de los sábados y cobra entradas.", req: null },

@@ -180,7 +180,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
 
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <Chip tone={p.rol === "boxeador" ? "blood" : "mut"}>
-                  {p.rol === "boxeador" ? "Federado" : "Alumno"}
+                  {p.rol === "boxeador" ? "Licencia individual" : "Alumno"}
                 </Chip>
                 {p.rol === "boxeador" && (
                   <Chip tone={p.circuito === "pro" ? "gold" : "mut"}>
@@ -203,7 +203,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
 
               {p.rol === "boxeador" && (
                 <div className="border-t border-line pt-2 font-cond text-sm text-sand">
-                  Récord: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
+                  Récord oficial: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
                   {p.bonusDebut && <span className="ml-1 text-neonc font-bold">(Bono de Madurez)</span>}
                 </div>
               )}
@@ -322,12 +322,12 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       {p.enEspera
                         ? "Está en lista de espera: cuando se libere una plaza podrá continuar."
                         : p.fogueo >= p.fogueoMeta
-                        ? "¡Atleta listo para tramitar la Licencia Federativa de combate!"
+                        ? "¡Atleta listo para tramitar su licencia individual!"
                         : `Requiere ${p.fogueoMeta - p.fogueo} prácticas adicionales los sábados.`}
                     </p>
                     {!state.cursos.includes("dt") && onIrAPestana && (
                       <Btn small variant="ghost" onClick={() => onIrAPestana("perfil")}>
-                        Comprar curso de DT
+                        Obtener Licencia de Entrenador
                       </Btn>
                     )}
                     {puedeLicenciar && (
@@ -336,12 +336,12 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                         variant="gold"
                         onClick={() => dispatch({ type: "LICENCIAR", id: p.id })}
                       >
-                        Licenciar para Debut Oficial ({fmt(200)})
+                        Emitir licencia del atleta ({fmt(200)})
                       </Btn>
                     )}
                   </div>
                   <div className="rounded-xl border border-gold2/50 bg-gold/10 p-2.5 text-xs font-cond text-sand">
-                    <b className="text-gold">Cómo habilitarlo:</b> comprá la licencia para competir, completá las prácticas requeridas y después usá el botón de habilitación aquí mismo.
+                    <b className="text-gold">Dos licencias distintas:</b> primero obtené la Licencia de Entrenador del club; después emití la licencia individual de este atleta.
                   </div>
                 </div>
               ) : (

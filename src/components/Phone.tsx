@@ -160,7 +160,7 @@ export default function DockLateral({
                 {alumnoListoParaFederar.nombre} está listo para competir oficialmente.
               </p>
               <p className="font-cond text-xs text-sand mt-0.5 leading-tight">
-                Abrí su ficha técnica para tramitar su Licencia Federativa ($200).
+                Abrí su ficha técnica para emitir su licencia individual ($200).
               </p>
             </div>
           )}

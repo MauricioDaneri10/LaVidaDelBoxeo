@@ -35,6 +35,8 @@ export interface Pugilista {
   record: { v: number; d: number; ko: number };
   /** 0 sin título · 1 Regional · 2 Nacional · 3 Continental · 4 Mundial */
   titulo: 0 | 1 | 2 | 3 | 4;
+  /** Licencia individual del atleta para competir oficialmente. */
+  licenciaFederativa: boolean;
   energia: number;
   combo: ComboId;
   fogueo: number;
