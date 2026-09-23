@@ -318,7 +318,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           <div>
             <div className="flex items-center gap-2">
               <I n="users" className="h-4 w-4 text-blood" />
-              <span className="font-display text-base tracking-wide text-cream">Scouting en Clubes Rivales</span>
+              <span className="font-display text-base tracking-wide text-cream">Buscar talentos en otros clubes</span>
             </div>
             <p className="mt-1 font-cond text-xs text-sand">
               Enviá a un ojeador a los gimnasios de {GIMNASIOS_RIVALES[0]} o {GIMNASIOS_RIVALES[1]} para invitar a un talento a probarse en tu club.

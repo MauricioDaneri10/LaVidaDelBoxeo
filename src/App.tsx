@@ -9,8 +9,8 @@ import { ModalAjustes, PanelMercado, PanelPerfil, PanelPersonal, PanelPlantel } 
 import TopBar from "./components/TopBar";
 import { Btn, Chip, ContenedorToast, I, Modal } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
-import { TITULOS } from "./game/data";
-import { fmt, valoracion } from "./game/engine";
+import { PERSONAL_INFO, TITULOS } from "./game/data";
+import { alumnosActivos, fmt, nivelGimnasio, valoracion } from "./game/engine";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
 
@@ -58,13 +58,17 @@ function PantallaPrincipal() {
 
   const resolverOferta = (ofertaId: string) => dispatch({ type: "ELEGIR_OFERTA", ofertaId });
 
-  const primerAlumnoListo = state.plantel.find(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta);
+  const primerAlumnoListo = alumnosActivos(state).find(p => p.fogueo >= p.fogueoMeta);
+  const ingresosEstimados = alumnosActivos(state).length * (18 + 2 * (nivelGimnasio(state) - 1))
+    + state.plantel.filter(p => p.rol === "boxeador").length * 12 + (state.patrocinio?.semanal ?? 0);
+  const gastosEstimados = 150 + state.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
+  const balanceEstimado = ingresosEstimados - gastosEstimados;
   const siguientePaso = !state.equipamiento.length
     ? { texto: "Empezá por equipar el gimnasio: una mejora activa beneficios para toda la semana.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
     : !state.cursos.includes("dt")
-      ? { texto: "Formá al Director Técnico para habilitar la ruta de licencia federativa.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
+      ? { texto: "Conseguí la licencia de entrenador para habilitar a tus boxeadores.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
       : primerAlumnoListo
-        ? { texto: `${primerAlumnoListo.nombre} ya está listo: abrí su ficha y tramitá la licencia federativa.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
+        ? { texto: `${primerAlumnoListo.nombre} ya está listo: abrí su ficha y habilitalo para competir.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
         : null;
 
   const pestanas: { id: Pestana; nombre: string; icono: string; pulso: boolean }[] = [
@@ -145,6 +149,15 @@ function PantallaPrincipal() {
                 <p className="font-cond text-sm text-cream">{siguientePaso.texto}</p>
               </div>
               <Btn small variant="gold" onClick={() => setPestana(siguientePaso.tab)}>{siguientePaso.boton}</Btn>
+            </div>
+          )}
+          {state.dia <= 5 && (
+            <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-panel/80 px-4 py-2.5 font-cond text-sm">
+              <span className="text-sand">Previsión semanal</span>
+              <span className="text-win">Ingresos {fmt(ingresosEstimados)}</span>
+              <span className="text-blood">Gastos {fmt(gastosEstimados)}</span>
+              <span className={balanceEstimado >= 0 ? "text-gold" : "text-blood"}>Resultado {balanceEstimado >= 0 ? "+" : ""}{fmt(balanceEstimado)}</span>
+              <span className="text-mut">Las prácticas de alumnos activos se cobran; la lista de espera no.</span>
             </div>
           )}
 

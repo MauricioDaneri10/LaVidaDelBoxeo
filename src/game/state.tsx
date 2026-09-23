@@ -2,9 +2,9 @@ import { createContext, useContext, useEffect, useReducer } from "react";
 import type { ReactNode } from "react";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
-  aplicarEntrenamientoSemanal, azar, capacidadAlumnos, chance, clamp, consejoEsquina, crearEstadoBase,
+  aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, capacidadAlumnos, chance, clamp, consejoEsquina, crearEstadoBase,
   elegir, fmt, generarEventos, generarOfertas, genPugilista, nivelGimnasio, sanitizarEstado,
-  sucursales, uid, valoracion,
+  normalizarListaEspera, sucursales, uid, valoracion,
 } from "./engine";
 import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
 
@@ -42,7 +42,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   }
 
   // boca a boca del barrio (sin costo, solo oportunidad)
-  const alumnos = st.plantel.filter(p => p.rol === "alumno").length;
+  const alumnos = alumnosActivos(st).length;
   const probBoca = 0.3 + st.fama / 160 + (st.personal.some(p => p.tipo === "asistente") ? 0.15 : 0) + (st.equipamiento.includes("carteles") ? 0.1 : 0);
   if (alumnos < capacidadAlumnos(st) && chance(probBoca)) {
     const nuevo = genPugilista({ rol: "alumno", joven: chance(0.4) });
@@ -54,7 +54,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   if (sucursales(st) > 0 && st.personal.some(p => p.tipo === "entrenadorLocal") && chance(0.12)) {
     const talento = genPugilista({ rol: "alumno", joven: true });
     talento.atrib.talento = clamp(talento.atrib.talento + azar(5, 15), 0, 97);
-    st.plantel = [...st.plantel, talento];
+    st.plantel = normalizarListaEspera({ ...st, plantel: [...st.plantel, talento] }).plantel;
     st = conToast(st, `La sucursal descubrió a ${talento.nombre}, un talento del barrio.`, "oro");
   }
 
@@ -77,13 +77,13 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
   st.stats = { ...st.stats };
 
   // Guanteos de Fogueo de los alumnos (sábado de práctica)
-  const conEnergia = st.plantel.filter(p => p.rol === "alumno" && p.energia >= 20 && p.fogueo < p.fogueoMeta);
+  const conEnergia = alumnosActivos(st).filter(p => p.energia >= 20 && p.fogueo < p.fogueoMeta);
   if (conEnergia.length > 0 && st.plantel.length >= 2) {
     const lugares = ["en el gimnasio", "con el " + elegir(["Club La Loma", "Club Ferro"]), "en una exhibición de barrio"];
     const lugar = elegir(lugares);
     let guanteos = 0;
     st.plantel = st.plantel.map(p => {
-      if (p.rol !== "alumno" || p.energia < 20 || p.fogueo >= p.fogueoMeta) return p;
+      if (p.rol !== "alumno" || p.enEspera || p.energia < 20 || p.fogueo >= p.fogueoMeta) return p;
       const avance = azar(1, 2);
       guanteos += avance;
       const n = { ...p, atrib: { ...p.atrib } };
@@ -145,7 +145,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   let gastos: LineaLibro[] = [];
 
   // ---- INGRESOS ----
-  const alumnos = st.plantel.filter(p => p.rol === "alumno").length;
+  const alumnos = alumnosActivos(st).length;
   const boxeadores = st.plantel.filter(p => p.rol === "boxeador").length;
   const cuotaUnit = 18 + 2 * (nivel - 1);
   ingresos = linea(ingresos, `Cuotas de alumnos (${alumnos} × ${fmt(cuotaUnit)})`, alumnos * cuotaUnit);
@@ -192,7 +192,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     if (c.tipo === "festival") st.fama = clamp(st.fama + 3, 0, 100);
     if (c.tipo === "bingo" && chance(0.5) && alumnos < capacidadAlumnos(st)) {
       const nuevo = genPugilista({ rol: "alumno", joven: true });
-      st.plantel = [...st.plantel, nuevo];
+    st.plantel = normalizarListaEspera({ ...st, plantel: [...st.plantel, nuevo] }).plantel;
       ingresos = linea(ingresos, `El bingo trajo a ${nuevo.nombre.split(" ")[0]} al gimnasio`, 0);
     }
   });
@@ -345,8 +345,8 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!s.cursos.includes("dt")) return conToast(s, "Necesitás el curso de Director Técnico Federado.", "alerta");
       if (p.fogueo < p.fogueoMeta) return conToast(s, `Le faltan guanteos de fogueo (${p.fogueo}/${p.fogueoMeta}).`, "alerta");
       if (s.dinero < 200) return conToast(s, "La Licencia Federativa cuesta $200.", "alerta");
-      const nuevo: Pugilista = { ...p, rol: "boxeador", bonusDebut: true, energia: clamp(p.energia, 30, 100) };
-      return conToast({ ...s, dinero: s.dinero - 200, plantel: s.plantel.map(x => x.id === a.id ? nuevo : x) },
+      const nuevo: Pugilista = { ...p, rol: "boxeador", enEspera: false, bonusDebut: true, energia: clamp(p.energia, 30, 100) };
+      return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - 200, plantel: s.plantel.map(x => x.id === a.id ? nuevo : x) }),
         `${p.nombre.split(" ")[0]} ya es boxeador federado. ¡Bono de Madurez activo en su debut!`, "oro");
     }
 
@@ -363,7 +363,10 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "boxeador") return s;
       if (s.pendientes.some(x => x.miId === p.id)) return conToast(s, "Ya tiene pelea agendada para el sábado.", "info");
-      return { ...s, ofertas: generarOfertas(p), ofertasPara: p.id };
+      const ofertas = generarOfertas(p).map(of => of.esTitulo >= 3 && !s.cursos.includes("tv")
+        ? { ...of, esTitulo: 0 as const, etiqueta: "Pelea de experiencia", detalle: "Necesitás el curso de televisión para aspirar a títulos internacionales." }
+        : of);
+      return { ...s, ofertas, ofertasPara: p.id };
     }
     case "ELEGIR_OFERTA": {
       if (s.dia >= 6) return s;
@@ -430,7 +433,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.equipamiento.includes(a.id)) return conToast(s, "Ya lo tenés instalado.", "info");
       if (s.dinero < eq.costo) return conToast(s, `Te faltan ${fmt(eq.costo - s.dinero)} para ${eq.nombre}.`, "alerta");
       if (a.id === "zonaElite" && !s.cursos.includes("altoRendimiento")) return conToast(s, "Requiere el curso de Alto Rendimiento.", "alerta");
-      return conToast({ ...s, dinero: s.dinero - eq.costo, equipamiento: [...s.equipamiento, a.id] },
+      return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - eq.costo, equipamiento: [...s.equipamiento, a.id] }),
         `${eq.nombre} instalado: ${eq.efecto}.`, "ok");
     }
 
@@ -506,9 +509,9 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         st.patrocinio = { nombre: acc.nombre, semanal: acc.monto, semanas: acc.semanas };
         st = conToast(st, `Contrato firmado con ${acc.nombre}: ${fmt(acc.monto)}/semana.`, "oro");
       } else if (acc.tipo === "nuevoAlumno") {
-        if (st.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(st)) return conToast(s, "No hay más cupo: ampliá vestuarios o contratá un asistente.", "alerta");
+        if (st.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(st) + 4) return conToast(s, "La lista de espera está completa: ampliá el gimnasio para recibirlo.", "alerta");
         const nuevo = genPugilista({ rol: "alumno", joven: true });
-        st.plantel = [...st.plantel, nuevo];
+        st = normalizarListaEspera({ ...st, plantel: [...st.plantel, nuevo] });
         st = conToast(st, `${nuevo.nombre} entra al plantel de alumnos.`, "ok");
       } else if (acc.tipo === "exhibicion") {
         const boxeador = st.plantel.find(p => p.rol === "boxeador" && p.energia >= 30);
@@ -540,11 +543,13 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     }
 
     case "SCOUT": {
-      if (s.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(s) + 4) return conToast(s, "No hay cupo para más alumnos.", "alerta");
+      if (s.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(s) + 4) return conToast(s, "La lista de espera está completa. Mejorá el gimnasio para recibir más alumnos.", "alerta");
       const t = genPugilista({ rol: "alumno", joven: true });
       t.atrib.talento = clamp(t.atrib.talento + azar(4, 12), 0, 97);
-      return conToast({ ...s, plantel: [...s.plantel, t] },
-        `Scouting en club rival: ${t.nombre} (talento ${Math.round(t.atrib.talento)}, VG ${valoracion(t.atrib)}) se sumó a tus clases.`, "oro");
+      const next = normalizarListaEspera({ ...s, plantel: [...s.plantel, t] });
+      const espera = alumnosEnEspera(next).some(p => p.id === t.id);
+      return conToast(next,
+        `${espera ? "Talento encontrado: " : "Nuevo alumno: "}${t.nombre} (talento ${Math.round(t.atrib.talento)}, valoración ${valoracion(t.atrib)}) ${espera ? "quedó en lista de espera." : "se sumó a tus clases."}`, espera ? "info" : "oro");
     }
     case "TOAST":
       return conToast(s, a.texto, a.tono ?? "info");

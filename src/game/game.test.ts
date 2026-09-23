@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  alumnosActivos,
+  alumnosEnEspera,
+  aplicarEntrenamientoSemanal,
+  capacidadAlumnos,
+  cerrarAsalto,
   crearEstadoBase,
   crearEstadoPelea,
   genPugilista,
   generarOfertas,
+  normalizarListaEspera,
+  prepararLuchador,
   resolverPelea,
   sanitizarEstado,
   valoracion,
@@ -75,5 +82,38 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(estado.plantel[0].fogueo).toBe(0);
     expect(typeof estado.logoGimnasio).toBe("string");
     expect(valoracion(estado.plantel[0].atrib)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("separa alumnos activos de la lista de espera y no los entrena", () => {
+    const base = crearEstadoBase();
+    const exceso = Array.from({ length: capacidadAlumnos(base) + 2 }, () => genPugilista({ rol: "alumno" }));
+    const estado = normalizarListaEspera({ ...base, plantel: exceso });
+    expect(alumnosActivos(estado)).toHaveLength(capacidadAlumnos(estado));
+    expect(alumnosEnEspera(estado)).toHaveLength(2);
+    const antes = alumnosEnEspera(estado)[0].atrib;
+    expect(aplicarEntrenamientoSemanal(estado).plantel.find(p => p.id === alumnosEnEspera(estado)[0].id)?.atrib).toEqual(antes);
+  });
+
+  it("aplica la caída al boxeador que cayó aunque haya ganado el asalto por daño", () => {
+    const mio = genPugilista({ rol: "boxeador" });
+    const rival = genPugilista({ rol: "boxeador" });
+    const estado = crearEstadoPelea({ id: "p2", miId: mio.id, rival, bolsa: 100, esTitulo: 0, velada: false }, mio, []);
+    estado.A.dmgDado = 100;
+    estado.A.conectadosAsalto = 10;
+    estado.A.kdAsalto = 1;
+    estado.B.dmgDado = 1;
+    estado.B.kdAsalto = 0;
+    cerrarAsalto(estado);
+    expect(estado.tarjetas.every(t => t.a === 8 && t.b === 9)).toBe(true);
+  });
+
+  it("no entrega el equipamiento del gimnasio al rival", () => {
+    const mio = genPugilista({ rol: "boxeador" });
+    const rival = genPugilista({ rol: "boxeador" });
+    const equipado = prepararLuchador(mio, ["bucal", "botas"], "equilibrado");
+    const limpio = prepararLuchador(mio, [], "equilibrado");
+    const pelea = crearEstadoPelea({ id: "p3", miId: mio.id, rival, bolsa: 100, esTitulo: 0, velada: false }, mio, ["bucal", "botas"]);
+    expect(equipado.evasion - limpio.evasion).toBeCloseTo(0.1, 5);
+    expect(pelea.B.evasion).toBeCloseTo(prepararLuchador(rival, [], "equilibrado").evasion, 5);
   });
 });

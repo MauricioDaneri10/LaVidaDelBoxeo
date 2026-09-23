@@ -124,8 +124,8 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
   pisoGoma: { nombre: "Piso de Goma", costo: 800, desc: "Menos impacto, más sesiones.", efecto: "+2 de recuperación de energía semanal", cat: "equipamiento", icono: "plot" },
   ringReglamentario: { nombre: "Ring Reglamentario", costo: 2500, desc: "Doce cuerdas de pura seriedad.", efecto: "+25% en Técnica y Defensa, tus veladas recaudan más", cat: "equipamiento", icono: "ring" },
   zonaElite: { nombre: "Zona Élite VIP", costo: 15000, desc: "Ring privado con neón para tus 3 estrellas.", efecto: "3 cupos Élite: entrenan +70% más rápido", cat: "equipamiento", icono: "trophy" },
-  bucal: { nombre: "Bucal Moldeado", costo: 180, desc: "A medida para cada mandíbula.", efecto: "+5% de defensa efectiva en combate", cat: "indumentaria", icono: "shield" },
-  cabezal: { nombre: "Cabezal Olímpico", costo: 600, desc: "Protección de sparring de primer nivel.", efecto: "+5% de defensa y menos sustos en guanteos", cat: "indumentaria", icono: "cap" },
+  bucal: { nombre: "Bucal Moldeado", costo: 180, desc: "A medida para cada mandíbula.", efecto: "+5% de esquiva en combate", cat: "indumentaria", icono: "shield" },
+  cabezal: { nombre: "Cabezal Olímpico", costo: 600, desc: "Protección de sparring de primer nivel.", efecto: "-5% de daño recibido en combate", cat: "indumentaria", icono: "cap" },
   botas: { nombre: "Botas Antideslizantes", costo: 750, desc: "Agarre total sobre la lona.", efecto: "+5% de esquiva en combate", cat: "indumentaria", icono: "boot" },
   batas: { nombre: "Batas de Seda", costo: 1200, desc: "El paseo al ring es un espectáculo.", efecto: "+25% de fama por victoria", cat: "indumentaria", icono: "shirt" },
   botiquin: { nombre: "Botiquín con Hielo", costo: 350, desc: "Hielo, vendas y manos expertas.", efecto: "+6 de recuperación de energía semanal", cat: "instalaciones", icono: "heart" },
@@ -322,7 +322,7 @@ export const MEDIOS = ["Diario La Ciudad", "Radio Guante", "Canal 8 Deportes", "
 
 // ==================== CONSEJOS DE DON ANSELMO ====================
 export const CONSEJOS_INICIALES: Omit<Consejo, "cumplido" | "reclamado">[] = [
-  { id: "c1", texto: "Federá a tu primer alumno con la Licencia Federativa ($200). Antes, que junte sus guanteos de fogueo.", fama: 5 },
+  { id: "c1", texto: "Prepará a tu primer alumno: completá sus prácticas, conseguí la licencia de entrenador y habilitalo para competir.", fama: 5 },
   { id: "c2", texto: "Ganá tu primera pelea oficial. La esquina siempre cree en vos.", fama: 5 },
   { id: "c3", texto: "Comprá tu primer equipamiento en el mercado. Un gimnasio serio se nota en las herramientas.", fama: 3 },
   { id: "c4", texto: "Organizá tu primera velada de boxeo. La recaudación es tuya.", fama: 8 },

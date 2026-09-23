@@ -43,6 +43,8 @@ export interface Pugilista {
   elite: boolean;
   /** Bono de Madurez: +10% Temple Mental y Defensa en su debut oficial */
   bonusDebut: boolean;
+  /** Si es alumno y el gimnasio no tiene cupo, espera hasta que se libere un lugar. */
+  enEspera?: boolean;
 }
 
 export interface OfertaRival {

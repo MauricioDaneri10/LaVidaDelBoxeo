@@ -301,7 +301,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-display text-base tracking-wide text-cream">
-                      Progreso de Fogueo en Guanteos
+                      Progreso de prácticas de combate
                     </span>
                     <span className="font-mono-data text-xs text-gold font-bold">
                       {p.fogueo}/{p.fogueoMeta} asaltos completados
@@ -338,7 +338,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     )}
                   </div>
                   <div className="rounded-xl border border-gold2/50 bg-gold/10 p-2.5 text-xs font-cond text-sand">
-                    <b className="text-gold">Ruta para federar:</b> completá el curso de Director Técnico, reuní los guanteos requeridos y después usá el botón de licencia aquí mismo.
+                    <b className="text-gold">Cómo habilitarlo:</b> completá la licencia de entrenador, reuní las prácticas requeridas y después usá el botón de habilitación aquí mismo.
                   </div>
                 </div>
               ) : (

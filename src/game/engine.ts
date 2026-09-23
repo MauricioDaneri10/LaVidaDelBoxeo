@@ -95,6 +95,24 @@ export function sucursales(e: EstadoJuego): number {
 export function capacidadAlumnos(e: EstadoJuego): number {
   return 10 + (e.equipamiento.includes("vestuarios") ? 4 : 0) + (e.personal.some(p => p.tipo === "asistente") ? 4 : 0) + (e.propiedades.includes("sucursal") ? 10 : 0);
 }
+export function alumnosActivos(e: EstadoJuego): Pugilista[] {
+  return e.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
+}
+export function alumnosEnEspera(e: EstadoJuego): Pugilista[] {
+  return e.plantel.filter(p => p.rol === "alumno" && p.enEspera);
+}
+export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
+  const activos = e.plantel.filter(p => p.rol !== "alumno" || !p.enEspera);
+  const alumnos = e.plantel.filter(p => p.rol === "alumno").sort((a, b) => Number(a.enEspera) - Number(b.enEspera));
+  let usados = 0;
+  const plantel = alumnos.map(p => {
+    if (p.rol !== "alumno") return p;
+    const enEspera = usados >= capacidadAlumnos(e);
+    if (!enEspera) usados++;
+    return { ...p, enEspera };
+  });
+  return { ...e, plantel: [...plantel.filter(p => p.rol === "alumno"), ...activos.filter(p => p.rol !== "alumno")] };
+}
 export function nivelGimnasio(e: EstadoJuego): number {
   let n = 1;
   if (e.fama >= 25 || e.equipamiento.length >= 4) n = 2;
@@ -114,6 +132,7 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
   const rivalSabado = e.pendientes[0]?.rival ?? null;
   const lineas: string[] = [];
   const plantel = e.plantel.map(b => {
+    if (b.enEspera) return b;
     const comboId: ComboId = tieneDT ? consejoEsquina(b, rivalSabado) : b.combo;
     const combo = COMBOS[comboId];
     const n = { ...b, atrib: { ...b.atrib }, combo: comboId };
@@ -289,7 +308,7 @@ export function prepararLuchador(p: Pugilista, equipo: GearId[], plan: PlanId): 
     evasion: a.defensa * 0.0032 * debut + a.velocidad * 0.0018
       + (equipo.includes("botas") ? 0.05 : 0) + (equipo.includes("bucal") ? 0.05 : 0),
     costeEnergia: p.rasgo === "reloj" ? 1.65 : 2.2,
-    resisteDanio: p.rasgo === "mandibula" ? 0.85 : 1,
+    resisteDanio: (p.rasgo === "mandibula" ? 0.85 : 1) * (equipo.includes("cabezal") ? 0.95 : 1),
   };
 }
 
@@ -378,12 +397,12 @@ export function simularIntercambio(e: EstadoPelea): { caida: "a" | "b" | null; k
 export function cerrarAsalto(e: EstadoPelea) {
   for (let j = 0; j < 3; j++) {
     const sesgo = azar(-10, 10) / 10;
-    const puntA = e.A.dmgDado + e.A.conectadosAsalto * 0.35 + e.B.kdAsalto * 9 + sesgo;
-    const puntB = e.B.dmgDado + e.B.conectadosAsalto * 0.35 + e.A.kdAsalto * 9 - sesgo;
+    const puntA = e.A.dmgDado + e.A.conectadosAsalto * 0.35 + e.A.kdAsalto * 9 + sesgo;
+    const puntB = e.B.dmgDado + e.B.conectadosAsalto * 0.35 + e.B.kdAsalto * 9 - sesgo;
     const ganaA = puntA >= puntB;
     let sa = ganaA ? 10 : 9, sb = ganaA ? 9 : 10;
-    if (!ganaA && e.A.kdAsalto >= 1) sa = e.A.kdAsalto >= 2 ? 7 : 8;
-    if (ganaA && e.B.kdAsalto >= 1) sb = e.B.kdAsalto >= 2 ? 7 : 8;
+    if (e.A.kdAsalto >= 1) sa = e.A.kdAsalto >= 2 ? 7 : 8;
+    if (e.B.kdAsalto >= 1) sb = e.B.kdAsalto >= 2 ? 7 : 8;
     e.tarjetas[j] = { a: e.tarjetas[j].a + sa, b: e.tarjetas[j].b + sb };
   }
   e.A.dmgDado = 0; e.B.dmgDado = 0;
@@ -399,7 +418,7 @@ export function crearEstadoPelea(pelea: Pelea, mio: Pugilista, equipo: GearId[])
   return {
     pelea,
     A: prepararLuchador(mio, equipo, "equilibrado"),
-    B: prepararLuchador(pelea.rival, equipo, planRival),
+    B: prepararLuchador(pelea.rival, [], planRival),
     asalto: 1,
     totalAsaltos: asaltosDePelea(pelea),
     tarjetas: [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }],
@@ -563,6 +582,7 @@ function sanitizarPugilista(raw: Partial<Pugilista>): Pugilista {
   p.nombre = typeof raw.nombre === "string" && raw.nombre ? raw.nombre : base.nombre;
   p.genero = raw.genero === "F" ? "F" : "M";
   p.rol = raw.rol === "boxeador" ? "boxeador" : "alumno";
+  p.enEspera = p.rol === "alumno" && !!raw.enEspera;
   p.circuito = raw.circuito === "pro" ? "pro" : "amateur";
   p.edad = clamp(Number(raw.edad) || base.edad, 12, 80);
   p.record = { v: 0, d: 0, ko: 0, ...(raw?.record ?? {}) };
@@ -642,5 +662,5 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.nombreJugador = typeof r.nombreJugador === "string" ? r.nombreJugador : "";
   s.nombreGimnasio = typeof r.nombreGimnasio === "string" ? r.nombreGimnasio : "Puños de Oro";
   s.creado = !!r.creado && s.nombreJugador !== "";
-  return s;
+  return normalizarListaEspera(s);
 }

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
-import { capacidadAlumnos, fmt, sanitizarEstado, sucursales, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, sanitizarEstado, sucursales, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
@@ -46,11 +46,11 @@ interface PanelPlantelProps {
 // ==================== PLANTEL DE ATLETAS ====================
 export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: PanelPlantelProps) {
   const { state, dispatch } = useGame();
-  const alumnos = state.plantel.filter(p => p.rol === "alumno");
+  const alumnos = alumnosActivos(state);
+  const alumnosEspera = alumnosEnEspera(state);
   const boxeadores = state.plantel.filter(p => p.rol === "boxeador");
   const tieneDT = state.cursos.includes("dt");
   const cupoAlumnos = capacidadAlumnos(state);
-  const alumnosEnEspera = Math.max(0, alumnos.length - cupoAlumnos);
 
   const seleccionarAtleta = (p: Pugilista) => {
     if (onAbrir) onAbrir(p.id);
@@ -89,6 +89,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
         <div className="mt-2.5 flex items-center gap-2">
           <BarraEnergia v={p.energia} />
+          {p.enEspera && <Chip tone="gold">En espera</Chip>}
           {p.elite && <Chip tone="neon">Élite</Chip>}
           {p.titulo > 0 && (
             <Chip tone="gold">
@@ -102,12 +103,12 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           {p.rol === "alumno" ? (
             <>
               <span className="font-cond text-[11px] uppercase tracking-wide text-sand">
-                Fogueo <b className="text-gold">{p.fogueo}/{p.fogueoMeta}</b>
+                Prácticas <b className="text-gold">{p.fogueo}/{p.fogueoMeta}</b>
               </span>
               <div className="stat-bar w-16">
                 <i style={{ width: `${(p.fogueo / p.fogueoMeta) * 100}%`, background: "var(--color-gold)" }} />
               </div>
-              {listoSabado && (
+              {listoSabado && !p.enEspera && (
                 <button
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
@@ -150,7 +151,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     <div className="space-y-5">
       <div className="panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Atletas</h2>
-        <Chip tone={alumnosEnEspera ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEnEspera ? ` · ${alumnosEnEspera} en espera` : ""}</Chip>
+        <Chip tone={alumnosEspera.length ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEspera.length ? ` · ${alumnosEspera.length} en espera` : ""}</Chip>
         <Chip tone="blood"><I n="glove" className="h-3 w-3" /> Federados {boxeadores.length}</Chip>
         <Chip><I n="bell" className="h-3 w-3" /> Cartelera del sábado: {state.pendientes.length} pelea(s)</Chip>
         <div className="ml-auto flex gap-2">
@@ -167,8 +168,8 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
       {!tieneDT && (
         <div className="border border-gold2/50 bg-gold/5 px-4 py-2.5 font-cond text-sm text-sand rounded-xl">
-          <b className="text-gold">Ruta del Director Técnico:</b> aprobá el curso "Director Técnico Federado" en Mi Perfil para licenciar alumnos,
-          que primero deben completar sus <b>guanteos de fogueo</b> (8 a 10, los sábados).
+          <b className="text-gold">Cómo habilitar a tu primer boxeador:</b> aprobá la licencia de entrenador en Mi Perfil,
+          completá sus <b>prácticas de combate</b> (8 a 10, los sábados) y luego pagá la habilitación.
         </div>
       )}
 
@@ -187,7 +188,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
       {/* SECCIÓN ALUMNOS EN FORMACIÓN */}
       <section>
         <h3 className="mb-2 font-display text-xl tracking-wide text-sand flex items-center gap-2">
-          <span>🥋 Alumnos en Formación & Guanteo ({alumnos.length}/{cupoAlumnos}{alumnosEnEspera ? ` · ${alumnosEnEspera} en espera` : ""})</span>
+            <span>🥋 Alumnos en Formación y Práctica ({alumnos.length}/{cupoAlumnos})</span>
         </h3>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {alumnos.map(p => <Tarjeta key={p.id} p={p} />)}
@@ -198,6 +199,15 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           </p>
         )}
       </section>
+      {alumnosEspera.length > 0 && (
+        <section className="rounded-xl border border-dashed border-gold2/50 bg-gold/5 p-4">
+          <h3 className="mb-2 font-display text-lg tracking-wide text-gold">Lista de espera ({alumnosEspera.length})</h3>
+          <p className="mb-3 font-cond text-sm text-sand">Estos alumnos todavía no ocupan una plaza de entrenamiento. Al liberar un cupo, pasan automáticamente a las clases.</p>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {alumnosEspera.map(p => <Tarjeta key={p.id} p={p} />)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

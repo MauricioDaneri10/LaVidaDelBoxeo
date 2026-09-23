@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { COMBOS, LOGOS_DISPONIBLES, TITULOS } from "../game/data";
-import { capacidadAlumnos, nivelGimnasio, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, nivelGimnasio, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { Pugilista } from "../game/types";
 import { I, RostroBoxeador } from "./ui";
@@ -129,10 +129,10 @@ interface GymViewProps {
 export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const { state, nivel } = useGame();
   const [drawerAbierto, setDrawerAbierto] = useState(false);
-  const todos = state.plantel;
-  const alumnos = todos.filter(p => p.rol === "alumno");
+  const todos = state.plantel.filter(p => !p.enEspera);
+  const alumnos = alumnosActivos(state);
   const cupoAlumnos = capacidadAlumnos(state);
-  const alumnosEnEspera = Math.max(0, alumnos.length - cupoAlumnos);
+  const espera = alumnosEnEspera(state).length;
   const tieneZonaElite = state.equipamiento.includes("zonaElite");
 
   const logoActual = LOGOS_DISPONIBLES.find(l => l.id === state.logoGimnasio) || LOGOS_DISPONIBLES[0];
@@ -420,9 +420,9 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
 
       {/* BARRA INFERIOR DE ESTADO CON ACCESO AL ROSTER */}
       <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line bg-ink/92 px-4 py-2">
-        <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
-          <I n="users" className="h-4 w-4 text-gold" /> Alumnos <b className={alumnosEnEspera ? "text-blood" : "text-cream"}>{alumnos.length}/{cupoAlumnos}</b>
-          {alumnosEnEspera > 0 && <span className="text-[11px] text-blood">· {alumnosEnEspera} en espera</span>}
+          <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
+          <I n="users" className="h-4 w-4 text-gold" /> Alumnos <b className={espera ? "text-blood" : "text-cream"}>{alumnos.length}/{cupoAlumnos}</b>
+          {espera > 0 && <span className="text-[11px] text-blood">· {espera} en espera</span>}
         </span>
         <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
           <I n="glove" className="h-4 w-4 text-blood" /> Federados <b className="text-cream">{state.plantel.filter(p => p.rol === "boxeador").length}</b>

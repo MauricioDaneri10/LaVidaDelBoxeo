@@ -20,7 +20,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
   const mejoras = [
     state.equipamiento.includes("soga") && "Soga · +15% resistencia",
     state.equipamiento.includes("ringReglamentario") && "Ring · +25% técnica/defensa",
-    state.equipamiento.includes("botiquin") && "Botiquín · +4 energía semanal",
+    state.equipamiento.includes("botiquin") && "Botiquín · +6 energía semanal",
     state.patrocinio && `${state.patrocinio.nombre} · patrocinio activo`,
   ].filter(Boolean) as string[];
 
