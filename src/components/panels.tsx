@@ -556,10 +556,10 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
   };
 
   return (
-    <Modal title="Configuración y Partida" icon="gear" onClose={onCerrar}>
-      <div className="space-y-3">
-        <div className="border border-line bg-panel2 p-3 rounded-xl">
-          <div className="font-display text-lg text-cream">Guardar y cargar</div>
+    <Modal title="Configuración y Partida" icon="gear" onClose={onCerrar} fit>
+      <div className="space-y-2 text-sm">
+        <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <div className="font-display text-base text-cream">Guardar y cargar</div>
           <p className="font-cond text-xs text-sand">La partida se guarda sola después de cada acción. También podés crear un respaldo para moverla a otra computadora.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Btn small variant="gold" onClick={guardarAhora}><I n="check" className="h-3.5 w-3.5" /> Guardar ahora</Btn>
@@ -583,8 +583,8 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
           {mensaje && <div className="mt-2 rounded-lg border border-gold2/40 bg-gold/10 px-2.5 py-1.5 font-cond text-xs text-gold">{mensaje}</div>}
         </div>
 
-        <div className="border border-line bg-panel2 p-3 rounded-xl">
-          <div className="font-display text-lg text-cream">Comodidad de lectura</div>
+        <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <div className="font-display text-base text-cream">Comodidad de lectura</div>
           <p className="font-cond text-xs text-sand">Estas opciones se guardan en este navegador y no cambian las reglas del juego.</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
             <Btn small variant={textoGrande ? "gold" : "dark"} onClick={() => setTextoGrande(v => !v)}>
@@ -597,10 +597,20 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
               {movimientoReducido ? "✓ " : ""}Menos movimiento
             </Btn>
           </div>
+          <div className="mt-2 flex items-center justify-between border-t border-line pt-2">
+            <span className="font-cond text-xs text-sand">Sonido de campana, golpes y notificaciones</span>
+            <Btn small variant={sonido ? "gold" : "dark"} onClick={() => {
+              const siguiente = !sonido;
+              setSonido(siguiente);
+              setAudioHabilitado(siguiente);
+            }}>
+              <I n={sonido ? "volume" : "x"} className="h-3.5 w-3.5" /> {sonido ? "Activado" : "Silenciado"}
+            </Btn>
+          </div>
         </div>
 
-        <div className="border border-blood/40 bg-blood/5 p-3 rounded-xl">
-          <div className="font-display text-lg text-[#ff8a7e]">Zona de riesgo</div>
+        <div className="border border-blood/40 bg-blood/5 p-2.5 rounded-xl">
+          <div className="font-display text-base text-[#ff8a7e]">Zona de riesgo</div>
           <p className="font-cond text-xs text-sand">Borra la carrera actual (los legados también). No se puede deshacer.</p>
           <Btn
             small
@@ -617,10 +627,10 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
           </Btn>
         </div>
 
-        <div className="border border-line bg-panel2 p-3 rounded-xl">
-          <div className="font-display text-lg text-cream">Atajos de teclado</div>
+        <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <div className="font-display text-base text-cream">Atajos de teclado</div>
           <p className="mt-1 font-cond text-xs text-sand">Elegí una tecla por acción. Podés escribir <b>Esc</b> o <b>Espacio</b>; los cambios quedan guardados en este navegador.</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
             {ATAJOS_LABELS.map(([id, label]) => (
               <label key={id} className="grid gap-1 font-cond text-[11px] uppercase tracking-wide text-mut">
                 {label}
@@ -649,26 +659,6 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
           </div>
         </div>
 
-        <div className="border border-line bg-panel2 p-3 rounded-xl">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="font-display text-lg text-cream">Sonido</div>
-              <p className="font-cond text-xs text-sand">Campana, golpes, monedas y notificaciones.</p>
-            </div>
-            <Btn small variant={sonido ? "gold" : "dark"} onClick={() => {
-              const siguiente = !sonido;
-              setSonido(siguiente);
-              setAudioHabilitado(siguiente);
-            }}>
-              <I n={sonido ? "volume" : "x"} className="h-3.5 w-3.5" /> {sonido ? "Activado" : "Silenciado"}
-            </Btn>
-          </div>
-        </div>
-
-        <div className="font-cond text-[11px] leading-relaxed text-mut">
-          La Vida del Boxeo · Simulador de gestión deportiva y vida · Turnos semanales · Sistema de 10 puntos · Registro Oficial de Golpes ·
-          Todo el contenido es ficción y cualquier parecido con la realidad es pura gloria compartida.
-        </div>
       </div>
     </Modal>
   );

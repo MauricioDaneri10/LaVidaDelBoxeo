@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 import { alumnosActivos, fmt, puedeHabilitar } from "../game/engine";
 import { notificacion } from "../game/audio";
 import { useGame } from "../game/state";
@@ -63,6 +64,7 @@ export default function DockLateral({
   const consejosListos = state.consejos.filter(c => c.cumplido && !c.reclamado);
   const hayNovedad = mensajes.length > 0 || patrocinios.length > 0 || consejosListos.length > 0;
   const esEscritorio = lado === "escritorio";
+  const [movilAbierto, setMovilAbierto] = useState(false);
 
   // Inteligencia Contextual: Detección proactiva del estado del plantel
   const alumnoListoParaFederar = alumnosActivos(state).find(b => puedeHabilitar(b, state));
@@ -229,7 +231,7 @@ export default function DockLateral({
     <div className="rounded-t-2xl border-t border-line bg-panel/95 select-none shadow-[0_-12px_28px_rgba(0,0,0,.25)]">
       <div className="grid grid-cols-4">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setPestana(pestana === t.id ? "mensajes" : t.id)}
+          <button key={t.id} onClick={() => { setPestana(pestana === t.id ? "mensajes" : t.id); setMovilAbierto(true); }}
             className={`relative flex items-center justify-center gap-1.5 border-t-2 px-2 py-2 cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut"} ${t.pulso ? "guia-luminica" : ""}`}>
             <I n={t.icono} className="h-4 w-4" />
             <span className="font-cond text-[11px] uppercase">{t.nombre}</span>
@@ -238,7 +240,7 @@ export default function DockLateral({
         ))}
       </div>
       <AnimatePresence>
-        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 240, opacity: 1 }} className="overflow-hidden border-t border-line">
+        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: movilAbierto ? 220 : 0, opacity: movilAbierto ? 1 : 0 }} className="overflow-hidden border-t border-line">
           {contenido}
         </motion.div>
       </AnimatePresence>

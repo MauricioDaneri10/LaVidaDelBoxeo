@@ -128,22 +128,22 @@ function PantallaPrincipal() {
   ];
 
   return (
-    <div className="fondo-app h-screen overflow-hidden select-none">
+    <div className="fondo-app flex h-dvh min-h-0 flex-col overflow-hidden select-none">
       {/* BARRA SUPERIOR DE ESTADO Y CABECERA */}
       <TopBar
         onAjustes={() => setAjustes(true)}
         pulsoAvanzar={state.dia === 6 && state.pendientes.length > 0}
       />
 
-      <div className="mx-auto flex h-[calc(100vh-126px)] min-h-0 max-w-[1560px] gap-4 overflow-hidden px-4 py-3">
+      <div className="mx-auto flex min-h-0 w-full flex-1 gap-4 overflow-hidden px-4 py-3">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* NAVEGACIÓN PRINCIPAL ENTRE LAS 6 PESTAÑAS */}
-          <nav className="app-nav relative z-30 mb-4 flex flex-wrap gap-1.5 border border-gold2/20 bg-ink/82 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,.22)] backdrop-blur-xl rounded-2xl lg:sticky lg:top-[102px]">
+          <nav className="app-nav relative z-30 mb-3 flex shrink-0 flex-wrap gap-1.5 border border-gold2/20 bg-ink/82 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,.22)] backdrop-blur-xl rounded-2xl">
             {pestanas.map(p => (
               <button
                 key={p.id}
                 onClick={() => setPestana(p.id)}
-                className={`btn-poster relative px-3.5 py-1.5 text-sm sm:text-base cursor-pointer rounded-lg ${
+                    className={`btn-poster relative px-3 py-1.5 text-sm sm:text-base cursor-pointer rounded-lg ${
                   pestana === p.id
                     ? "border border-gold2/70 bg-gold text-ink font-bold shadow-md"
                     : "border border-transparent bg-panel2 text-sand hover:text-cream"
@@ -180,7 +180,7 @@ function PantallaPrincipal() {
           </nav>
 
           {siguientePaso && state.dia <= 5 && (
-            <div className="action-banner mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-4 py-3 shadow-sm">
+            <div className="action-banner mb-3 flex shrink-0 flex-wrap items-center gap-2 rounded-2xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-3 py-2 shadow-sm">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold text-ink font-bold">→</div>
               <div className="min-w-0 flex-1">
                 <div className="font-display text-sm uppercase tracking-wide text-gold">Siguiente paso</div>
@@ -190,7 +190,7 @@ function PantallaPrincipal() {
             </div>
           )}
           {state.semana === 1 && !guiaInicial.every(h => h.hecho) && (
-            <div className="mb-4 rounded-2xl border border-line bg-panel/80 px-4 py-3">
+            <div className="mb-3 shrink-0 rounded-2xl border border-line bg-panel/80 px-3 py-2">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="font-display text-sm uppercase tracking-wide text-cream">Primeros pasos del club</span>
                 <span className="font-cond text-xs text-mut">{guiaInicial.filter(h => h.hecho).length}/4 completados</span>

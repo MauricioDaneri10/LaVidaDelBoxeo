@@ -26,8 +26,19 @@ Fecha: 23/09/2026
 - La Ciudad muestra seis clubes rivales en el mapa y un ranking visual con atletas propios y visitantes.
 - La ficha y el plantel mantienen el récord individual; no se usa un récord global del gimnasio para representar al boxeador.
 
+## Auditoría de canvas y composición
+
+- El shell principal pasó a `flex + h-dvh`: la altura disponible se calcula después de la cabecera real, evitando que la navegación flote sobre la pantalla activa.
+- La navegación de Gimnasio, Ciudad, Plantel, Mercado, Mi Perfil y Personal es un bloque propio, no sticky; el canvas comienza debajo y conserva márgenes consistentes.
+- El dock móvil inicia colapsado para no tapar el canvas; sus mensajes se abren bajo demanda.
+- La pantalla inicial fue compactada para resoluciones con navegador visible: título, formulario, botón de inicio y pie quedan dentro del viewport.
+- Configuración y atajos se reorganizaron en tarjetas compactas; todas las opciones principales quedan visibles sin scroll.
+- Se revisaron recortes, solapamientos y jerarquía visual en los seis canvas principales y en las ventanas de juego.
+
 ## Validación
 
 - TypeScript: correcto.
-- Pruebas: 14 correctas.
+- Pruebas: 15 correctas.
+- Build de producción: correcto.
+- Auditoría estructural: 0 errores y 0 advertencias.
 - La ficha fue verificada visualmente en navegador a 1100×890 sin scroll visible ni contenido inferior cortado.
