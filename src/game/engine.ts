@@ -594,6 +594,7 @@ export function crearEstadoBase(): EstadoJuego {
     nombreJugador: "", nombreGimnasio: "",
     dinero: 900, fama: 4,
     dia: 1, semana: 1, mes: 1, anio: 2026,
+    ultimaSemanaScout: 0,
     plantel: alumnos,
     rivales: [genRivalPorVG(42, elegir(DIVISIONES), 60), genRivalPorVG(50, elegir(DIVISIONES), 60)],
     ofertas: [], ofertasPara: null,
@@ -703,6 +704,7 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.fama = clamp(Number(r.fama) || 0, 0, 100);
   s.dia = clamp(Number(r.dia) || 1, 1, 7);
   s.semana = Math.max(1, Number(r.semana) || 1);
+  s.ultimaSemanaScout = Math.max(0, Number(r.ultimaSemanaScout) || 0);
   s.toasts = [];
   s.resumen = null;
   s.patrocinio = r.patrocinio && typeof r.patrocinio === "object" && typeof r.patrocinio.nombre === "string"

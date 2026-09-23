@@ -178,7 +178,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const piso = nivel >= 3 ? "linear-gradient(180deg,#241f2e,#191521)" : "linear-gradient(180deg,#6b4d2e,#4a341e)";
 
   return (
-    <div className="panel relative overflow-hidden flex flex-col justify-between" style={{ minHeight: 560 }}>
+    <div className="panel relative min-h-[620px] overflow-hidden flex flex-col justify-between sm:min-h-[660px]" style={{ minHeight: 620 }}>
       
       {/* PARED DEL GIMNASIO */}
       <div className="absolute inset-x-0 top-0 h-[56%]" style={{ background: pared }}>
@@ -226,7 +226,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
       </div>
 
       {/* ============ LAS 5 ESTACIONES DE ENTRENAMIENTO ============ */}
-      <div className="absolute inset-x-0 bottom-[7%] top-[52%] grid grid-cols-5 gap-1 px-2">
+      <div className="absolute inset-x-0 bottom-[11%] top-[49%] grid grid-cols-5 gap-1 px-2">
 
         {/* ZONA 1: SOGA Y CARDIO */}
         <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">

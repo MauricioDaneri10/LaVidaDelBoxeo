@@ -11,6 +11,7 @@ import { Btn, Chip, ContenedorToast, I, Modal } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
 import { PERSONAL_INFO, TITULOS } from "./game/data";
 import { alumnosActivos, fmt, nivelGimnasio, puedeHabilitar, valoracion } from "./game/engine";
+import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/shortcuts";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
 
@@ -23,6 +24,9 @@ function PantallaPrincipal() {
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [ajustes, setAjustes] = useState(false);
   const [carteleraAbierta, setCarteleraAbierta] = useState(false);
+  const [atajos, setAtajos] = useState<Atajos>(() => cargarAtajos());
+
+  useEffect(() => { guardarAtajos(atajos); }, [atajos]);
 
   // Inicialización defensiva de Web Audio tras el primer gesto de usuario
   useEffect(() => {
@@ -48,7 +52,7 @@ function PantallaPrincipal() {
     const manejarAtajo = (event: KeyboardEvent) => {
       const objetivo = event.target as HTMLElement | null;
       if (objetivo && ["INPUT", "TEXTAREA", "SELECT"].includes(objetivo.tagName)) return;
-      if (event.key === "Escape") {
+      if (teclaCoincide(event.key, atajos.cerrar)) {
         setFichaId(null);
         setAjustes(false);
         setCarteleraAbierta(false);
@@ -57,18 +61,20 @@ function PantallaPrincipal() {
       if (fichaId || ajustes || carteleraAbierta) return;
       const tecla = event.key.toLowerCase();
       const pantallas: Pestana[] = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal"];
-      if (/^[1-6]$/.test(tecla)) {
-        setPestana(pantallas[Number(tecla) - 1]);
-      } else if (tecla === "n" || event.key === " ") {
+      const teclasPantalla: Array<keyof Atajos> = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal"];
+      const destino = pantallas.findIndex((_, i) => teclaCoincide(tecla, atajos[teclasPantalla[i]]));
+      if (destino >= 0 && destino < pantallas.length) {
+        setPestana(pantallas[destino]);
+      } else if (teclaCoincide(tecla, atajos.avanzar) || teclaCoincide(event.key, atajos.avanzar)) {
         event.preventDefault();
         if (state.dia < 6 || state.pendientes.length === 0) dispatch({ type: "AVANZAR_DIA" });
-      } else if (tecla === "s" && state.dia < 6) {
+      } else if (teclaCoincide(tecla, atajos.semanaRapida) && state.dia < 6) {
         dispatch({ type: "SEMANA_RAPIDA" });
       }
     };
     window.addEventListener("keydown", manejarAtajo);
     return () => window.removeEventListener("keydown", manejarAtajo);
-  }, [ajustes, carteleraAbierta, fichaId, state.dia, state.pendientes.length]);
+  }, [ajustes, atajos, carteleraAbierta, fichaId, state.dia, state.pendientes.length]);
 
   const alTerminarPelea = (r: ResultadoPelea) => {
     if (peleaActual) {
@@ -426,7 +432,7 @@ function PantallaPrincipal() {
       )}
 
       {/* AJUSTES & PERSISTENCIA JSON */}
-      {ajustes && <ModalAjustes onCerrar={() => setAjustes(false)} />}
+      {ajustes && <ModalAjustes onCerrar={() => setAjustes(false)} atajos={atajos} onCambiarAtajos={setAtajos} />}
 
       {/* TOASTS DEL SISTEMA */}
       <ContenedorToast

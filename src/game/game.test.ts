@@ -144,6 +144,27 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(federado.dinero).toBe(300);
   });
 
+  it("limita la búsqueda de talentos a una vez por semana", () => {
+    const base = { ...crearEstadoBase(), creado: true };
+    const primera = reductor(base, { type: "SCOUT" });
+    expect(primera.ultimaSemanaScout).toBe(primera.semana);
+    expect(primera.plantel.length).toBe(base.plantel.length + 1);
+    const repetida = reductor(primera, { type: "SCOUT" });
+    expect(repetida.plantel.length).toBe(primera.plantel.length);
+    const siguienteSemana = reductor({ ...primera, semana: primera.semana + 1 }, { type: "SCOUT" });
+    expect(siguienteSemana.plantel.length).toBe(primera.plantel.length + 1);
+  });
+
+  it("retirar a un alumno libera una plaza y promueve al primero de la espera", () => {
+    const base = crearEstadoBase();
+    const alumnos = Array.from({ length: capacidadAlumnos(base) + 1 }, () => genPugilista({ rol: "alumno" }));
+    const lleno = normalizarListaEspera({ ...base, plantel: alumnos });
+    const enEspera = alumnosEnEspera(lleno)[0];
+    const siguiente = reductor(lleno, { type: "RETIRAR_ATLETA", id: alumnosActivos(lleno)[0].id });
+    expect(siguiente.plantel.some(p => p.id === alumnosActivos(lleno)[0]?.id)).toBe(false);
+    expect(siguiente.plantel.find(p => p.id === enEspera.id)?.enEspera).toBe(false);
+  });
+
   it("centraliza los efectos de recuperación, cupos y entrenamiento", () => {
     const base = crearEstadoBase();
     const mejorado = {

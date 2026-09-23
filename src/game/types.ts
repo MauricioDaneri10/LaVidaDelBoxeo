@@ -147,6 +147,8 @@ export interface EstadoJuego {
   fama: number;
   dia: number; // 1 = Lunes ... 6 = Sábado · 7 = Domingo de Balance
   semana: number;
+  /** Semana en la que se utilizó por última vez el buscador de talentos. */
+  ultimaSemanaScout: number;
   mes: number;
   anio: number;
   plantel: Pugilista[];
@@ -200,6 +202,7 @@ export type Accion =
   | { type: "COMPRAR_PROPIEDAD"; id: PropiedadId }
   | { type: "CONTRATAR"; tipo: PersonalId }
   | { type: "DESPEDIR"; id: string }
+  | { type: "RETIRAR_ATLETA"; id: string }
   | { type: "ALTERNAR_VELADA" }
   | { type: "EVENTO"; id: string; opcion: number }
   | { type: "RECLAMAR_CONSEJO"; id: string }

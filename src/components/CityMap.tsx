@@ -334,8 +334,14 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               Enviá a un ojeador a los gimnasios de {GIMNASIOS_RIVALES[0]} o {GIMNASIOS_RIVALES[1]} para invitar a un talento a probarse en tu club.
             </p>
           </div>
-          <Btn small variant="blood" className="w-full" onClick={() => dispatch({ type: "SCOUT" })}>
-            Enviar Visor de Talentos · Gratis
+          <Btn
+            small
+            variant="blood"
+            className="w-full"
+            disabled={state.ultimaSemanaScout === state.semana}
+            onClick={() => dispatch({ type: "SCOUT" })}
+          >
+            {state.ultimaSemanaScout === state.semana ? "Búsqueda usada · vuelve el lunes" : "Buscar un talento · 1 uso semanal"}
           </Btn>
         </div>
 

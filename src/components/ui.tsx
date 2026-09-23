@@ -1,4 +1,4 @@
-import React, { type ReactNode } from "react";
+import React, { useEffect, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Atributos, Pugilista } from "../game/types";
 
@@ -136,7 +136,7 @@ export function Modal({ title, icon, onClose, children, wide }: {
           initial={{ scale: 0.92, y: 24, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 320, damping: 28 }}
-          className={`panel relative w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto scroll-fino hard-shadow`}>
+          className={`panel relative flex w-full flex-col ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[calc(100vh-2rem)] overflow-hidden scroll-fino hard-shadow`}>
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-panel2/95 px-5 py-3 backdrop-blur-sm">
             <h3 className="font-display flex items-center gap-2 text-2xl tracking-wide text-gold">
               {icon && <I n={icon} className="h-5 w-5" />}{title}
@@ -145,7 +145,7 @@ export function Modal({ title, icon, onClose, children, wide }: {
               <button onClick={onClose} aria-label="Cerrar ventana" title="Cerrar" className="rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
             )}
           </div>
-          <div className="p-5">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto scroll-fino p-4 sm:p-5">{children}</div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -474,13 +474,23 @@ export function ContenedorToast({
   toasts: MensajeToast[];
   onCerrar: (id: number) => void;
 }) {
+  useEffect(() => {
+    const timers = toasts.map(t => window.setTimeout(() => onCerrar(t.id), t.tiempo ?? 4200));
+    return () => timers.forEach(window.clearTimeout);
+  }, [toasts, onCerrar]);
+
   if (!toasts || toasts.length === 0) return null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none">
+      <AnimatePresence initial={false}>
       {toasts.map(t => (
-        <div
+        <motion.div
           key={t.id}
+          initial={{ opacity: 0, y: 12, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.98 }}
+          transition={{ duration: 0.2 }}
           className={`pointer-events-auto px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-xs font-bold transition-all duration-300 ${
             t.tono === "oro"
               ? "bg-[#141208]/95 text-amber-300 border-amber-500/50 shadow-black/80"
@@ -498,8 +508,9 @@ export function ContenedorToast({
           >
             ✕
           </button>
-        </div>
+        </motion.div>
       ))}
+      </AnimatePresence>
     </div>
   );
 }

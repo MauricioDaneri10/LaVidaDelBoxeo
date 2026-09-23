@@ -4,6 +4,7 @@ import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
 import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, nivelGimnasio, puedeHabilitar, sanitizarEstado, sucursales, valoracion } from "../game/engine";
 import { CLAVE_GUARDADO, guardarPartida, useGame } from "../game/state";
+import { ATAJOS_DEFAULT, ATAJOS_LABELS, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
 
@@ -72,10 +73,13 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     const listoSabado = puedeHabilitar(p, state);
 
     return (
-      <motion.button
+      <motion.div
         layout
         whileHover={{ y: -2 }}
         onClick={() => seleccionarAtleta(p)}
+        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") seleccionarAtleta(p); }}
+        role="button"
+        tabIndex={0}
         className={`panel w-full p-3 text-left transition-colors hover:border-gold2 cursor-pointer ${agendada ? "border-blood/60" : ""}`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -129,13 +133,21 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
                   <span>Emitir licencia {fmt(200)}</span>
                 </button>
               )}
+              {p.enEspera && (
+                <button
+                  onClick={e => { e.stopPropagation(); if (window.confirm(`¿Retirar a ${p.nombre} de la lista de espera?`)) dispatch({ type: "RETIRAR_ATLETA", id: p.id }); }}
+                  className="ml-auto rounded-lg border border-line2 px-2 py-1 font-cond text-[11px] uppercase tracking-wide text-mut hover:border-blood/60 hover:text-blood cursor-pointer"
+                >
+                  Retirar de la lista
+                </button>
+              )}
             </>
           ) : (
             <>
               <span className="font-cond text-[11px] uppercase text-sand">
                 Récord oficial: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
               </span>
-              <div className="ml-auto">
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
                 {agendada ? (
                   <Chip tone="blood">En cartelera</Chip>
                 ) : (
@@ -149,11 +161,17 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
                     </Btn>
                   )
                 )}
+                <button
+                  onClick={e => { e.stopPropagation(); if (window.confirm(`¿Transferir a ${p.nombre} fuera del club?`)) dispatch({ type: "RETIRAR_ATLETA", id: p.id }); }}
+                  className="rounded-lg border border-line2 px-2 py-1 font-cond text-[11px] uppercase tracking-wide text-mut hover:border-blood/60 hover:text-blood cursor-pointer"
+                >
+                  Transferir
+                </button>
               </div>
             </>
           )}
         </div>
-      </motion.button>
+      </motion.div>
     );
   };
 
@@ -212,7 +230,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
       {alumnosEspera.length > 0 && (
         <section className="rounded-xl border border-dashed border-gold2/50 bg-gold/5 p-4">
           <h3 className="mb-2 font-display text-lg tracking-wide text-gold">Lista de espera ({alumnosEspera.length})</h3>
-          <p className="mb-3 font-cond text-sm text-sand">Estos alumnos todavía no ocupan una plaza de entrenamiento. Al liberar un cupo, pasan automáticamente a las clases.</p>
+          <p className="mb-3 font-cond text-sm text-sand">Ordenados por llegada. No entrenan ni avanzan sus prácticas hasta ocupar una plaza; al liberar un cupo, el primero pasa automáticamente.</p>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {alumnosEspera.map(p => <Tarjeta key={p.id} p={p} />)}
           </div>
@@ -482,7 +500,7 @@ export function PanelPersonal() {
 }
 
 // ==================== AJUSTES: EXPORTAR / IMPORTAR ====================
-export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
+export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: () => void; atajos: Atajos; onCambiarAtajos: (atajos: Atajos) => void }) {
   const { state, dispatch } = useGame();
   const archivoRef = useRef<HTMLInputElement>(null);
   const [guardadoEn, setGuardadoEn] = useState(() => {
@@ -493,6 +511,7 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
   const [textoGrande, setTextoGrande] = useState(() => localStorage.getItem("vida-del-boxeo:textoGrande") === "1");
   const [altoContraste, setAltoContraste] = useState(() => localStorage.getItem("vida-del-boxeo:altoContraste") === "1");
   const [movimientoReducido, setMovimientoReducido] = useState(() => localStorage.getItem("vida-del-boxeo:movimientoReducido") === "1");
+  const [atajosEditados, setAtajosEditados] = useState<Atajos>(atajos);
 
   useEffect(() => {
     document.documentElement.classList.toggle("texto-grande", textoGrande);
@@ -587,11 +606,33 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
 
         <div className="border border-line bg-panel2 p-3 rounded-xl">
           <div className="font-display text-lg text-cream">Atajos de teclado</div>
+          <p className="mt-1 font-cond text-xs text-sand">Elegí una tecla por acción. Podés escribir <b>Esc</b> o <b>Espacio</b>; los cambios quedan guardados en este navegador.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {ATAJOS_LABELS.map(([id, label]) => (
+              <label key={id} className="grid gap-1 font-cond text-[11px] uppercase tracking-wide text-mut">
+                {label}
+                <input
+                  value={atajosEditados[id] === " " ? "Espacio" : atajosEditados[id]}
+                  onChange={e => setAtajosEditados(prev => ({ ...prev, [id]: e.target.value }))}
+                  onBlur={() => setAtajosEditados(prev => ({ ...prev, [id]: normalizarTecla(prev[id], ATAJOS_DEFAULT[id]) }))}
+                  maxLength={10}
+                  className="w-full rounded-lg border border-line bg-panel px-2 py-1.5 font-mono-data text-sm uppercase text-cream outline-none focus:border-gold"
+                  aria-label={`Atajo para ${label}`}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Btn small variant="gold" onClick={() => { onCambiarAtajos(atajosEditados); setMensaje("Atajos guardados."); }}>
+              Guardar atajos
+            </Btn>
+            <Btn small variant="dark" onClick={() => { setAtajosEditados({ ...ATAJOS_DEFAULT }); onCambiarAtajos({ ...ATAJOS_DEFAULT }); setMensaje("Atajos restaurados."); }}>
+              Restaurar predeterminados
+            </Btn>
+          </div>
           <div className="mt-2 grid gap-1.5 font-cond text-xs text-sand sm:grid-cols-2">
-            <span><kbd className="keycap">1–6</kbd> Cambiar de pantalla</span>
-            <span><kbd className="keycap">N</kbd> Cerrar el día</span>
-            <span><kbd className="keycap">S</kbd> Semana rápida</span>
-            <span><kbd className="keycap">Esc</kbd> Cerrar ventanas</span>
+            <span><kbd className="keycap">{atajos.gimnasio}</kbd> Gimnasio · <kbd className="keycap">{atajos.ciudad}</kbd> Ciudad · <kbd className="keycap">{atajos.plantel}</kbd> Plantel</span>
+            <span><kbd className="keycap">{atajos.avanzar === " " ? "Espacio" : atajos.avanzar}</kbd> Cerrar el día · <kbd className="keycap">{atajos.semanaRapida}</kbd> Semana rápida · <kbd className="keycap">{atajos.cerrar}</kbd> Cerrar</span>
           </div>
         </div>
 

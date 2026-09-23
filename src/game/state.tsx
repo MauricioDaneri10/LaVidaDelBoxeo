@@ -496,6 +496,18 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       return conToast(normalizarListaEspera({ ...s, personal: s.personal.filter(p => p.id !== a.id) }),
         `${m.nombre} deja el club en buenos términos.`, "info");
     }
+    case "RETIRAR_ATLETA": {
+      const p = s.plantel.find(x => x.id === a.id);
+      if (!p) return s;
+      const nombre = p.nombre.split(" ")[0];
+      const antes = alumnosEnEspera(s).map(x => x.id);
+      const siguiente = normalizarListaEspera({ ...s, plantel: s.plantel.filter(x => x.id !== a.id) });
+      const promovido = alumnosActivos(siguiente).find(x => !antes.includes(x.id));
+      return conToast(siguiente,
+        promovido
+          ? `${nombre} deja el club. Se liberó una plaza: ${promovido.nombre.split(" ")[0]} sale de la lista de espera.`
+          : `${nombre} deja el club y la plaza queda disponible.`, "info");
+    }
 
     case "ALTERNAR_VELADA": {
       if (!s.cursos.includes("veladas")) return conToast(s, "Requiere el curso de Organización de Veladas.", "alerta");
@@ -554,10 +566,11 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     }
 
     case "SCOUT": {
+      if (s.ultimaSemanaScout === s.semana) return conToast(s, "El buscador de talentos ya se usó esta semana. Podés volver a buscar el próximo lunes.", "info");
       if (s.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(s) + 4) return conToast(s, "La lista de espera está completa. Mejorá el gimnasio para recibir más alumnos.", "alerta");
       const t = genPugilista({ rol: "alumno", joven: true });
       t.atrib.talento = clamp(t.atrib.talento + azar(4, 12), 0, 97);
-      const next = normalizarListaEspera({ ...s, plantel: [...s.plantel, t] });
+      const next = normalizarListaEspera({ ...s, ultimaSemanaScout: s.semana, plantel: [...s.plantel, t] });
       const espera = alumnosEnEspera(next).some(p => p.id === t.id);
       return conToast(next,
         `${espera ? "Talento encontrado: " : "Nuevo alumno: "}${t.nombre} (talento ${Math.round(t.atrib.talento)}, valoración ${valoracion(t.atrib)}) ${espera ? "quedó en lista de espera." : "se sumó a tus clases."}`, espera ? "info" : "oro");

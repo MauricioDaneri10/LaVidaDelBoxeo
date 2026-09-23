@@ -376,6 +376,18 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                         <I n="target" className="h-3.5 w-3.5" /> Buscar Ofertas de Combate
                       </Btn>
                     )}
+                    <Btn
+                      small
+                      variant="ghost"
+                      onClick={() => {
+                        if (window.confirm(`¿Transferir a ${p.nombre} fuera del club? Su récord se conservará en esta partida, pero dejará de ocupar un lugar en el plantel.`)) {
+                          dispatch({ type: "RETIRAR_ATLETA", id: p.id });
+                          onCerrar();
+                        }
+                      }}
+                    >
+                      Transferir fuera del club
+                    </Btn>
                   </div>
                 </div>
               )}
