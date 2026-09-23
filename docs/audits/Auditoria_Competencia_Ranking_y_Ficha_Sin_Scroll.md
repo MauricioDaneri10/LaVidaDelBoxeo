@@ -4,6 +4,8 @@ Fecha: 23/09/2026
 
 ## Cambios de diseño
 
+- La experiencia principal usa un viewport fijo: se bloqueó el scroll de la página y cada pestaña organiza su contenido en una composición de pantalla.
+- Gimnasio, Plantel, Mercado, Perfil, Personal y Ciudad fueron compactados con grillas y alturas de pantalla; los listados largos se presentan como resúmenes visuales accionables.
 - La ficha técnica dejó de depender de un scroll interno: se compactaron retrato, radar, pilares, enfoque, consejo, progreso e historial para que entren en una ventana normal.
 - Se eliminó la explicación redundante de “dos licencias distintas”. Ahora la ficha comunica una sola ruta: Licencia de Entrenador del club → prácticas de sábado → licencia individual del atleta.
 - La ficha muestra el récord como `victorias-derrotas-empates`, nocauts, total de peleas y estado de carrera.

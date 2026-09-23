@@ -128,15 +128,15 @@ function PantallaPrincipal() {
   ];
 
   return (
-    <div className="fondo-app min-h-screen select-none">
+    <div className="fondo-app h-screen overflow-hidden select-none">
       {/* BARRA SUPERIOR DE ESTADO Y CABECERA */}
       <TopBar
         onAjustes={() => setAjustes(true)}
         pulsoAvanzar={state.dia === 6 && state.pendientes.length > 0}
       />
 
-      <div className="mx-auto flex max-w-[1560px] gap-4 px-4 py-4">
-        <div className="min-w-0 flex-1">
+      <div className="mx-auto flex h-[calc(100vh-126px)] min-h-0 max-w-[1560px] gap-4 overflow-hidden px-4 py-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* NAVEGACIÓN PRINCIPAL ENTRE LAS 6 PESTAÑAS */}
           <nav className="app-nav relative z-30 mb-4 flex flex-wrap gap-1.5 border border-gold2/20 bg-ink/82 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,.22)] backdrop-blur-xl rounded-2xl lg:sticky lg:top-[102px]">
             {pestanas.map(p => (
@@ -218,7 +218,7 @@ function PantallaPrincipal() {
           )}
 
           {/* ESCENARIO / VISTA CENTRAL CON TRANSICIONES FLUIDAS */}
-          <main>
+          <main className="min-h-0 flex-1 overflow-hidden">
               {pestana === "gimnasio" && <GymView onAbrir={setFichaId} onSeleccionarBoxeador={(b) => setFichaId(b.id)} />}
               {pestana === "ciudad" && <CityMap onIrAPestaña={(tab) => setPestana(tab as Pestana)} />}
               {pestana === "plantel" && (
@@ -235,7 +235,7 @@ function PantallaPrincipal() {
         </div>
 
         {/* DOCK LATERAL DEL TELÉFONO (PANTALLAS ANCHAS) */}
-        <div className="sticky top-[84px] hidden h-fit xl:block">
+        <div className="hidden h-full min-h-0 xl:block">
           <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="escritorio" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
         </div>
       </div>

@@ -29,7 +29,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   ).map(id => ({ id, data: PROPIEDADES[id] }));
 
   return (
-    <div className="relative w-full rounded-3xl overflow-hidden border border-line bg-ink/90 flex flex-col justify-between select-none p-4 sm:p-6 gap-6 text-sand shadow-2xl backdrop-blur-xl">
+    <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_270px_60px_minmax(0,1fr)] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
       
       {/* CABECERA URBANÍSTICA */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
@@ -55,10 +55,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </div>
 
       {/* PLANO URBANÍSTICO VECTORIAL ISOMÉTRICO 1000x600 + PANEL LATERAL */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
+      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-12 gap-2 items-stretch">
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
-        <div className="xl:col-span-8 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative aspect-[16/10] min-h-[440px] shadow-2xl flex items-center justify-center p-2">
+        <div className="lg:col-span-8 h-full bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2">
           <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="gradRioRetro" x1="0" y1="0" x2="1" y2="1">
@@ -237,7 +237,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* COLUMNA DERECHA: INSPECTOR DE PROPIEDAD SELECCIONADA (4 COLS) */}
-        <div className="xl:col-span-4 bg-panel border border-line rounded-3xl p-4 xl:p-6 flex flex-col justify-between gap-5 shadow-2xl min-w-0">
+        <div className="lg:col-span-4 h-full bg-panel border border-line rounded-3xl p-3 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
           {propActual ? (
             <>
               <div className="space-y-4">
@@ -316,7 +316,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
       </div>
 
-      <section className="rounded-2xl border border-gold2/40 bg-panel p-4 shadow-lg">
+      <section className="min-h-0 overflow-hidden rounded-2xl border border-gold2/40 bg-panel p-2.5 shadow-lg">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
           <div>
             <span className="font-display text-lg tracking-wide text-gold">Ranking Mundial</span>
@@ -324,8 +324,8 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           </div>
           <span className="font-mono-data text-xs text-mut">{ranking.length} competidores registrados</span>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {ranking.slice(0, 6).map((item, i) => (
+        <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+          {ranking.slice(0, 3).map((item, i) => (
             <div key={item.pugilista.id} className={`flex items-center gap-2 rounded-xl border p-2 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
               <span className="w-6 text-center font-display text-lg text-gold">{i + 1}</span>
               <div className="min-w-0 flex-1">
@@ -342,10 +342,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </section>
 
       {/* SECCIÓN INFERIOR: SCOUTING & ACTIVIDADES DE LA CIUDAD */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 border-t border-line pt-4">
+      <div className="min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 border-t border-line pt-2 overflow-hidden">
         
         {/* SCOUTING EN CLUBES RIVALES (4 COLS) */}
-        <div className="xl:col-span-4 p-4 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-3 shadow-lg">
+        <div className="lg:col-span-4 p-2.5 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-2 shadow-lg">
           <div>
             <div className="flex items-center gap-2">
               <I n="users" className="h-4 w-4 text-blood" />
@@ -367,13 +367,13 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* ACTIVIDADES Y EVENTOS SOCIALES DEL CLUB (8 COLS) */}
-        <div className="xl:col-span-8 p-4 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-3 shadow-lg">
+        <div className="lg:col-span-8 p-2.5 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-2 shadow-lg">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2.5 py-0.5 rounded border border-gold/40">
+              <span className="hidden text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2.5 py-0.5 rounded border border-gold/40">
                 ACTIVIDADES COMUNITARIAS DEL CLUB
               </span>
-              <h4 className="font-display text-base tracking-wide text-cream mt-0.5">
+              <h4 className="font-display text-[11px] tracking-wide text-cream mt-0.5">
                 Finanzas Sociales & Eventos Populares de Fin de Semana
               </h4>
             </div>
@@ -382,20 +382,20 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
             {(["bingo", "naipes", "festival"] as const).map(k => {
               const c = COMUNITARIOS[k];
               const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : EVENTOS_CLUB_INFO.festivalBoxeo;
               const emoji = evInfo?.emoji || "🎟️";
               return (
-                <div key={k} className="p-3 rounded-xl bg-panel2 border border-line text-xs font-cond space-y-1">
+                <div key={k} className="p-1.5 rounded-xl bg-panel2 border border-line text-[10px] font-cond space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-base">{emoji}</span>
                     <span className="font-mono-data text-gold font-bold">Inv. {fmt(c.inversion)}</span>
                   </div>
-                  <div className="font-display text-sm text-cream">{c.nombre}</div>
-                  <div className="text-[11px] text-sand">{c.extra}</div>
-                  <div className="text-[10px] text-mut font-mono-data">Retorno: {fmt(c.min)} - {fmt(c.max)}</div>
+                  <div className="truncate font-display text-xs text-cream">{c.nombre}</div>
+                  <div className="truncate text-[10px] text-sand">{c.extra}</div>
+                  <div className="text-[9px] text-mut font-mono-data">Retorno: {fmt(c.min)} - {fmt(c.max)}</div>
                 </div>
               );
             })}

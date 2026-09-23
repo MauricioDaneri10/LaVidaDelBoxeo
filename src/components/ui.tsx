@@ -145,7 +145,7 @@ export function Modal({ title, icon, onClose, children, wide, fit }: {
               <button onClick={onClose} aria-label="Cerrar ventana" title="Cerrar" className="rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
             )}
           </div>
-          <div className={`min-h-0 flex-1 ${fit ? "overflow-hidden p-3" : "overflow-y-auto scroll-fino p-4 sm:p-5"}`}>{children}</div>
+          <div className={`min-h-0 flex-1 overflow-hidden ${fit ? "p-3" : "p-4 sm:p-5"}`}>{children}</div>
         </motion.div>
       </motion.div>
     </AnimatePresence>

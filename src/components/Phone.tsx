@@ -76,7 +76,7 @@ export default function DockLateral({
   ];
 
   const contenido = (
-    <div className="scroll-fino h-full space-y-2 overflow-y-auto p-2.5 select-none">
+    <div className="h-full space-y-2 overflow-hidden p-2.5 select-none">
       {/* PESTAÑA: MENSAJES Y DESAFÍOS */}
       {pestana === "mensajes" && (
         <>

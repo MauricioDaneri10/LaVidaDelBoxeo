@@ -80,13 +80,13 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") seleccionarAtleta(p); }}
         role="button"
         tabIndex={0}
-        className={`panel w-full p-3 text-left transition-colors hover:border-gold2 cursor-pointer ${agendada ? "border-blood/60" : ""}`}
+        className={`panel w-full p-2 text-left transition-colors hover:border-gold2 cursor-pointer ${agendada ? "border-blood/60" : ""}`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <RostroBoxeador atleta={p} className="w-12 h-12 shrink-0 rounded-xl" />
+          <div className="flex items-center gap-2 min-w-0">
+            <RostroBoxeador atleta={p} className="h-9 w-9 shrink-0 rounded-lg" />
             <div className="min-w-0">
-              <div className="font-display text-lg leading-tight tracking-wide text-cream truncate">
+              <div className="font-display text-base leading-tight tracking-wide text-cream truncate">
                 {p.nombre}
               </div>
               <div className="font-cond text-[11px] uppercase tracking-wider text-mut truncate">
@@ -96,12 +96,12 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           </div>
 
           <div className="text-right shrink-0">
-            <div className="font-display text-2xl text-gold">{valoracion(p.atrib)}</div>
+            <div className="font-display text-xl text-gold">{valoracion(p.atrib)}</div>
             <div className="font-cond text-[10px] uppercase text-mut">Valoración</div>
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-2">
+        <div className="mt-1.5 flex items-center gap-1.5">
           <BarraEnergia v={p.energia} />
           {p.enEspera && <Chip tone="gold">En espera</Chip>}
           {p.elite && <Chip tone="neon">Élite</Chip>}
@@ -113,7 +113,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           )}
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1 border-t border-line pt-1.5">
           {p.rol === "alumno" ? (
             <>
               <span className="font-cond text-[11px] uppercase tracking-wide text-sand">
@@ -177,7 +177,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   };
 
   return (
-    <div className="space-y-5">
+    <div className="game-screen h-full overflow-hidden space-y-3">
       <div className="panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Atletas</h2>
         <Chip tone={alumnosEspera.length ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEspera.length ? ` · ${alumnosEspera.length} en espera` : ""}</Chip>
@@ -208,7 +208,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           <h3 className="mb-2 font-display text-xl tracking-wide text-blood flex items-center gap-2">
             <span>🥊 Boxeadores Federados Oficiales ({boxeadores.length})</span>
           </h3>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {boxeadores.map(p => <Tarjeta key={p.id} p={p} />)}
           </div>
         </section>
@@ -219,7 +219,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
         <h3 className="mb-2 font-display text-xl tracking-wide text-sand flex items-center gap-2">
             <span>🥋 Alumnos en Formación y Práctica ({alumnos.length}/{cupoAlumnos})</span>
         </h3>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {alumnos.map(p => <Tarjeta key={p.id} p={p} />)}
         </div>
         {alumnos.length === 0 && (
@@ -232,8 +232,14 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
         <section className="rounded-xl border border-dashed border-gold2/50 bg-gold/5 p-4">
           <h3 className="mb-2 font-display text-lg tracking-wide text-gold">Lista de espera ({alumnosEspera.length})</h3>
           <p className="mb-3 font-cond text-sm text-sand">Ordenados por llegada. No entrenan ni avanzan sus prácticas hasta ocupar una plaza; al liberar un cupo, el primero pasa automáticamente.</p>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {alumnosEspera.map(p => <Tarjeta key={p.id} p={p} />)}
+          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-5">
+            {alumnosEspera.map(p => (
+              <div key={p.id} className="flex min-w-0 items-center gap-2 rounded-lg border border-line bg-panel2 px-2 py-1.5">
+                <RostroBoxeador atleta={p} className="h-7 w-7 shrink-0 rounded-md" />
+                <button onClick={() => seleccionarAtleta(p)} className="min-w-0 flex-1 truncate text-left font-cond text-xs text-cream hover:text-gold cursor-pointer">{p.nombre}</button>
+                <button onClick={() => { if (window.confirm(`¿Retirar a ${p.nombre} de la lista de espera?`)) dispatch({ type: "RETIRAR_ATLETA", id: p.id }); }} className="shrink-0 font-cond text-[10px] uppercase text-mut hover:text-blood cursor-pointer">Retirar</button>
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -253,7 +259,7 @@ export function PanelMercado() {
     .sort(([a], [b]) => (a === recomendadoId ? -1 : b === recomendadoId ? 1 : 0));
 
   return (
-    <div className="space-y-4">
+    <div className="game-screen h-full overflow-hidden space-y-2">
       <div className="panel flex flex-wrap items-center gap-4 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Equipamiento e Instalaciones</h2>
         <span className="font-cond text-sm text-sand">Caja disponible: <b className="text-gold">{fmt(state.dinero)}</b></span>
@@ -275,7 +281,7 @@ export function PanelMercado() {
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {items.map(([id, eq]) => {
           const comprado = state.equipamiento.includes(id as never);
           const bloqueado = id === "zonaElite" && !state.cursos.includes("altoRendimiento");
@@ -334,6 +340,7 @@ export function PanelMercado() {
 // ==================== MI PERFIL: CURSOS, PROPIEDADES, LEGADO ====================
 export function PanelPerfil() {
   const { state, dispatch } = useGame();
+  const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
   const ramas: { id: RamaCurso; nombre: string; icono: string; color: string }[] = [
     { id: "deportiva", nombre: "Rama Deportiva", icono: "glove", color: "text-blood" },
     { id: "promotora", nombre: "Rama Promotora", icono: "ring", color: "text-gold" },
@@ -342,11 +349,11 @@ export function PanelPerfil() {
   const puedeLegado = state.plantel.some(p => p.titulo === 4) || state.fama >= 85;
 
   return (
-    <div className="space-y-5">
-      <div className="panel grid gap-4 p-4 md:grid-cols-[1fr_auto]">
+    <div className="game-screen h-full overflow-hidden space-y-2">
+      <div className="panel grid gap-2 p-2.5 md:grid-cols-[1fr_auto]">
         <div>
-          <h2 className="font-display text-2xl tracking-wide text-gold">Perfil del Coach · {state.nombreJugador}</h2>
-          <p className="font-cond text-sm text-sand">
+          <h2 className="font-display text-xl tracking-wide text-gold">Perfil del Coach · {state.nombreJugador}</h2>
+          <p className="font-cond text-xs text-sand">
             Semana {state.semana} al frente de <b className="text-cream">{state.nombreGimnasio}</b>. Nivel de gimnasio: <b className="text-gold">{nivelGimnasio(state)}</b> · Legados: <b className="text-neonc">{state.legados}</b>
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-6">
@@ -355,7 +362,7 @@ export function PanelPerfil() {
               ["Veladas", state.stats.veladas], ["Títulos", state.stats.titulos], ["Neto histórico", fmt(state.stats.resultadoNeto)],
             ].map(([k, v]) => (
               <div key={k as string} className="border border-line bg-panel2 px-2 py-1.5 text-center">
-                <div className="font-display text-2xl text-cream">{v}</div>
+                <div className="font-display text-xl text-cream">{v}</div>
                 <div className="font-cond text-[10px] uppercase tracking-widest text-mut">{k}</div>
               </div>
             ))}
@@ -377,16 +384,21 @@ export function PanelPerfil() {
         </div>
       </div>
 
+      <div className="flex gap-2 rounded-xl border border-line bg-panel2 p-1">
+        <button onClick={() => setSeccionPerfil("cursos")} className={`flex-1 rounded-lg px-3 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "cursos" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Cursos del coach</button>
+        <button onClick={() => setSeccionPerfil("bienes")} className={`flex-1 rounded-lg px-3 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "bienes" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Bienes raíces</button>
+      </div>
+
       {/* CURSOS */}
-      <section>
+      {seccionPerfil === "cursos" && <section className="min-h-0">
         <h3 className="mb-2 font-display text-xl tracking-wide text-cream">Cursos del Coach · 3 ramas de especialización</h3>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-2 lg:grid-cols-3">
           {ramas.map(rama => (
-            <div key={rama.id} className="panel p-4">
-              <div className={`mb-3 flex items-center gap-2 font-display text-xl tracking-wide ${rama.color}`}>
+            <div key={rama.id} className="panel p-2.5">
+              <div className={`mb-1.5 flex items-center gap-2 font-display text-lg tracking-wide ${rama.color}`}>
                 <I n={rama.icono} className="h-5 w-5" /> {rama.nombre}
               </div>
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {(Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === rama.id)
                   .sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel)
                   .map(cid => {
@@ -394,7 +406,7 @@ export function PanelPerfil() {
                     const aprobado = state.cursos.includes(cid);
                     const reqOk = !c.req || state.cursos.includes(c.req);
                     return (
-                      <div key={cid} className={`border p-3 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
+                      <div key={cid} className={`border p-2 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
                         <div className="flex items-center justify-between gap-2">
                           <div className="font-display text-base tracking-wide text-cream">
                             <span className="mr-1.5 text-mut">Nv.{c.nivel}</span>{c.nombre}
@@ -412,7 +424,7 @@ export function PanelPerfil() {
                             </Btn>
                           )}
                         </div>
-                        <p className="mt-1 font-cond text-xs text-sand">{c.desc}</p>
+                        <p className="mt-1 font-cond text-[10px] leading-tight text-sand">{c.desc}</p>
                       </div>
                     );
                   })}
@@ -420,10 +432,10 @@ export function PanelPerfil() {
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* PROPIEDADES */}
-      <section>
+      {seccionPerfil === "bienes" && <section className="min-h-0">
         <h3 className="mb-2 font-display text-xl tracking-wide text-cream">Bienes Raíces Adquiridos</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(["local", "terreno", "sucursal", "apartamento", "mansion", "arena"] as const).map(pid => {
@@ -441,7 +453,7 @@ export function PanelPerfil() {
             );
           })}
         </div>
-      </section>
+      </section>}
     </div>
   );
 }
@@ -453,14 +465,14 @@ export function PanelPersonal() {
   const nSuc = sucursales(state);
 
   return (
-    <div className="space-y-4">
+    <div className="game-screen h-full overflow-hidden space-y-2">
       <div className="panel flex flex-wrap items-center gap-4 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Cuerpo Técnico & Empleados</h2>
         <span className="font-cond text-sm text-sand">Contratados: <b className="text-cream">{state.personal.length}</b></span>
         <span className="font-cond text-sm text-sand">Costo nómina semanal: <b className="text-blood">{fmt(state.personal.reduce((ac, p) => ac + PERSONAL_INFO[p.tipo].sueldo, 0))}</b></span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {tipos.map(t => {
           const info = PERSONAL_INFO[t];
           const contratados = state.personal.filter(p => p.tipo === t);

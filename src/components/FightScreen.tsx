@@ -255,7 +255,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
   const esTitulo = pelea.esTitulo > 0;
 
   return (
-    <div className="fondo-app fixed inset-0 z-50 overflow-y-auto scroll-fino select-none p-3 sm:p-5">
+    <div className="fondo-app fixed inset-0 z-50 overflow-hidden select-none p-3 sm:p-5">
       <div className="mx-auto max-w-5xl space-y-4">
         
         {/* ENCABEZADO DE CARTELERA OFICIAL */}
@@ -534,7 +534,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                   <span className="text-[10px] font-mono-data text-gold">3 Jueces Oficiales</span>
                 </div>
 
-                <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                <div className="max-h-36 overflow-hidden space-y-1 pr-1">
                   {desgloseRounds.map(dr => (
                     <div
                       key={dr.asalto}

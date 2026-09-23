@@ -41,6 +41,11 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* fondo ambiental de sala de boxeo */
 .fondo-app {
   position: relative;

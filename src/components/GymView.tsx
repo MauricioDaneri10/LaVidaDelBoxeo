@@ -178,7 +178,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const piso = nivel >= 3 ? "linear-gradient(180deg,#241f2e,#191521)" : "linear-gradient(180deg,#6b4d2e,#4a341e)";
 
   return (
-    <div className="panel relative min-h-[620px] overflow-hidden flex flex-col justify-between sm:min-h-[660px]" style={{ minHeight: 620 }}>
+    <div className="panel relative h-full min-h-0 overflow-hidden flex flex-col justify-between">
       
       {/* PARED DEL GIMNASIO */}
       <div className="absolute inset-x-0 top-0 h-[56%]" style={{ background: pared }}>
@@ -384,7 +384,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 py-3 pr-1">
+          <div className="flex-1 overflow-hidden space-y-2 py-3 pr-1">
             {todos.map(b => (
               <div
                 key={b.id}
