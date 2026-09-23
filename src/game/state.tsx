@@ -276,11 +276,6 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   const objetivoRecreativos = clamp(Math.floor(st.fama / 8) + (st.personal.some(p => p.tipo === "asistente") ? 2 : 0) - Math.floor(derrotas / 3), 0, 12);
   st.recreativos = clamp(st.recreativos + (objetivoRecreativos > st.recreativos ? 1 : objetivoRecreativos < st.recreativos ? -1 : 0), 0, 12);
 
-  const famaEquipamiento = (st.equipamiento.includes("carteles") ? 1 : 0)
-    + (st.equipamiento.includes("marquesina") ? 2 : 0)
-    + (st.equipamiento.includes("vitrina") ? 1 : 0);
-  if (famaEquipamiento > 0) st.fama = clamp(st.fama + famaEquipamiento, 0, 100);
-
   st.comunitarios.forEach(c => {
     const info = COMUNITARIOS[c.tipo];
     let recaudado = azar(info.min, info.max);
@@ -295,7 +290,9 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   });
   st.comunitarios = [];
   const seguidoresObjetivo = Math.max(0, Math.round(st.fama * 120 + st.stats.victorias * 80 - derrotas * 20));
-  st.seguidores = Math.max(st.seguidores, seguidoresObjetivo);
+  // Los seguidores reflejan la salud actual del club: la fama y los resultados
+  // los atraen, pero una mala racha también puede hacerlos bajar.
+  st.seguidores = seguidoresObjetivo;
 
   const totalIngresos = ingresos.reduce((a, l) => a + l.monto, 0);
 
@@ -307,8 +304,6 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   if (sueldos > 0) {
     gastos = linea(gastos, `Sueldos del personal (${st.personal.length})`, sueldos);
   }
-  const totalGastos = gastos.reduce((a, l) => a + l.monto, 0);
-
   // La deuda es posible, pero visible y con un costo creciente. Nunca se
   // corrige silenciosamente ni se convierte en dinero infinito.
   if (st.dinero < 0) {
@@ -584,7 +579,8 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.equipamiento.includes(a.id)) return conToast(s, "Ya lo tenés instalado.", "info");
       if (s.dinero < eq.costo) return conToast(s, `Te faltan ${fmt(eq.costo - s.dinero)} para ${eq.nombre}.`, "alerta");
       if (a.id === "zonaElite" && !s.cursos.includes("altoRendimiento")) return conToast(s, "Requiere el curso de Alto Rendimiento.", "alerta");
-      return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - eq.costo, equipamiento: [...s.equipamiento, a.id] }),
+      const famaExtra = a.id === "carteles" ? 1 : a.id === "marquesina" ? 2 : a.id === "vitrina" ? 1 : 0;
+      return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - eq.costo, fama: clamp(s.fama + famaExtra, 0, 100), equipamiento: [...s.equipamiento, a.id] }),
         `${eq.nombre} instalado: ${eq.efecto}.`, "ok");
     }
 

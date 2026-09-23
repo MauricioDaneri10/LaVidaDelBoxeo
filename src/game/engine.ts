@@ -3,7 +3,7 @@
 // títulos y simulación de combate con jueces y Registro Oficial.
 // ============================================================
 
-import { APELLIDOS, COMBOS, CONSEJOS_INICIALES, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
+import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
 import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
   OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
@@ -196,13 +196,33 @@ export function proyeccionSemanal(e: EstadoJuego): { ingresos: LineaLibro[]; gas
   const boxeadores = e.plantel.filter(p => p.rol === "boxeador").length;
   const cuota = 18 + 2 * (nivel - 1);
   const ingresos: LineaLibro[] = [{ concepto: `Cuotas de alumnos (${alumnos} × ${fmt(cuota)})`, monto: alumnos * cuota }];
+  if (e.recreativos > 0) ingresos.push({ concepto: `Cuotas recreativas (${e.recreativos} × $10)`, monto: e.recreativos * 10 });
   if (boxeadores > 0) ingresos.push({ concepto: `Aporte del plantel federado (${boxeadores} × $12)`, monto: boxeadores * 12 });
   if (e.semana === 1) ingresos.push({ concepto: "Ayuda de apertura del club", monto: 240 });
+  const nSuc = sucursales(e);
+  const gerentes = e.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
+  const entrenadoresLocales = e.personal.filter(p => p.tipo === "entrenadorLocal").length;
+  if (nSuc > 0 && gerentes > 0) {
+    const activas = Math.min(nSuc, gerentes);
+    let porSucursal = 650 + 8 * e.fama + Math.min(activas, entrenadoresLocales) * 200;
+    if (e.cursos.includes("imperio")) porSucursal *= 1.5;
+    ingresos.push({ concepto: `Ingresos pasivos de sucursales (${activas})`, monto: Math.round(porSucursal * activas) });
+  }
+  if (e.marcaRopa && e.equipamiento.includes("estudioMarca")) {
+    let ventas = Math.round(e.fama * 6 + 40);
+    ventas = Math.round(ventas * calcularModificadores(e).multiplicadorMarca);
+    ingresos.push({ concepto: `Ventas de la marca "${e.marcaRopa}"`, monto: ventas });
+  }
+  e.comunitarios.forEach(c => {
+    const info = COMUNITARIOS[c.tipo];
+    ingresos.push({ concepto: `Dividendos estimados: ${c.nombre}`, monto: Math.round(((info.min + info.max) / 2) * calcularModificadores(e).multiplicadorEventos) });
+  });
   if (e.patrocinio) ingresos.push({ concepto: `Patrocinio de ${e.patrocinio.nombre}`, monto: e.patrocinio.semanal });
   const gastos: LineaLibro[] = [];
   if (!e.propiedades.includes("local")) gastos.push({ concepto: "Alquiler del local", monto: 150 });
   const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
   if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
+  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: Math.max(10, Math.ceil(Math.abs(e.dinero) * 0.03)) });
   const totalIngresos = ingresos.reduce((total, l) => total + l.monto, 0);
   const totalGastos = gastos.reduce((total, l) => total + l.monto, 0);
   return { ingresos, gastos, total: totalIngresos - totalGastos };

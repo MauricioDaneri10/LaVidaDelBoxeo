@@ -72,15 +72,15 @@ function PantallaPrincipal() {
       }
       if (fichaId || ajustes || carteleraAbierta) return;
       const tecla = event.key.toLowerCase();
-      const pantallas: Pestana[] = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal"];
-      const teclasPantalla: Array<keyof Atajos> = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal"];
+      const pantallas: Pestana[] = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal", "calendario"];
+      const teclasPantalla: Array<keyof Atajos> = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal", "calendario"];
       const destino = pantallas.findIndex((_, i) => teclaCoincide(tecla, atajos[teclasPantalla[i]]));
       if (destino >= 0 && destino < pantallas.length) {
         setPestana(pantallas[destino]);
       } else if (teclaCoincide(tecla, atajos.avanzar) || teclaCoincide(event.key, atajos.avanzar)) {
         event.preventDefault();
         if (state.dia < 6 || state.pendientes.length === 0) dispatch({ type: "AVANZAR_DIA" });
-      } else if (teclaCoincide(tecla, atajos.semanaRapida) && state.dia < 6) {
+      } else if (teclaCoincide(tecla, atajos.semanaRapida) && state.dia < 7) {
         dispatch({ type: "SEMANA_RAPIDA" });
       }
     };

@@ -137,10 +137,10 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
   vestuarios: { nombre: "Vestuarios con Duchas", costo: 1800, desc: "Comodidad que se nota.", efecto: "+4 cupos de alumnos y +2 de recuperación", cat: "instalaciones", icono: "house" },
   barraProteinas: { nombre: "Barra de Proteínas", costo: 3200, desc: "Batidos después de cada turno.", efecto: "+20% de ganancia en Fuerza y +4 energía", cat: "instalaciones", icono: "bolt" },
   sauna: { nombre: "Sauna Seco y Frío", costo: 8500, desc: "Recuperación de atletas de élite.", efecto: "+10 de recuperación de energía semanal", cat: "instalaciones", icono: "fire" },
-  carteles: { nombre: "Carteles del Barrio", costo: 250, desc: "Tu nombre en cada esquina.", efecto: "+1 de fama semanal y más boca a boca", cat: "difusion", icono: "flag" },
+  carteles: { nombre: "Carteles del Barrio", costo: 250, desc: "Tu nombre en cada esquina.", efecto: "+1 de fama al instalar y más boca a boca", cat: "difusion", icono: "flag" },
   sonido: { nombre: "Sonido Motivacional", costo: 1100, desc: "Música que empuja en el último minuto.", efecto: "+10% de ganancia en todos los combos", cat: "difusion", icono: "play" },
-  marquesina: { nombre: "Marquesina Neón", costo: 4000, desc: "La ciudad entera sabe dónde entrenas.", efecto: "+2 de fama semanal", cat: "difusion", icono: "spark" },
-  vitrina: { nombre: "Vitrina de Trofeos", costo: 5500, desc: "Cristal, terciopelo y gloria expuesta.", efecto: "+1 de fama semanal y cinturones exhibidos con estilo", cat: "difusion", icono: "trophy" },
+  marquesina: { nombre: "Marquesina Neón", costo: 4000, desc: "La ciudad entera sabe dónde entrenas.", efecto: "+2 de fama al instalar", cat: "difusion", icono: "spark" },
+  vitrina: { nombre: "Vitrina de Trofeos", costo: 5500, desc: "Cristal, terciopelo y gloria expuesta.", efecto: "+1 de fama al instalar y cinturones exhibidos con estilo", cat: "difusion", icono: "trophy" },
   estudioMarca: { nombre: "Estudio de Marca de Ropa", costo: 2500, desc: "Diseña y vende indumentaria propia.", efecto: "Habilita crear tu marca y venderla cada semana", cat: "difusion", icono: "shirt" },
 };
 

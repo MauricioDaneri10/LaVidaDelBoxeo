@@ -5,6 +5,7 @@ export type Atajos = {
   mercado: string;
   perfil: string;
   personal: string;
+  calendario: string;
   avanzar: string;
   semanaRapida: string;
   cerrar: string;
@@ -17,6 +18,7 @@ export const ATAJOS_DEFAULT: Atajos = {
   mercado: "4",
   perfil: "5",
   personal: "6",
+  calendario: "7",
   avanzar: "n",
   semanaRapida: "s",
   cerrar: "Escape",
@@ -26,7 +28,7 @@ const CLAVE_ATAJOS = "vida-del-boxeo:atajos";
 
 export const ATAJOS_LABELS: Array<[keyof Atajos, string]> = [
   ["gimnasio", "Gimnasio"], ["ciudad", "Ciudad"], ["plantel", "Plantel"],
-  ["mercado", "Mercado"], ["perfil", "Mi Perfil"], ["personal", "Personal"],
+  ["mercado", "Mercado"], ["perfil", "Mi Perfil"], ["personal", "Personal"], ["calendario", "Calendario"],
   ["avanzar", "Avanzar día"], ["semanaRapida", "Semana rápida"], ["cerrar", "Cerrar ventanas"],
 ];
 

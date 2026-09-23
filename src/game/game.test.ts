@@ -17,6 +17,7 @@ import {
   rankingMundial,
   tituloAspirable,
   puedePactarPelea,
+  proyeccionSemanal,
   prepararLuchador,
   resolverPelea,
   sanitizarEstado,
@@ -189,6 +190,49 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(repetida.plantel.length).toBe(primera.plantel.length);
     const siguienteSemana = reductor({ ...primera, semana: primera.semana + 1 }, { type: "SCOUT" });
     expect(siguienteSemana.plantel.length).toBe(primera.plantel.length + 1);
+  });
+
+  it("proyecta todas las fuentes y costos recurrentes que se liquidan el domingo", () => {
+    const base = crearEstadoBase();
+    const estado = {
+      ...base,
+      creado: true,
+      recreativos: 3,
+      dinero: -200,
+      equipamiento: ["estudioMarca"] as typeof base.equipamiento,
+      marcaRopa: "Daneri Fightwear",
+      propiedades: ["local", "sucursal"] as typeof base.propiedades,
+      personal: [
+        { id: "g", tipo: "gerente" as const, nombre: "Gerente" },
+        { id: "l", tipo: "entrenadorLocal" as const, nombre: "Entrenador" },
+      ],
+      comunitarios: [{ id: "b", tipo: "bingo" as const, nombre: "Bingo", venceEn: 2 }],
+    };
+    const proyeccion = proyeccionSemanal(estado);
+    expect(proyeccion.ingresos.map(l => l.concepto)).toEqual(expect.arrayContaining([
+      "Cuotas recreativas (3 × $10)",
+      "Ingresos pasivos de sucursales (1)",
+      'Ventas de la marca "Daneri Fightwear"',
+      "Dividendos estimados: Bingo",
+    ]));
+    expect(proyeccion.gastos.map(l => l.concepto)).toContain("Costo financiero por caja negativa");
+  });
+
+  it("otorga la fama del equipamiento una sola vez y no cada semana", () => {
+    let estado = { ...crearEstadoBase(), creado: true, dinero: 1_000, fama: 4 };
+    estado = reductor(estado, { type: "COMPRAR_EQUIPO", id: "carteles" });
+    expect(estado.fama).toBe(5);
+    const famaTrasCompra = estado.fama;
+    for (let i = 0; i < 6; i++) estado = reductor(estado, { type: "AVANZAR_DIA" });
+    estado = reductor(estado, { type: "CERRAR_DOMINGO" });
+    expect(estado.fama).toBe(famaTrasCompra);
+  });
+
+  it("permite bajar seguidores cuando fama y resultados caen", () => {
+    let estado = { ...crearEstadoBase(), creado: true, fama: 40, seguidores: 10_000 };
+    for (let i = 0; i < 6; i++) estado = reductor(estado, { type: "AVANZAR_DIA" });
+    estado = reductor(estado, { type: "CERRAR_DOMINGO" });
+    expect(estado.seguidores).toBe(4_800);
   });
 
   it("evita que el plantel crezca sin límite después de licenciar boxeadores", () => {
