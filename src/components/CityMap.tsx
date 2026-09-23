@@ -57,7 +57,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
-        <div className="lg:col-span-8 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative aspect-[16/10] min-h-[440px] shadow-2xl flex items-center justify-center p-2">
+        <div className="xl:col-span-8 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative aspect-[16/10] min-h-[440px] shadow-2xl flex items-center justify-center p-2">
           <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="gradRioRetro" x1="0" y1="0" x2="1" y2="1">

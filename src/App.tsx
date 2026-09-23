@@ -172,7 +172,7 @@ function PantallaPrincipal() {
       </div>
 
       {/* DOCK COMPACTO EN DISPOSITIVOS MÓVILES */}
-      <div className="sticky bottom-0 z-30 xl:hidden">
+      <div className="z-30 xl:hidden">
         <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
       </div>
 

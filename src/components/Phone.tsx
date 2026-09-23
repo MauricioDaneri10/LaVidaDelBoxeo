@@ -70,7 +70,7 @@ export default function DockLateral({
 
   const tabs: { id: PestanaDock; nombre: string; icono: string; badge: number; pulso: boolean }[] = [
     { id: "mensajes", nombre: "Mensajes", icono: "phone", badge: mensajes.length, pulso: mensajes.length > 0 },
-    { id: "patrocinios", nombre: "Sponsors", icono: "case", badge: patrocinios.length, pulso: patrocinios.length > 0 },
+    { id: "patrocinios", nombre: "Patrocinios", icono: "case", badge: patrocinios.length, pulso: patrocinios.length > 0 },
     { id: "prensa", nombre: "Prensa", icono: "mic", badge: 0, pulso: false },
     { id: "consejos", nombre: "Don Anselmo", icono: "cap", badge: consejosListos.length + (alumnoListoParaFederar ? 1 : 0), pulso: consejosListos.length > 0 || !!alumnoListoParaFederar },
   ];

@@ -69,7 +69,7 @@ export default function Intro() {
               ))}
             </div>
             <div className="pt-2 font-cond text-xs uppercase tracking-widest text-mut">
-              Tutorial invisible: Don Anselmo te guía desde el teléfono y te paga con fama.
+              Guía inicial: Don Anselmo te acompaña desde el teléfono y cada pantalla te indica el próximo paso.
             </div>
           </div>
 

@@ -363,7 +363,7 @@ export function PanelPerfil() {
                               disabled={!reqOk || state.dinero < c.costo}
                               onClick={() => dispatch({ type: "COMPRAR_CURSO", id: cid })}
                             >
-                              {fmt(c.costo)}
+                              Comprar · {fmt(c.costo)}
                             </Btn>
                           )}
                         </div>
