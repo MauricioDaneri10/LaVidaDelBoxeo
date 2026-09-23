@@ -8,14 +8,15 @@ import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
   OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
 } from "./types";
+import { numeroAleatorio } from "./random";
 
 // ==================== UTILIDADES ====================
-export const uid = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+export const uid = () => numeroAleatorio().toString(36).slice(2, 10) + numeroAleatorio().toString(36).slice(2, 6);
 export const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-AR");
 export const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-export const azar = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-export const elegir = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-export const chance = (p: number) => Math.random() < p;
+export const azar = (min: number, max: number) => Math.floor(numeroAleatorio() * (max - min + 1)) + min;
+export const elegir = <T,>(arr: T[]): T => arr[Math.floor(numeroAleatorio() * arr.length)];
+export const chance = (p: number) => numeroAleatorio() < p;
 
 export interface ModificadoresClub {
   recuperacionEnergia: number;

@@ -2,11 +2,16 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
+import { registrarDiagnostico } from "./diagnostics";
 
 class PantallaError extends React.Component<React.PropsWithChildren, { error: boolean; message: string }> {
   state = { error: false, message: "" };
   static getDerivedStateFromError() { return { error: true }; }
-  componentDidCatch(error: Error) { console.error("Error de renderizado:", error); this.setState({ error: true, message: error.message }); }
+  componentDidCatch(error: Error) {
+    const diagnostico = registrarDiagnostico(error, "renderizado");
+    console.error("Error de renderizado:", diagnostico);
+    this.setState({ error: true, message: error.message });
+  }
   render() {
     if (!this.state.error) return this.props.children;
     return React.createElement("main", { className: "min-h-screen bg-[#17130f] p-8 text-[#f5e6c8]" },

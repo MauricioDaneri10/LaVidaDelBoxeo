@@ -3,6 +3,7 @@ import {
   alumnosActivos,
   alumnosEnEspera,
   aplicarEntrenamientoSemanal,
+  azar,
   calcularModificadores,
   capacidadAlumnos,
   capacidadPlantel,
@@ -26,6 +27,8 @@ import {
 import { migrarGuardado, reductor } from "./state";
 import { conflictosAtajos, ATAJOS_DEFAULT } from "./shortcuts";
 import { formatearMoneda, formatearNumero } from "../i18n";
+import { usarSemilla } from "./random";
+import { leerDiagnosticos } from "../diagnostics";
 
 describe("reglas principales de La Vida del Boxeo", () => {
   it("asigna el mejor enfoque inmediatamente al contratar el entrenador automático", () => {
@@ -360,4 +363,22 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(bloqueado.dia).toBe(6);
     expect(bloqueado.toasts[bloqueado.toasts.length - 1]?.tono).toBe("alerta");
   });
+
+  it("reproduce la misma simulación cuando se fija una semilla", () => {
+    const restaurar = usarSemilla(20260923);
+    const primera = Array.from({ length: 12 }, () => azarSeguro());
+    restaurar();
+    const restaurarOtra = usarSemilla(20260923);
+    const segunda = Array.from({ length: 12 }, () => azarSeguro());
+    restaurarOtra();
+    expect(segunda).toEqual(primera);
+  });
+
+  it("mantiene el diagnóstico de cliente acotado y separado de la partida", () => {
+    expect(leerDiagnosticos()).toEqual([]);
+  });
 });
+
+function azarSeguro(): number {
+  return azar(0, 1_000_000);
+}
