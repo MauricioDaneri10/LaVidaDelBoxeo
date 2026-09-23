@@ -305,7 +305,7 @@ function PantallaPrincipal() {
                 </div>
                 <div className="font-cond text-xs uppercase tracking-wide text-mut">
                   {of.rival.division} · {of.rival.circuito} · Récord {of.rival.record.v}-
-                  {of.rival.record.d} ({of.rival.record.ko} KO)
+                  {of.rival.record.d}-{of.rival.record.e ?? 0} ({of.rival.record.ko} KO)
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-center">
                   <div className="border border-line bg-panel2 py-1.5 rounded-lg">

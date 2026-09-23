@@ -124,8 +124,8 @@ export function FilaStat({ label, v }: { label: string; v: number }) {
 }
 
 // Modal con animación Framer Motion
-export function Modal({ title, icon, onClose, children, wide }: {
-  title: ReactNode; icon?: string; onClose?: () => void; children: ReactNode; wide?: boolean;
+export function Modal({ title, icon, onClose, children, wide, fit }: {
+  title: ReactNode; icon?: string; onClose?: () => void; children: ReactNode; wide?: boolean; fit?: boolean;
 }) {
   return (
     <AnimatePresence>
@@ -145,7 +145,7 @@ export function Modal({ title, icon, onClose, children, wide }: {
               <button onClick={onClose} aria-label="Cerrar ventana" title="Cerrar" className="rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
             )}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto scroll-fino p-4 sm:p-5">{children}</div>
+          <div className={`min-h-0 flex-1 ${fit ? "overflow-hidden p-3" : "overflow-y-auto scroll-fino p-4 sm:p-5"}`}>{children}</div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -609,7 +609,7 @@ export function TarjetaElegante({
 // ============================================================================
 // MATRIZ DE RENDIMIENTO RADAR (11 ATRIBUTOS CANÓNICOS CON FALLBACK)
 // ============================================================================
-export function RadarCapacidades({ atributos }: { atributos: Atributos | Record<string, number> }) {
+export function RadarCapacidades({ atributos, className = "" }: { atributos: Atributos | Record<string, number>; className?: string }) {
   // 11 Atributos canónicos oficiales de La Vida del Boxeo
   const llaves: string[] = [
     "fuerza", "velocidad", "potencia", "resistencia", "ataque", "defensa",
@@ -644,7 +644,7 @@ export function RadarCapacidades({ atributos }: { atributos: Atributos | Record<
   const poligonoPuntos = puntos.map(p => `${p.x},${p.y}`).join(" ");
 
   return (
-    <div className="relative w-full max-w-[240px] aspect-square mx-auto flex items-center justify-center">
+    <div className={`relative w-full max-w-[240px] aspect-square mx-auto flex items-center justify-center ${className}`}>
       <svg viewBox="0 0 200 200" className="w-full h-full">
         {[0.25, 0.5, 0.75, 1].map((pct, i) => (
           <polygon

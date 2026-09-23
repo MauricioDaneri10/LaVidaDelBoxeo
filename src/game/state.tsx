@@ -283,8 +283,8 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
 
   // salto al profesionalismo
   st.plantel = st.plantel.map(p => {
-    if (p.rol === "boxeador" && p.circuito === "amateur" && p.record.v >= 3) {
-      st = conToast(st, `${p.nombre.split(" ")[0]} ya está listo para el circuito profesional: sus rivales y bolsas ahora serán más grandes.`, "oro");
+    if (p.rol === "boxeador" && p.circuito === "amateur" && p.peleasAmateur >= 50) {
+      st = conToast(st, `${p.nombre.split(" ")[0]} completó 50 peleas amateurs y puede dar el salto al circuito profesional.`, "oro");
       return { ...p, circuito: "pro" as const };
     }
     return p;
@@ -417,8 +417,15 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
           record: {
             v: p.record.v + (r.gane ? 1 : 0),
             d: p.record.d + (!r.gane && !r.empate ? 1 : 0),
+            e: (p.record.e ?? 0) + (r.empate ? 1 : 0),
             ko: p.record.ko + (r.gane && (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") ? 1 : 0),
           },
+          peleasAmateur: p.peleasAmateur + (p.circuito === "amateur" ? 1 : 0),
+          peleasProfesionales: p.peleasProfesionales + (p.circuito === "pro" ? 1 : 0),
+          victoriasProfesionales: p.victoriasProfesionales + (p.circuito === "pro" && r.gane ? 1 : 0),
+          derrotasProfesionales: p.derrotasProfesionales + (p.circuito === "pro" && !r.gane && !r.empate ? 1 : 0),
+          empatesProfesionales: p.empatesProfesionales + (p.circuito === "pro" && r.empate ? 1 : 0),
+          kosProfesionales: p.kosProfesionales + (p.circuito === "pro" && r.gane && (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") ? 1 : 0),
           energia: clamp(p.energia - 18, 0, 100),
           bonusDebut: false,
           titulo: r.tituloGanado > p.titulo ? r.tituloGanado : p.titulo,

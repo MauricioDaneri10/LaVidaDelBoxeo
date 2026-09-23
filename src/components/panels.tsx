@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, nivelGimnasio, puedeHabilitar, sanitizarEstado, sucursales, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sanitizarEstado, sucursales, totalPeleas, valoracion } from "../game/engine";
 import { CLAVE_GUARDADO, guardarPartida, useGame } from "../game/state";
 import { ATAJOS_DEFAULT, ATAJOS_LABELS, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
@@ -145,7 +145,8 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           ) : (
             <>
               <span className="font-cond text-[11px] uppercase text-sand">
-                Récord oficial: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
+                Récord: <b className="text-cream">{p.record.v}-{p.record.d}-{p.record.e ?? 0}</b> · <b className="text-blood">{p.record.ko} KO</b> · {totalPeleas(p)} peleas
+                <span className="ml-1 text-mut">· {estadoRecord(p).etiqueta}</span>
               </span>
               <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
                 {agendada ? (

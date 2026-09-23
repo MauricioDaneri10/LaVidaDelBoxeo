@@ -19,6 +19,7 @@ export interface Atributos {
 export type ClaveAtributo = keyof Atributos;
 
 export type ComboId = "noqueador" | "estilista" | "presion" | "tactico" | "acondicionamiento" | "descanso";
+export interface RecordBoxeo { v: number; d: number; e: number; ko: number; }
 
 export interface Pugilista {
   id: string;
@@ -32,7 +33,17 @@ export interface Pugilista {
   rol: Rol;
   circuito: Circuito;
   division: string;
-  record: { v: number; d: number; ko: number };
+  /** Récord acumulado mostrado al público: victorias-derrotas-empates. */
+  record: RecordBoxeo;
+  /** Cantidad de combates disputados en cada etapa del recorrido. */
+  peleasAmateur: number;
+  peleasProfesionales: number;
+  victoriasProfesionales: number;
+  derrotasProfesionales: number;
+  empatesProfesionales: number;
+  kosProfesionales: number;
+  /** Club de procedencia en rankings y rivales generados. */
+  club?: string;
   /** 0 sin título · 1 Regional · 2 Nacional · 3 Continental · 4 Mundial */
   titulo: 0 | 1 | 2 | 3 | 4;
   /** Licencia individual del atleta para competir oficialmente. */

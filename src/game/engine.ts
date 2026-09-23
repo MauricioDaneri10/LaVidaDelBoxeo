@@ -107,7 +107,13 @@ export function genPugilista(opts: { rol?: "alumno" | "boxeador"; joven?: boolea
     rol,
     circuito: "amateur",
     division: elegir(DIVISIONES),
-    record: { v: 0, d: 0, ko: 0 },
+    record: { v: 0, d: 0, e: 0, ko: 0 },
+    peleasAmateur: 0,
+    peleasProfesionales: 0,
+    victoriasProfesionales: 0,
+    derrotasProfesionales: 0,
+    empatesProfesionales: 0,
+    kosProfesionales: 0,
     titulo: 0,
     licenciaFederativa: rol === "boxeador",
     energia: 100,
@@ -125,7 +131,11 @@ export function genRivalPorVG(vgObjetivo: number, division: string, energia: num
   p.division = division;
   p.energia = energia;
   p.circuito = circuito ?? (vgObjetivo >= 60 ? "pro" : "amateur");
-  p.record = { v: Math.max(0, Math.round(vgObjetivo / 9) + azar(-1, 2)), d: azar(0, 3), ko: azar(0, 3) };
+  p.record = { v: Math.max(0, Math.round(vgObjetivo / 9) + azar(-1, 2)), d: azar(0, 3), e: 0, ko: azar(0, 3) };
+  p.peleasProfesionales = p.record.v + p.record.d;
+  p.victoriasProfesionales = p.record.v;
+  p.derrotasProfesionales = p.record.d;
+  p.kosProfesionales = p.record.ko;
   return p;
 }
 
@@ -148,6 +158,26 @@ export function alumnosEnEspera(e: EstadoJuego): Pugilista[] {
 }
 export function puedeHabilitar(p: Pugilista, e: EstadoJuego): boolean {
   return p.rol === "alumno" && !p.licenciaFederativa && !p.enEspera && p.fogueo >= p.fogueoMeta && e.cursos.includes("dt");
+}
+export function totalPeleas(p: Pugilista): number {
+  return Math.max(0, p.record.v + p.record.d + (p.record.e ?? 0));
+}
+export function rankingMundial(e: EstadoJuego): Array<{ pugilista: Pugilista; club: string; puntos: number }> {
+  const propios = e.plantel.filter(p => p.rol === "boxeador").map(p => ({ pugilista: p, club: e.nombreGimnasio || "Tu gimnasio" }));
+  const visitantes = e.rivales.filter(p => p.rol === "boxeador").map(p => ({ pugilista: p, club: p.club || "Club rival" }));
+  return [...propios, ...visitantes]
+    .map(x => ({ ...x, puntos: Math.max(1, valoracion(x.pugilista.atrib) * 4 + x.pugilista.record.v * 7 + x.pugilista.record.ko * 4 - x.pugilista.record.d * 3 + x.pugilista.titulo * 80 + (x.pugilista.circuito === "pro" ? 30 : 0)) }))
+    .sort((a, b) => b.puntos - a.puntos)
+    .slice(0, 30);
+}
+export function estadoRecord(p: Pugilista): { etiqueta: string; tono: "oro" | "ok" | "alerta" | "info"; multiplicadorBolsa: number } {
+  const total = totalPeleas(p);
+  if (total < 3) return { etiqueta: "En formación", tono: "info", multiplicadorBolsa: 0.8 };
+  const porcentaje = p.record.v / Math.max(1, total);
+  if (p.record.d > p.record.v) return { etiqueta: "Récord negativo · carrera en riesgo", tono: "alerta", multiplicadorBolsa: 0.58 };
+  if (p.record.v >= 15 && p.record.ko >= 8 && porcentaje >= 0.7) return { etiqueta: "Estrella de nocaut", tono: "oro", multiplicadorBolsa: 1.45 };
+  if (porcentaje >= 0.6) return { etiqueta: "Récord positivo", tono: "ok", multiplicadorBolsa: 1.15 };
+  return { etiqueta: "Récord equilibrado", tono: "info", multiplicadorBolsa: 0.9 };
 }
 export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
   const activos = e.plantel.filter(p => p.rol !== "alumno" || !p.enEspera);
@@ -243,28 +273,30 @@ export function consejoEsquina(b: Pugilista, rival: Pugilista | null): ComboId {
 export function tituloAspirable(p: Pugilista): 0 | 1 | 2 | 3 | 4 {
   const { v, ko } = p.record;
   const pro = p.circuito === "pro";
-  if (p.titulo < 4 && v >= 18 && ko >= 10 && pro) return 4;
-  if (p.titulo < 3 && v >= 14 && ko >= 8 && pro) return 3;
-  if (p.titulo < 2 && v >= 8 && ko >= 4 && pro) return 2;
-  if (p.titulo < 1 && v >= 4) return 1;
+  if (p.titulo < 4 && p.peleasProfesionales >= 25 && p.victoriasProfesionales >= 20 && p.kosProfesionales >= 10 && pro) return 4;
+  if (p.titulo < 3 && p.peleasProfesionales >= 25 && p.victoriasProfesionales >= 15 && p.kosProfesionales >= 6 && pro) return 3;
+  if (p.titulo < 2 && p.peleasProfesionales >= 10 && p.victoriasProfesionales >= 6 && p.kosProfesionales >= 3 && pro) return 2;
+  if (p.titulo < 1 && p.peleasProfesionales >= 4 && p.victoriasProfesionales >= 3 && pro) return 1;
   return 0;
 }
 
 export function generarOfertas(p: Pugilista): OfertaRival[] {
   const vg = valoracion(p.atrib);
+  const multiplicador = estadoRecord(p).multiplicadorBolsa;
+  const bolsa = (base: number) => Math.round(base * multiplicador);
   const ofertas: OfertaRival[] = [
     {
-      id: uid(), nivel: "accesible", bolsa: 250, esTitulo: 0,
+      id: uid(), nivel: "accesible", bolsa: bolsa(250), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg - 5, 22, 95), p.division, azar(40, 70), p.genero, p.circuito),
       etiqueta: "Rival Accesible", detalle: "Nivel menor (−5). Victoria segura para cuidar el invicto.",
     },
     {
-      id: uid(), nivel: "parejo", bolsa: 600, esTitulo: 0,
+      id: uid(), nivel: "parejo", bolsa: bolsa(600), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg + azar(-2, 2), 22, 96), p.division, azar(45, 75), p.genero, p.circuito),
       etiqueta: "Rival Parejo", detalle: "Nivel idéntico (±2). Combate equilibrado para subir en el ranking.",
     },
     {
-      id: uid(), nivel: "desafio", bolsa: 1800, esTitulo: 0,
+      id: uid(), nivel: "desafio", bolsa: bolsa(1800), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg + azar(6, 10), 25, 97), p.division, azar(50, 80), p.genero, p.circuito),
       etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking.",
     },
@@ -596,7 +628,17 @@ export function crearEstadoBase(): EstadoJuego {
     dia: 1, semana: 1, mes: 1, anio: 2026,
     ultimaSemanaScout: 0,
     plantel: alumnos,
-    rivales: [genRivalPorVG(42, elegir(DIVISIONES), 60), genRivalPorVG(50, elegir(DIVISIONES), 60)],
+    rivales: GIMNASIOS_RIVALES.flatMap((club, i) => [0, 1].map(j => {
+      const rival = genRivalPorVG(56 + i * 4 + j * 3, DIVISIONES[(i + j) % DIVISIONES.length], 70 + j * 5, undefined, "pro");
+      rival.club = club;
+      rival.peleasProfesionales = 12 + i * 3 + j * 4;
+      rival.record.v = Math.max(rival.record.v, 7 + i * 2 + j);
+      rival.record.ko = Math.min(rival.record.v, Math.max(rival.record.ko, 2 + i + j));
+      rival.victoriasProfesionales = rival.record.v;
+      rival.derrotasProfesionales = rival.record.d;
+      rival.kosProfesionales = rival.record.ko;
+      return rival;
+    })),
     ofertas: [], ofertasPara: null,
     pendientes: [],
     historial: [],
@@ -636,10 +678,17 @@ function sanitizarPugilista(raw: Partial<Pugilista>): Pugilista {
   p.enEspera = p.rol === "alumno" && !!raw.enEspera;
   p.circuito = raw.circuito === "pro" ? "pro" : "amateur";
   p.edad = clamp(Number(raw.edad) || base.edad, 12, 80);
-  p.record = { v: 0, d: 0, ko: 0, ...(raw?.record ?? {}) };
+  p.record = { v: 0, d: 0, e: 0, ko: 0, ...(raw?.record ?? {}) };
   p.record.v = Math.max(0, Number(p.record.v) || 0);
   p.record.d = Math.max(0, Number(p.record.d) || 0);
+  p.record.e = Math.max(0, Number(p.record.e) || 0);
   p.record.ko = clamp(Number(p.record.ko) || 0, 0, p.record.v);
+  p.peleasAmateur = Math.max(0, Number(raw.peleasAmateur) || (p.circuito === "amateur" ? p.record.v + p.record.d + p.record.e : 0));
+  p.peleasProfesionales = Math.max(0, Number(raw.peleasProfesionales) || (p.circuito === "pro" ? p.record.v + p.record.d + p.record.e : 0));
+  p.victoriasProfesionales = Math.max(0, Number(raw.victoriasProfesionales) || (p.circuito === "pro" ? p.record.v : 0));
+  p.derrotasProfesionales = Math.max(0, Number(raw.derrotasProfesionales) || (p.circuito === "pro" ? p.record.d : 0));
+  p.empatesProfesionales = Math.max(0, Number(raw.empatesProfesionales) || (p.circuito === "pro" ? p.record.e : 0));
+  p.kosProfesionales = clamp(Number(raw.kosProfesionales) || (p.circuito === "pro" ? p.record.ko : 0), 0, p.victoriasProfesionales);
   p.energia = clamp(Number(p.energia) || 100, 0, 100);
   p.fogueo = Math.max(0, Number(p.fogueo) || 0);
   p.fogueoMeta = clamp(Number(p.fogueoMeta) || 9, 8, 10);
@@ -669,6 +718,16 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   const s: EstadoJuego = { ...base, ...r, version: 2 };
   s.plantel = Array.isArray(r.plantel) ? r.plantel.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : base.plantel;
   s.rivales = Array.isArray(r.rivales) ? r.rivales.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : [];
+  s.rivales = s.rivales.map((rival, i) => ({ ...rival, club: rival.club || GIMNASIOS_RIVALES[i % GIMNASIOS_RIVALES.length] }));
+  for (let i = s.rivales.length; i < 20; i++) {
+    const rival = genRivalPorVG(56 + (i % 10) * 4 + (i % 2) * 3, DIVISIONES[i % DIVISIONES.length], 70 + (i % 2) * 5, undefined, "pro");
+    rival.club = GIMNASIOS_RIVALES[i % GIMNASIOS_RIVALES.length];
+    rival.peleasProfesionales = 12 + (i % 10) * 3 + (i % 2) * 4;
+    rival.victoriasProfesionales = rival.record.v;
+    rival.derrotasProfesionales = rival.record.d;
+    rival.kosProfesionales = rival.record.ko;
+    s.rivales.push(rival);
+  }
   s.ofertas = Array.isArray(r.ofertas) ? (r.ofertas as unknown[]).flatMap(raw => {
     if (!raw || typeof raw !== "object") return [];
     const x = raw as Partial<OfertaRival>;

@@ -559,8 +559,8 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                   Presentación de los Contendientes
                 </div>
                 <div className="font-cond text-xs text-sand space-y-1 leading-relaxed">
-                  <p><b>{nombreA}:</b> VG {valoracion(mio.atrib)} · Récord {mio.record.v}-{mio.record.d} ({mio.record.ko} KO)</p>
-                  <p><b>{nombreB}:</b> VG {valoracion(pelea.rival.atrib)} · Récord {pelea.rival.record.v}-{pelea.rival.record.d} ({pelea.rival.record.ko} KO)</p>
+                  <p><b>{nombreA}:</b> VG {valoracion(mio.atrib)} · Récord {mio.record.v}-{mio.record.d}-{mio.record.e ?? 0} ({mio.record.ko} KO)</p>
+                  <p><b>{nombreB}:</b> VG {valoracion(pelea.rival.atrib)} · Récord {pelea.rival.record.v}-{pelea.rival.record.d}-{pelea.rival.record.e ?? 0} ({pelea.rival.record.ko} KO)</p>
                   <p className="pt-1 text-gold font-bold">Bolsa oficial en disputa: {fmt(pelea.bolsa)}</p>
                 </div>
                 <BotonBrillante

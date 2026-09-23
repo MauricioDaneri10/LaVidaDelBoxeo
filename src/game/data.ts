@@ -91,7 +91,10 @@ export const DIVISIONES_F = [
   "Mediano (72 kg)"
 ];
 
-export const GIMNASIOS_RIVALES = ["Club La Loma", "Club Ferro", "Gimnasio Atlas", "Puños del Sur", "Escuela Centenario"];
+export const GIMNASIOS_RIVALES = [
+  "Club La Loma", "Club Ferro", "Gimnasio Atlas", "Puños del Sur", "Escuela Centenario",
+  "Academia Rivadavia", "Boxing San Martín", "Los Cóndores", "Gimnasio Horizonte", "Club Independiente",
+];
 
 // ==================== 6 COMBOS DE ENTRENAMIENTO ====================
 export const COMBOS: Record<ComboId, {
@@ -165,10 +168,10 @@ export const PERSONAL_INFO: Record<PersonalId, { nombre: string; sueldo: number;
 
 // ==================== TÍTULOS Y CINTURONES ====================
 export const TITULOS: Record<1 | 2 | 3 | 4, { nombre: string; cinturon: string; bolsa: number; req: string; colores: [string, string] }> = {
-  1: { nombre: "Título Regional", cinturon: "Cinturón de Bronce y Cuero", bolsa: 1500, req: "4 a 6 victorias y Top 5 regional", colores: ["#b06a2e", "#7a4218"] },
-  2: { nombre: "Título Nacional", cinturon: "Cinturón Nacional Plateado", bolsa: 5000, req: "Profesional, 8 a 12 victorias (4+ por KO)", colores: ["#c9cdd4", "#8d949e"] },
-  3: { nombre: "Título Continental", cinturon: "Cinturón Continental Verde y Oro", bolsa: 18000, req: "14 a 18 victorias (8+ por KO) y contratos de TV", colores: ["#2e9e63", "#e8b23a"] },
-  4: { nombre: "Título Mundial", cinturon: "Cinturón Absoluto de Oro y Diamantes", bolsa: 150000, req: "18 a 20+ victorias (10+ por KO)", colores: ["#f2c94c", "#e8b23a"] },
+  1: { nombre: "Título Regional", cinturon: "Cinturón de Bronce y Cuero", bolsa: 1500, req: "Profesional, 25 peleas y 15 victorias (6+ por KO)", colores: ["#b06a2e", "#7a4218"] },
+  2: { nombre: "Título Nacional", cinturon: "Cinturón Nacional Plateado", bolsa: 5000, req: "Profesional, 10 peleas y 6 victorias (3+ por KO)", colores: ["#c9cdd4", "#8d949e"] },
+  3: { nombre: "Título Continental", cinturon: "Cinturón Continental Verde y Oro", bolsa: 18000, req: "Profesional, 25 peleas y 15 victorias (6+ por KO) + TV", colores: ["#2e9e63", "#e8b23a"] },
+  4: { nombre: "Título Mundial", cinturon: "Cinturón Absoluto de Oro y Diamantes", bolsa: 150000, req: "Profesional, 25 peleas y 20 victorias (10+ por KO)", colores: ["#f2c94c", "#e8b23a"] },
 };
 
 // ==================== PROPIEDADES ENRIQUECIDAS ====================

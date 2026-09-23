@@ -12,6 +12,8 @@ import {
   generarOfertas,
   normalizarListaEspera,
   puedeHabilitar,
+  rankingMundial,
+  tituloAspirable,
   prepararLuchador,
   resolverPelea,
   sanitizarEstado,
@@ -140,7 +142,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const federado = reductor({ ...conLicenciaEntrenador, plantel: [alumno] }, { type: "LICENCIAR", id: alumno.id });
     expect(federado.plantel[0].rol).toBe("boxeador");
     expect(federado.plantel[0].licenciaFederativa).toBe(true);
-    expect(federado.plantel[0].record).toEqual({ v: 0, d: 0, ko: 0 });
+    expect(federado.plantel[0].record).toEqual({ v: 0, d: 0, e: 0, ko: 0 });
     expect(federado.dinero).toBe(300);
   });
 
@@ -163,6 +165,14 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const siguiente = reductor(lleno, { type: "RETIRAR_ATLETA", id: alumnosActivos(lleno)[0].id });
     expect(siguiente.plantel.some(p => p.id === alumnosActivos(lleno)[0]?.id)).toBe(false);
     expect(siguiente.plantel.find(p => p.id === enEspera.id)?.enEspera).toBe(false);
+  });
+
+  it("separa las metas amateur/profesionales y arma un ranking con clubes rivales", () => {
+    const base = crearEstadoBase();
+    expect(base.rivales.length).toBe(20);
+    const pro = { ...base.plantel[0], rol: "boxeador" as const, circuito: "pro" as const, peleasAmateur: 50, peleasProfesionales: 10, victoriasProfesionales: 7, derrotasProfesionales: 2, empatesProfesionales: 1, kosProfesionales: 4, record: { v: 7, d: 2, e: 1, ko: 4 } };
+    expect(tituloAspirable(pro)).toBe(2);
+    expect(rankingMundial({ ...base, plantel: [pro] }).some(item => item.pugilista.id === pro.id)).toBe(true);
   });
 
   it("centraliza los efectos de recuperación, cupos y entrenamiento", () => {

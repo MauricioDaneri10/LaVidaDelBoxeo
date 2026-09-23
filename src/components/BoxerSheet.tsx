@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { COMBOS, TITULOS } from "../game/data";
-import { consejoEsquina, fmt, puedeHabilitar, rasgoInfo, tituloAspirable, valoracion } from "../game/engine";
+import { consejoEsquina, estadoRecord, fmt, puedeHabilitar, rasgoInfo, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { ComboId, Pugilista } from "../game/types";
 import { Figura } from "./GymView";
@@ -86,6 +86,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
   const aspirable = tituloAspirable(p);
   const puedeLicenciar = puedeHabilitar(p, state);
   const tieneDT = state.personal.some(x => x.tipo === "directorTecnico");
+  const categoriaRecord = estadoRecord(p);
 
   const cambiarCombo = (c: ComboId) => dispatch({ type: "CAMBIAR_COMBO", id: p.id, combo: c });
 
@@ -114,14 +115,15 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
   return (
     <Modal
       wide
+      fit
       title={`Ficha Técnica · ${p.nombre}`}
       icon="user"
       onClose={onCerrar}
     >
-      <div className="space-y-4 select-none">
+      <div className="space-y-2 select-none">
         
         {/* BARRA DE NAVEGACIÓN ANTERIOR / SIGUIENTE ENTRE ATLETAS */}
-        <div className="flex items-center justify-between border-b border-line pb-2.5">
+        <div className="flex items-center justify-between border-b border-line pb-1.5">
           <div className="flex items-center gap-2">
             <button
               onClick={irAnterior}
@@ -154,23 +156,23 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
         </div>
 
         {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (IZQ: HERO + RADAR, DER: ATRIBUTOS + ENTRENAMIENTO + HISTORIAL) */}
-        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
           
           {/* COLUMNA IZQUIERDA: HERO + FIGURA PROCEDIMENTAL + RADAR PENTAGONAL */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             
             {/* ESCENARIO DEL ATLETA CON FIGURA PROCEDIMENTAL */}
-            <div className="relative flex h-56 items-end justify-center overflow-hidden border border-line bg-gradient-to-b from-panel2 to-ink rounded-2xl shadow-inner">
+            <div className="relative flex h-28 items-end justify-center overflow-hidden border border-line bg-gradient-to-b from-panel2 to-ink rounded-2xl shadow-inner">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(232,178,58,0.28),transparent)]" />
               <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-line2" />
-              <Figura p={p} pose="guardia" escala={1.75} />
+              <Figura p={p} pose="guardia" escala={1.45} />
             </div>
 
             {/* TARJETA DE VALORACIÓN GENERAL Y DATOS BIOGRÁFICOS */}
-            <div className="space-y-2 border border-line bg-panel p-3.5 rounded-2xl">
+            <div className="space-y-1.5 border border-line bg-panel p-2.5 rounded-2xl">
               <div className="flex items-center justify-between">
                 <span className="font-cond text-xs uppercase tracking-widest text-mut">Valoración General</span>
-                <span className="font-display text-4xl text-gold" style={{ textShadow: "2px 2px 0 rgba(0,0,0,0.5)" }}>
+                <span className="font-display text-3xl text-gold" style={{ textShadow: "2px 2px 0 rgba(0,0,0,0.5)" }}>
                   {vg}
                 </span>
               </div>
@@ -202,9 +204,14 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
               </div>
 
               {p.rol === "boxeador" && (
-                <div className="border-t border-line pt-2 font-cond text-sm text-sand">
-                  Récord oficial: <b className="text-cream">{p.record.v}-{p.record.d}</b> · <b className="text-blood">{p.record.ko} KO</b>
+              <div className="border-t border-line pt-2 font-cond text-xs text-sand">
+                  Récord: <b className="text-cream">{p.record.v}-{p.record.d}-{p.record.e ?? 0}</b> · <b className="text-blood">{p.record.ko} KO</b> · {totalPeleas(p)} peleas
                   {p.bonusDebut && <span className="ml-1 text-neonc font-bold">(Bono de Madurez)</span>}
+                  <div className={`mt-1 font-bold ${categoriaRecord.tono === "alerta" ? "text-blood" : categoriaRecord.tono === "oro" ? "text-gold" : categoriaRecord.tono === "ok" ? "text-emerald-300" : "text-mut"}`}>{categoriaRecord.etiqueta}</div>
+                  <div className="text-[11px] text-mut">Amateur: {p.peleasAmateur} · Profesional: {p.peleasProfesionales} ({p.victoriasProfesionales}-{p.derrotasProfesionales}-{p.empatesProfesionales}, {p.kosProfesionales} KO)</div>
+                  {p.circuito === "amateur"
+                    ? <div className="text-[11px] text-gold">Camino profesional: {Math.max(0, 50 - p.peleasAmateur)} peleas amateurs restantes.</div>
+                    : <div className="text-[11px] text-gold">Títulos: Nacional desde 10 peleas pro · Regional/Mundial desde 25.</div>}
                 </div>
               )}
 
@@ -217,26 +224,26 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
             </div>
 
             {/* GRÁFICO DE RADAR PENTAGONAL DE CAPACIDADES */}
-            <div className="p-3 border border-line bg-panel rounded-2xl space-y-1 text-center">
+            <div className="p-1.5 border border-line bg-panel rounded-2xl space-y-0.5 text-center">
               <span className="text-[10px] font-black uppercase text-gold font-mono-data tracking-wider">
                 RADAR HOLÍSTICO DE RENDIMIENTO
               </span>
-              <RadarCapacidades atributos={atributosSeguros} />
+              <RadarCapacidades atributos={atributosSeguros} className="max-w-[150px]" />
             </div>
 
           </div>
 
           {/* COLUMNA DERECHA: ATRIBUTOS DE LOS 3 PILARES + ENTRENAMIENTO + ACCIONES + HISTORIAL */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             
             {/* LOS 3 PILARES CANÓNICOS (11 ATRIBUTOS) */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {PILARES.map(pil => (
-                <div key={pil.titulo} className="panel p-3 rounded-2xl space-y-2">
+                <div key={pil.titulo} className="panel p-2 rounded-2xl space-y-1">
                   <div className={`font-display text-base tracking-wide border-b border-line pb-1 ${pil.color}`}>
                     {pil.titulo}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {pil.stats.map(s => (
                       <FilaStat
                         key={s.k}
@@ -250,7 +257,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
             </div>
 
             {/* ENFOQUE DE ENTRENAMIENTO SEMANAL (COMBOS) */}
-            <div className="panel p-3.5 rounded-2xl space-y-2.5">
+            <div className="panel p-2.5 rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-display text-lg tracking-wide text-gold flex items-center gap-1.5">
                   <I n="glove" className="h-4 w-4" /> Enfoque de Entrenamiento Semanal
@@ -260,7 +267,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
                 {(Object.keys(COMBOS) as ComboId[]).map(cid => {
                   const cb = COMBOS[cid];
                   const esActivo = p.combo === cid;
@@ -268,13 +275,13 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     <button
                       key={cid}
                       onClick={() => cambiarCombo(cid)}
-                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-1.5 rounded-xl border text-left transition-all cursor-pointer ${
                         esActivo
                           ? "border-gold bg-gold/15 text-gold shadow-md scale-[1.02]"
                           : "border-line bg-panel2 text-sand hover:border-line2"
                       }`}
                     >
-                      <div className="font-display text-sm truncate text-cream">{cb.nombre}</div>
+                      <div className="font-display text-xs truncate text-cream">{cb.nombre}</div>
                       <div className="font-cond text-[10px] text-mut truncate">{cb.desc}</div>
                     </button>
                   );
@@ -283,7 +290,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
             </div>
 
             {/* CONSEJO TÁCTICO DE ESQUINA */}
-            <div className="panel p-3 rounded-2xl bg-gold/5 border-gold/30 flex items-start gap-2.5">
+            <div className="panel p-2.5 rounded-2xl bg-gold/5 border-gold/30 flex items-start gap-2">
               <I n="target" className="h-5 w-5 text-gold shrink-0 mt-0.5" />
               <div className="space-y-0.5 text-xs font-cond">
                 <span className="font-bold uppercase tracking-wider text-gold">Consejo de Esquina:</span>
@@ -297,7 +304,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
             </div>
 
             {/* SECCIÓN ESPECÍFICA SEGÚN ROL: ALUMNO (FOGUEO / LICENCIA) O BOXEADOR (MATCHMAKING / ÉLITE) */}
-            <div className="panel p-3.5 rounded-2xl space-y-3">
+            <div className="panel p-2.5 rounded-2xl space-y-2">
               {p.rol === "alumno" ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -340,8 +347,14 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       </Btn>
                     )}
                   </div>
-                  <div className="rounded-xl border border-gold2/50 bg-gold/10 p-2.5 text-xs font-cond text-sand">
-                    <b className="text-gold">Dos licencias distintas:</b> primero obtené la Licencia de Entrenador del club; después emití la licencia individual de este atleta.
+                  <div className="rounded-xl border border-gold2/50 bg-gold/10 p-2 text-xs font-cond text-sand">
+                    {p.enEspera
+                      ? "Está en lista de espera y todavía no puede entrenar ni competir."
+                      : !state.cursos.includes("dt")
+                      ? "Obtené la Licencia de Entrenador para federar atletas del club."
+                      : p.fogueo >= p.fogueoMeta
+                      ? "Prácticas completas: la ficha ya puede emitir la licencia individual para competir los sábados."
+                      : "Completá las prácticas de combate de los sábados para habilitar la competencia amateur."}
                   </div>
                 </div>
               ) : (
@@ -394,7 +407,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
             </div>
 
             {/* HISTORIAL RECIENTE DE COMBATES */}
-            <div className="panel p-3 rounded-2xl space-y-2">
+            <div className="panel p-2.5 rounded-2xl space-y-1">
               <span className="font-display text-sm uppercase tracking-wider text-sand flex items-center gap-1.5">
                 <I n="trophy" className="h-3.5 w-3.5 text-gold" /> Historial de Combates Recientes
               </span>

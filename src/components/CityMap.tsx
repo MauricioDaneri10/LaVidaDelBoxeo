@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { COMUNITARIOS, EVENTOS_CLUB_INFO, GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
-import { fmt, sucursales } from "../game/engine";
+import { fmt, rankingMundial, sucursales } from "../game/engine";
 import { useGame } from "../game/state";
 import type { PropiedadId } from "../game/types";
 import { BotonBrillante, Btn, I, Iconos } from "./ui";
@@ -15,6 +15,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
 
   const nSuc = sucursales(state);
+  const ranking = rankingMundial(state);
   const propActual = PROPIEDADES[propiedadSeleccionada];
   const esPropiedadMia = state.propiedades.includes(propiedadSeleccionada);
   const puedeComprar = state.dinero >= propActual.costo && !esPropiedadMia;
@@ -143,28 +144,23 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               </g>
             </g>
 
-            {/* PINES: CLUBES RIVALES */}
-            <g transform="translate(110, 410)" className="cursor-pointer group">
-              <circle cx="0" cy="0" r="18" fill="#581c1c" stroke="#dc2626" strokeWidth="2" className="group-hover:scale-110 transition-transform" />
-              <text x="0" y="5" fontSize="12" textAnchor="middle">⚔️</text>
-              <g transform="translate(0, -26)">
-                <rect x="-65" y="-10" width="130" height="20" rx="4" fill="#0c1018" stroke="#dc2626" strokeWidth="1" />
-                <text x="0" y="4" fill="#fca5a5" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="var(--font-cond)">
-                  {GIMNASIOS_RIVALES[0]}
-                </text>
-              </g>
-            </g>
-
-            <g transform="translate(90, 260)" className="cursor-pointer group">
-              <circle cx="0" cy="0" r="18" fill="#581c1c" stroke="#dc2626" strokeWidth="2" className="group-hover:scale-110 transition-transform" />
-              <text x="0" y="5" fontSize="12" textAnchor="middle">⚔️</text>
-              <g transform="translate(0, -26)">
-                <rect x="-65" y="-10" width="130" height="20" rx="4" fill="#0c1018" stroke="#dc2626" strokeWidth="1" />
-                <text x="0" y="4" fill="#fca5a5" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="var(--font-cond)">
-                  {GIMNASIOS_RIVALES[1]}
-                </text>
-              </g>
-            </g>
+            {/* PINES: RED DE CLUBES RIVALES */}
+            {GIMNASIOS_RIVALES.slice(0, 6).map((club, i) => {
+              const posiciones = [[110, 410], [90, 260], [300, 300], [720, 420], [850, 420], [820, 125]];
+              const [x, y] = posiciones[i];
+              return (
+                <g key={club} transform={`translate(${x}, ${y})`} className="cursor-pointer group">
+                  <circle cx="0" cy="0" r="18" fill="#581c1c" stroke="#dc2626" strokeWidth="2" className="group-hover:scale-110 transition-transform" />
+                  <text x="0" y="5" fontSize="12" textAnchor="middle">⚔️</text>
+                  <g transform="translate(0, -26)">
+                    <rect x="-65" y="-10" width="130" height="20" rx="4" fill="#0c1018" stroke="#dc2626" strokeWidth="1" />
+                    <text x="0" y="4" fill="#fca5a5" fontSize="8" fontWeight="bold" textAnchor="middle" fontFamily="var(--font-cond)">
+                      {club}
+                    </text>
+                  </g>
+                </g>
+              );
+            })}
 
             {/* PINES INTERACTIVOS PARA CADA PROPIEDAD CANÓNICA */}
             {propiedadesList.map(({ id, data }) => {
@@ -319,6 +315,31 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           )}
         </div>
       </div>
+
+      <section className="rounded-2xl border border-gold2/40 bg-panel p-4 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+          <div>
+            <span className="font-display text-lg tracking-wide text-gold">Ranking Mundial</span>
+            <p className="font-cond text-xs text-sand">Los mejores récords, nocauts y títulos de todos los clubes de la ciudad.</p>
+          </div>
+          <span className="font-mono-data text-xs text-mut">{ranking.length} competidores registrados</span>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {ranking.slice(0, 6).map((item, i) => (
+            <div key={item.pugilista.id} className={`flex items-center gap-2 rounded-xl border p-2 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
+              <span className="w-6 text-center font-display text-lg text-gold">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-display text-sm text-cream">{item.pugilista.nombre}</div>
+                <div className="truncate font-cond text-[10px] uppercase text-mut">{item.club} · {item.pugilista.division}</div>
+              </div>
+              <div className="text-right font-mono-data text-[11px] text-sand">
+                <div className="text-cream">{item.pugilista.record.v}-{item.pugilista.record.d}-{item.pugilista.record.e ?? 0}</div>
+                <div className="text-gold">{item.pugilista.record.ko} KO</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* SECCIÓN INFERIOR: SCOUTING & ACTIVIDADES DE LA CIUDAD */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 border-t border-line pt-4">

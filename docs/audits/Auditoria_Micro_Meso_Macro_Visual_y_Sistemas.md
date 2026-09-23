@@ -26,7 +26,7 @@ La auditoría encontró problemas de tres escalas: detalles que impedían leer o
 | Liberación de cupo | No quedaba claro qué pasaba después de retirar un alumno. | La cola se normaliza automáticamente y el primer alumno pasa a activo si existe una plaza libre. |
 | Configuración | Los atajos estaban escondidos dentro de una lista estática. | Sección visible de edición con nombres amigables: Gimnasio, Ciudad, Plantel, Mercado, Mi Perfil, Personal, Cerrar el día, Semana rápida y Cerrar ventanas. |
 
-## Macروauditoría — reglas globales y sostenibilidad
+## Macroauditoría — reglas globales y sostenibilidad
 
 ### Capacidad y saturación de alumnos
 
