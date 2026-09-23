@@ -254,6 +254,7 @@ export type Accion =
   | { type: "DESPEDIR"; id: string }
   | { type: "RETIRAR_ATLETA"; id: string }
   | { type: "ALTERNAR_VELADA" }
+  | { type: "PROGRAMAR_SOCIAL"; actividad: "bingo" | "naipes" | "festival" }
   | { type: "EVENTO"; id: string; opcion: number }
   | { type: "RECLAMAR_CONSEJO"; id: string }
   | { type: "TOAST"; texto: string; tono?: Toast["tono"] }

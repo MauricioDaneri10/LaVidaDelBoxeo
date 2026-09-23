@@ -101,10 +101,10 @@ export const COMBOS: Record<ComboId, {
   nombre: string; corto: string; desc: string;
   stats: (keyof Atributos)[]; energia: number; bonus: number; icono: string;
 }> = {
-  noqueador: { nombre: "Enfoque Noqueador", corto: "Noqueador", desc: "Potencia + Eficacia + Fuerza + Ataque. Para los que buscan el golpe que apague la luz.", stats: ["potencia", "eficacia", "fuerza", "ataque"], energia: -8, bonus: 1, icono: "fire" },
-  estilista: { nombre: "Enfoque Estilista", corto: "Estilista", desc: "Eficacia + Velocidad + Técnica + Defensa. Boxeo de precisión y manos limpias.", stats: ["eficacia", "velocidad", "tecnica", "defensa"], energia: -8, bonus: 1, icono: "spark" },
-  presion: { nombre: "Presión Asfixiante", corto: "Presión", desc: "Resistencia + Ataque + Eficacia + Velocidad. No dejar respirar al rival.", stats: ["resistencia", "ataque", "eficacia", "velocidad"], energia: -8, bonus: 1, icono: "bolt" },
-  tactico: { nombre: "Maestro Táctico", corto: "Táctico", desc: "Defensa + Inteligencia + Mentalidad + Técnica. Ganar la pelea antes de pelearla.", stats: ["defensa", "inteligencia", "mentalidad", "tecnica"], energia: -6, bonus: 1, icono: "target" },
+  noqueador: { nombre: "Enfoque Noqueador", corto: "Noqueador", desc: "Más potencia · más eficacia · más fuerza · más ataque.", stats: ["potencia", "eficacia", "fuerza", "ataque"], energia: -8, bonus: 1, icono: "fire" },
+  estilista: { nombre: "Enfoque Estilista", corto: "Estilista", desc: "Más eficacia · más velocidad · más técnica · más defensa.", stats: ["eficacia", "velocidad", "tecnica", "defensa"], energia: -8, bonus: 1, icono: "spark" },
+  presion: { nombre: "Enfoque Asfixiante", corto: "Asfixiante", desc: "Más resistencia · más ataque · más eficacia · más velocidad.", stats: ["resistencia", "ataque", "eficacia", "velocidad"], energia: -8, bonus: 1, icono: "bolt" },
+  tactico: { nombre: "Enfoque Táctico", corto: "Táctico", desc: "Más defensa · más inteligencia · más mentalidad · más técnica.", stats: ["defensa", "inteligencia", "mentalidad", "tecnica"], energia: -6, bonus: 1, icono: "target" },
   acondicionamiento: { nombre: "Enfoque Completo", corto: "Completo", desc: "Fuerza + Resistencia + Velocidad + Eficacia. Mejora equilibrada.", stats: ["fuerza", "resistencia", "velocidad", "eficacia"], energia: -14, bonus: 1.35, icono: "dumbbell" },
   descanso: { nombre: "Descanso", corto: "Descanso", desc: "+25 de energía y recuperación mental. El cuerpo también entrena descansando.", stats: ["mentalidad", "inteligencia"], energia: 25, bonus: 0.5, icono: "heart" },
 };

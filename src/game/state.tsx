@@ -597,6 +597,14 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         s.veladaProgramada ? "Velada cancelada. El público lo entenderá." : "Velada programada para el sábado: las entradas se cobran ese día.", "info");
     }
 
+    case "PROGRAMAR_SOCIAL": {
+      const info = COMUNITARIOS[a.actividad];
+      if (s.dia >= 6) return conToast(s, "Las actividades se agendan de lunes a viernes para el próximo domingo.", "info");
+      if (s.comunitarios.length > 0) return conToast(s, "Ya hay una actividad social agendada para esta semana.", "info");
+      if (s.dinero < info.inversion) return conToast(s, `Necesitás ${fmt(info.inversion)} para organizar ${info.nombre}.`, "alerta");
+      return conToast({ ...s, dinero: s.dinero - info.inversion, comunitarios: [{ tipo: a.actividad, nombre: info.nombre }] }, `${info.nombre} agendado para el domingo. Se invertieron ${fmt(info.inversion)}.`, "ok");
+    }
+
     case "EVENTO": {
       const ev = s.eventos.find(e => e.id === a.id);
       if (!ev) return s;

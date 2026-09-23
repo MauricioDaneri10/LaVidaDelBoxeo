@@ -95,19 +95,24 @@ function PantallaPrincipal() {
   const ingresosEstimados = proyeccion.ingresos.reduce((total, l) => total + l.monto, 0);
   const gastosEstimados = proyeccion.gastos.reduce((total, l) => total + l.monto, 0);
   const balanceEstimado = proyeccion.total;
+  const tieneEnfoqueInicial = state.plantel.some(p => p.rol === "alumno" && p.combo !== "acondicionamiento");
   const guiaInicial = [
+    { texto: "Elegir enfoque para cada boxeador", hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
     { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
-    { texto: "Elegir un enfoque de entrenamiento", hecho: state.plantel.some(p => p.rol === "alumno" && p.combo !== "acondicionamiento"), tab: "plantel" as Pestana },
     { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta), tab: "plantel" as Pestana },
     { texto: "Habilitar al primer boxeador", hecho: state.plantel.some(p => p.rol === "boxeador"), tab: "plantel" as Pestana },
   ];
-  const siguientePaso = !state.equipamiento.length
-    ? { texto: "Empezá por equipar el gimnasio: una mejora activa beneficios para toda la semana.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
-    : !state.cursos.includes("dt")
-      ? { texto: "Obtené la Licencia de Entrenador del club para poder registrar atletas.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
-      : primerAlumnoListo
-        ? { texto: `${primerAlumnoListo.nombre} ya está listo: abrí su ficha y habilitalo para competir.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
-        : null;
+  const siguientePaso = !tieneEnfoqueInicial
+    ? { texto: "Elegí un enfoque de entrenamiento para cada boxeador.", boton: "Abrir Plantel", tab: "plantel" as Pestana }
+    : !state.equipamiento.length
+      ? { texto: "Equipá el gimnasio para activar sus estaciones y beneficios.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
+      : !state.plantel.some(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta)
+        ? { texto: "Completá 10 guanteos para preparar al primer atleta.", boton: "Ver Plantel", tab: "plantel" as Pestana }
+        : !state.cursos.includes("dt")
+          ? { texto: "Obtené la Licencia de Entrenador para emitir licencias individuales.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
+          : primerAlumnoListo
+            ? { texto: `${primerAlumnoListo.nombre} está listo: emití su licencia individual.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
+            : null;
 
   const pestanas: { id: Pestana; nombre: string; icono: string; pulso: boolean }[] = [
     { id: "gimnasio", nombre: "Gimnasio", icono: "ring", pulso: false },
@@ -180,25 +185,25 @@ function PantallaPrincipal() {
           </nav>
 
           {siguientePaso && state.dia <= 5 && (
-            <div className="action-banner mb-3 flex shrink-0 flex-wrap items-center gap-2 rounded-2xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-3 py-2 shadow-sm">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold text-ink font-bold">→</div>
+            <div className="action-banner mb-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-2 py-1.5 shadow-sm">
+              <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-sm text-ink font-bold">→</div>
               <div className="min-w-0 flex-1">
-                <div className="font-display text-sm uppercase tracking-wide text-gold">Siguiente paso</div>
-                <p className="font-cond text-sm text-cream">{siguientePaso.texto}</p>
+                <div className="font-display text-xs uppercase tracking-wide text-gold">Siguiente paso</div>
+                <p className="font-cond text-xs text-cream">{siguientePaso.texto}</p>
               </div>
               <Btn small variant="gold" onClick={() => setPestana(siguientePaso.tab)}>{siguientePaso.boton}</Btn>
             </div>
           )}
           {state.semana === 1 && !guiaInicial.every(h => h.hecho) && (
-            <div className="mb-3 shrink-0 rounded-2xl border border-line bg-panel/80 px-3 py-2">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="font-display text-sm uppercase tracking-wide text-cream">Primeros pasos del club</span>
+            <div className="mb-2 shrink-0 rounded-xl border border-line bg-panel/80 px-2 py-1.5">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <span className="font-display text-xs uppercase tracking-wide text-cream">Primeros pasos del club</span>
                 <span className="font-cond text-xs text-mut">{guiaInicial.filter(h => h.hecho).length}/4 completados</span>
               </div>
-              <div className="grid gap-2 sm:grid-cols-4">
+              <div className="grid gap-1 sm:grid-cols-4">
                 {guiaInicial.map((h, i) => (
                   <button key={h.texto} onClick={() => !h.hecho && setPestana(h.tab)} disabled={h.hecho}
-                    className={`rounded-xl border px-2.5 py-2 text-left font-cond text-xs transition-colors ${h.hecho ? "border-win/40 bg-win/5 text-win" : "border-line2 bg-panel2 text-sand hover:border-gold2 hover:text-gold"}`}>
+                    className={`rounded-lg border px-2 py-1.5 text-left font-cond text-[11px] leading-tight transition-colors ${h.hecho ? "border-win/40 bg-win/5 text-win" : "border-line2 bg-panel2 text-sand hover:border-gold2 hover:text-gold"}`}>
                     <span className="mr-1.5 font-display">{h.hecho ? "✓" : i + 1}</span>{h.texto}
                   </button>
                 ))}

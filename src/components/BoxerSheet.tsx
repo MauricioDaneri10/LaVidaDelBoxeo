@@ -275,6 +275,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     <button
                       key={cid}
                       onClick={() => cambiarCombo(cid)}
+                      title={cb.desc}
                       className={`min-h-[56px] p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
                         esActivo
                           ? "border-gold bg-gold/15 text-gold shadow-md scale-[1.02]"

@@ -347,20 +347,20 @@ export function PanelPerfil() {
         </div>
       </div>
 
-      <div className="flex gap-2 rounded-xl border border-line bg-panel2 p-1">
+      <div className="mx-auto flex w-fit justify-center gap-2 rounded-xl border border-line bg-panel2 p-1">
         <button onClick={() => setSeccionPerfil("cursos")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "cursos" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Cursos</button>
         <button onClick={() => setSeccionPerfil("bienes")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "bienes" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Bienes raíces</button>
       </div>
 
       {/* CURSOS */}
-      {seccionPerfil === "cursos" && <section className="min-h-0">
+      {seccionPerfil === "cursos" && <section className="mx-auto min-h-0 max-w-3xl">
         <h3 className="mb-2 font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>
-        <div className="mb-2 grid grid-cols-3 gap-1.5">
-          {ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`rounded-lg border px-2 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="mr-1 inline h-3.5 w-3.5" />{rama.nombre.replace("Rama ", "")}</button>)}
+        <div className="mb-2 flex flex-wrap justify-center gap-1.5">
+          {ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`w-fit rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="mr-1 inline h-3.5 w-3.5" />{rama.nombre.replace("Rama ", "")}</button>)}
         </div>
         <div className="grid gap-2">
           {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
-            <div key={rama.id} className="panel p-2">
+            <div key={rama.id} className="panel mx-auto w-fit max-w-full p-2">
               <div className={`mb-1 flex items-center gap-2 font-display text-base tracking-wide ${rama.color}`}>
                 <I n={rama.icono} className="h-4 w-4" /> {rama.nombre}
               </div>
@@ -418,7 +418,7 @@ export function PanelPerfil() {
       )}
 
       {/* PROPIEDADES */}
-      {seccionPerfil === "bienes" && <section className="min-h-0">
+      {seccionPerfil === "bienes" && <section className="mx-auto min-h-0 max-w-5xl">
         <h3 className="mb-2 font-display text-xl tracking-wide text-cream">Bienes Raíces Adquiridos</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(["local", "terreno", "sucursal", "apartamento", "mansion", "arena"] as const).map(pid => {

@@ -15,6 +15,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const [salonAbierto, setSalonAbierto] = useState(false);
+  const [socialAbierto, setSocialAbierto] = useState(false);
 
   const nSuc = sucursales(state);
   const ranking = rankingMundial(state);
@@ -31,7 +32,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   ).map(id => ({ id, data: PROPIEDADES[id] }));
 
   return (
-    <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_minmax(180px,1fr)_auto_minmax(170px,auto)] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
+    <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
       
       {/* CABECERA URBANÍSTICA */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
@@ -57,7 +58,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </div>
 
       {/* PLANO URBANÍSTICO VECTORIAL ISOMÉTRICO 1000x600 + PANEL LATERAL */}
-      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-12 gap-2 items-stretch">
+      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-12 gap-2 items-stretch overflow-hidden">
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
         <div className="lg:col-span-8 h-full bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2">
@@ -239,33 +240,33 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* COLUMNA DERECHA: INSPECTOR DE PROPIEDAD SELECCIONADA (4 COLS) */}
-        <div className="lg:col-span-4 h-full bg-panel border border-line rounded-3xl p-3 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
+        <div className="lg:col-span-4 h-full bg-panel border border-line rounded-3xl p-2.5 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
           {propActual ? (
             <>
-              <div className="space-y-4">
-                <div className="border-b border-line pb-3 flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-gold font-mono-data bg-gold/10 px-2.5 py-1 rounded border border-gold/40">
+              <div className="min-h-0 space-y-1 text-[11px]">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-line pb-1">
+                  <span className="max-w-[70%] break-words text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2 py-1 rounded border border-gold/40">
                     {propActual.distrito || "Distrito Metropolitano"}
                   </span>
-                  <span className="text-sm font-black text-gold font-mono-data">
+                  <span className="shrink-0 text-sm font-black text-gold font-mono-data">
                     {fmt(propActual.costo)}
                   </span>
                 </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-lg font-display uppercase tracking-wide text-cream">
+                <div className="space-y-1">
+                  <h3 className="text-base font-display uppercase tracking-wide text-cream">
                     {propActual.nombre}
                   </h3>
-                  <p className="text-xs text-sand font-cond leading-relaxed">
+                  <p className="text-[10px] text-sand font-cond leading-tight">
                     {propActual.desc}
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-panel2 border border-line space-y-1.5 text-xs">
+                <div className="hidden p-1.5 rounded-xl bg-panel2 border border-line space-y-0.5 text-[10px]">
                   <span className="text-[10px] font-black uppercase text-emerald-400 font-mono-data">
                     BENEFICIO ESTRATÉGICO
                   </span>
-                  <p className="font-cond font-bold text-cream leading-snug">
+                  <p className="font-cond font-bold text-cream leading-tight">
                     {propActual.beneficio || "Incrementa el patrimonio y reputación del club."}
                   </p>
                   {!esPropiedadMia && (
@@ -280,7 +281,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                   )}
                 </div>
 
-                <div className="p-3 rounded-xl bg-ink/70 border border-line flex justify-between items-center text-xs font-mono-data font-bold">
+                <div className="hidden p-2 rounded-xl bg-ink/70 border border-line items-center text-[10px] font-mono-data font-bold">
                   <span className="text-mut">Estado Jurídico:</span>
                   <span className={esPropiedadMia ? "text-emerald-400" : "text-amber-400"}>
                     {esPropiedadMia ? "✓ Escriturada a tu Nombre" : "Disponible para Compra"}
@@ -294,7 +295,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                   onClick={() => comprar(propiedadSeleccionada)}
                   disabled={!puedeComprar}
                   variante={esPropiedadMia ? "secundario" : "dorado"}
-                  className="w-full py-3.5 text-xs font-black"
+                  className="w-full py-2 text-xs font-black"
                 >
                   {esPropiedadMia
                     ? "✓ Inmueble en Posesión"
@@ -318,7 +319,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
       </div>
 
-      <section className="min-h-0 overflow-hidden rounded-2xl border border-gold2/40 bg-panel p-2.5 shadow-lg">
+      <section className="hidden min-h-0 overflow-hidden rounded-2xl border border-gold2/40 bg-panel p-2.5 shadow-lg">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
           <div>
             <span className="font-display text-lg tracking-wide text-gold">Ranking Mundial</span>
@@ -348,7 +349,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </section>
 
       {/* SECCIÓN INFERIOR: SCOUTING & ACTIVIDADES DE LA CIUDAD */}
-      <div className="min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 border-t border-line pt-2 overflow-hidden">
+      <div className="hidden min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 border-t border-line pt-2 overflow-hidden">
         
         {/* SCOUTING EN CLUBES RIVALES (4 COLS) */}
         <div className="lg:col-span-4 p-2.5 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-2 shadow-lg">
@@ -401,7 +402,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                   </div>
                   <div className="truncate font-display text-xs text-cream">{c.nombre}</div>
                   <div className="truncate text-[10px] text-sand">{c.extra}</div>
-                  <div className="text-[9px] text-mut font-mono-data">Retorno: {fmt(c.min)} - {fmt(c.max)}</div>
+                  <div className="flex items-center justify-between gap-1 text-[9px] text-mut font-mono-data"><span>Retorno: {fmt(c.min)} - {fmt(c.max)}</span><button className="rounded border border-gold2/50 px-1.5 py-0.5 text-[9px] text-gold hover:bg-gold/10 disabled:opacity-40" disabled={state.comunitarios.length > 0 || state.dinero < c.inversion || state.dia >= 6} onClick={() => dispatch({ type: "PROGRAMAR_SOCIAL", actividad: k })}>{state.comunitarios.some(x => x.tipo === k) ? "Agendado" : "Agendar"}</button></div>
                 </div>
               );
             })}
@@ -418,6 +419,14 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             )}
           </div>
         </div>
+      </div>
+      <div className="grid min-h-0 grid-cols-2 gap-1.5 border-t border-line pt-2 sm:grid-cols-4">
+        <Btn small variant="gold" onClick={() => setRankingAbierto(true)}>Ranking mundial · {ranking.length}</Btn>
+        <Btn small variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la fama</Btn>
+        <Btn small variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
+          {state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}
+        </Btn>
+        <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}>Finanzas sociales</Btn>
       </div>
       {rankingAbierto && (
         <Modal wide fit title="Ranking Mundial" icon="trophy" onClose={() => setRankingAbierto(false)}>
@@ -447,6 +456,26 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               ))}
             </div>
           )}
+        </Modal>
+      )}
+      {socialAbierto && (
+        <Modal wide fit title="Finanzas sociales" icon="calendar" onClose={() => setSocialAbierto(false)}>
+          <div className="space-y-2">
+            <p className="font-cond text-xs text-sand">Elegí una actividad, invertí una vez y cobrá el resultado al cerrar la semana.</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(["bingo", "naipes", "festival"] as const).map(k => {
+                const c = COMUNITARIOS[k];
+                const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : EVENTOS_CLUB_INFO.festivalBoxeo;
+                return <div key={k} className="rounded-xl border border-line bg-panel2 p-2 text-xs">
+                  <div className="mb-1 text-base">{evInfo?.emoji || "🎟️"}</div>
+                  <div className="font-display text-sm text-cream">{c.nombre}</div>
+                  <div className="mb-2 font-cond text-mut">Inv. {fmt(c.inversion)} · retorno {fmt(c.min)}–{fmt(c.max)}</div>
+                  <button className="w-fit rounded border border-gold2/50 px-2 py-1 text-[11px] text-gold hover:bg-gold/10 disabled:opacity-40" disabled={state.comunitarios.length > 0 || state.dinero < c.inversion || state.dia >= 6} onClick={() => dispatch({ type: "PROGRAMAR_SOCIAL", actividad: k })}>{state.comunitarios.some(x => x.tipo === k) ? "Agendado" : "Agendar"}</button>
+                </div>;
+              })}
+            </div>
+            <div className="border-t border-line pt-2 font-cond text-xs text-mut">Sucursales: <b className="text-cream">{nSuc}</b> · Gerentes: <b className="text-cream">{state.personal.filter(p => p.tipo === "gerente").length}</b> · ingreso estimado: <b className="text-gold">{fmt(650 + 8 * state.fama)}/sem</b></div>
+          </div>
         </Modal>
       )}
 
