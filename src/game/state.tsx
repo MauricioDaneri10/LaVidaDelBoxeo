@@ -14,6 +14,8 @@ let toastId = 1;
 
 export function guardarPartida(estado: EstadoJuego): boolean {
   try {
+    const anterior = localStorage.getItem(CLAVE);
+    if (anterior) localStorage.setItem(`${CLAVE}:respaldo`, anterior);
     localStorage.setItem(CLAVE, JSON.stringify(estado));
     localStorage.setItem(`${CLAVE}:guardadoEn`, new Date().toISOString());
     return true;
@@ -291,7 +293,7 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
   // salto al profesionalismo
   st.plantel = st.plantel.map(p => {
     if (p.rol === "boxeador" && p.circuito === "amateur" && p.record.v >= 3) {
-      st = conToast(st, `${p.nombre.split(" ")[0]} da el salto al circuito profesional.`, "oro");
+      st = conToast(st, `${p.nombre.split(" ")[0]} ya está listo para el circuito profesional: sus rivales y bolsas ahora serán más grandes.`, "oro");
       return { ...p, circuito: "pro" as const };
     }
     return p;

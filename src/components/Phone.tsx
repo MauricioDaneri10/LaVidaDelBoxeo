@@ -157,7 +157,7 @@ export default function DockLateral({
                 <I n="spark" className="h-3.5 w-3.5" /> ¡10/10 Guanteos Completados!
               </div>
               <p className="font-display text-base text-cream mt-0.5">
-                {alumnoListoParaFederar.nombre} está listo para ser profesional.
+                {alumnoListoParaFederar.nombre} está listo para competir oficialmente.
               </p>
               <p className="font-cond text-xs text-sand mt-0.5 leading-tight">
                 Abrí su ficha técnica para tramitar su Licencia Federativa ($200).
