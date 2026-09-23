@@ -25,6 +25,8 @@ El plan se divide en:
 
 No se debe avanzar a assets finales hasta cerrar los bloques 1 a 8 y completar el playtest de regresión.
 
+La verificación operativa de este plan está documentada en [Checklist inteligente de verificación y auditorías](Checklist_Verificacion_Inteligente_y_Auditorias_2026-09-23.md). Ese checklist es el gate de avance: cada solución necesita pruebas de motor, integración, UI, UX, lenguaje, regresión y playtest cuando correspondan.
+
 ---
 
 ## 2. Criterio de prioridad
