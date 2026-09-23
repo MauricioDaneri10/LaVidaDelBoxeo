@@ -89,6 +89,12 @@ function PantallaPrincipal() {
     + state.plantel.filter(p => p.rol === "boxeador").length * 12 + (state.patrocinio?.semanal ?? 0);
   const gastosEstimados = 150 + state.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
   const balanceEstimado = ingresosEstimados - gastosEstimados;
+  const guiaInicial = [
+    { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
+    { texto: "Elegir un enfoque de entrenamiento", hecho: state.plantel.some(p => p.rol === "alumno" && p.combo !== "acondicionamiento"), tab: "plantel" as Pestana },
+    { texto: "Completar prácticas de combate", hecho: state.plantel.some(p => p.rol === "alumno" && p.fogueo > 0), tab: "plantel" as Pestana },
+    { texto: "Habilitar al primer boxeador", hecho: state.plantel.some(p => p.rol === "boxeador"), tab: "plantel" as Pestana },
+  ];
   const siguientePaso = !state.equipamiento.length
     ? { texto: "Empezá por equipar el gimnasio: una mejora activa beneficios para toda la semana.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
     : !state.cursos.includes("dt")
@@ -175,6 +181,22 @@ function PantallaPrincipal() {
                 <p className="font-cond text-sm text-cream">{siguientePaso.texto}</p>
               </div>
               <Btn small variant="gold" onClick={() => setPestana(siguientePaso.tab)}>{siguientePaso.boton}</Btn>
+            </div>
+          )}
+          {state.semana === 1 && !guiaInicial.every(h => h.hecho) && (
+            <div className="mb-4 rounded-2xl border border-line bg-panel/80 px-4 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="font-display text-sm uppercase tracking-wide text-cream">Primeros pasos del club</span>
+                <span className="font-cond text-xs text-mut">{guiaInicial.filter(h => h.hecho).length}/4 completados</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-4">
+                {guiaInicial.map((h, i) => (
+                  <button key={h.texto} onClick={() => !h.hecho && setPestana(h.tab)} disabled={h.hecho}
+                    className={`rounded-xl border px-2.5 py-2 text-left font-cond text-xs transition-colors ${h.hecho ? "border-win/40 bg-win/5 text-win" : "border-line2 bg-panel2 text-sand hover:border-gold2 hover:text-gold"}`}>
+                    <span className="mr-1.5 font-display">{h.hecho ? "✓" : i + 1}</span>{h.texto}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {state.dia <= 5 && (

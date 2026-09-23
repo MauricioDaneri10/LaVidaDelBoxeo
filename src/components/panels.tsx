@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
 import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, nivelGimnasio, puedeHabilitar, sanitizarEstado, sucursales, valoracion } from "../game/engine";
@@ -490,6 +490,18 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
   });
   const [sonido, setSonido] = useState(audioHabilitado);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [textoGrande, setTextoGrande] = useState(() => localStorage.getItem("vida-del-boxeo:textoGrande") === "1");
+  const [altoContraste, setAltoContraste] = useState(() => localStorage.getItem("vida-del-boxeo:altoContraste") === "1");
+  const [movimientoReducido, setMovimientoReducido] = useState(() => localStorage.getItem("vida-del-boxeo:movimientoReducido") === "1");
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("texto-grande", textoGrande);
+    document.documentElement.classList.toggle("alto-contraste", altoContraste);
+    document.documentElement.classList.toggle("movimiento-reducido", movimientoReducido);
+    localStorage.setItem("vida-del-boxeo:textoGrande", textoGrande ? "1" : "0");
+    localStorage.setItem("vida-del-boxeo:altoContraste", altoContraste ? "1" : "0");
+    localStorage.setItem("vida-del-boxeo:movimientoReducido", movimientoReducido ? "1" : "0");
+  }, [textoGrande, altoContraste, movimientoReducido]);
 
   const exportar = () => {
     exportarPartidaJSON(state);
@@ -537,6 +549,22 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
             {guardadoEn ? `Último guardado: ${new Date(guardadoEn).toLocaleString()}` : "Todavía no hay un guardado registrado."}
           </div>
           {mensaje && <div className="mt-2 rounded-lg border border-gold2/40 bg-gold/10 px-2.5 py-1.5 font-cond text-xs text-gold">{mensaje}</div>}
+        </div>
+
+        <div className="border border-line bg-panel2 p-3 rounded-xl">
+          <div className="font-display text-lg text-cream">Comodidad de lectura</div>
+          <p className="font-cond text-xs text-sand">Estas opciones se guardan en este navegador y no cambian las reglas del juego.</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            <Btn small variant={textoGrande ? "gold" : "dark"} onClick={() => setTextoGrande(v => !v)}>
+              {textoGrande ? "✓ " : ""}Texto grande
+            </Btn>
+            <Btn small variant={altoContraste ? "gold" : "dark"} onClick={() => setAltoContraste(v => !v)}>
+              {altoContraste ? "✓ " : ""}Alto contraste
+            </Btn>
+            <Btn small variant={movimientoReducido ? "gold" : "dark"} onClick={() => setMovimientoReducido(v => !v)}>
+              {movimientoReducido ? "✓ " : ""}Menos movimiento
+            </Btn>
+          </div>
         </div>
 
         <div className="border border-blood/40 bg-blood/5 p-3 rounded-xl">

@@ -201,6 +201,21 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 button, input { font: inherit; }
 button { line-height: 1.2; }
 
+html.texto-grande { font-size: 112%; }
+html.alto-contraste {
+  --color-mut: #f0d9aa;
+  --color-line: #766348;
+  --color-line2: #a58d68;
+}
+html.movimiento-reducido *,
+html.movimiento-reducido *::before,
+html.movimiento-reducido *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
