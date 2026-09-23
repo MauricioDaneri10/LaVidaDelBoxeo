@@ -169,7 +169,7 @@ export interface EstadoJuego {
   libroGastos: LineaLibro[];
   resumen: ResumenSemanal | null;
   legados: number;
-  stats: { peleas: number; victorias: number; kos: number; veladas: number; dineroGanado: number; titulos: number };
+  stats: { peleas: number; victorias: number; kos: number; veladas: number; dineroGanado: number; resultadoNeto: number; titulos: number };
   toasts: Toast[];
   logoGimnasio: string;
   ultimaSemanaEntrenada: number;

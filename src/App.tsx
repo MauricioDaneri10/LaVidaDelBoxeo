@@ -366,7 +366,7 @@ function PantallaPrincipal() {
             }`}
           >
             <span className="font-display text-2xl tracking-wide text-cream">
-              Superávit de la semana
+              Resultado neto de la semana
             </span>
             <span
               className={`font-display text-4xl font-bold ${
@@ -379,8 +379,8 @@ function PantallaPrincipal() {
           </div>
 
           <p className="mt-2 font-cond text-xs text-mut">
-            Las bolsas de pelea y las entradas se cobran el sábado; el domingo liquida el balance
-            contable consolidado. Caja actual: {fmt(state.dinero)}.
+            Las bolsas y entradas se cobran el sábado; el domingo se liquidan cuotas, alquiler y sueldos.
+            Caja después del cierre: {fmt(state.dinero)}. El resultado neto histórico se ve en Mi Perfil.
           </p>
 
           <Btn

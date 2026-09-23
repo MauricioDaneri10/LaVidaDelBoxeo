@@ -577,7 +577,7 @@ export function crearEstadoBase(): EstadoJuego {
     libroGastos: [],
     resumen: null,
     legados: 0,
-    stats: { peleas: 0, victorias: 0, kos: 0, veladas: 0, dineroGanado: 0, titulos: 0 },
+    stats: { peleas: 0, victorias: 0, kos: 0, veladas: 0, dineroGanado: 0, resultadoNeto: 0, titulos: 0 },
     toasts: [],
     logoGimnasio: "guante",
     ultimaSemanaEntrenada: 0,

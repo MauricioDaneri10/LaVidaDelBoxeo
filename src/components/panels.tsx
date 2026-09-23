@@ -330,10 +330,10 @@ export function PanelPerfil() {
           <p className="font-cond text-sm text-sand">
             Semana {state.semana} al frente de <b className="text-cream">{state.nombreGimnasio}</b>. Nivel de gimnasio: <b className="text-gold">{nivelGimnasio(state)}</b> · Legados: <b className="text-neonc">{state.legados}</b>
           </p>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-6">
             {[
               ["Peleas", state.stats.peleas], ["Victorias", state.stats.victorias], ["KOs", state.stats.kos],
-              ["Veladas", state.stats.veladas], ["Títulos", state.stats.titulos],
+              ["Veladas", state.stats.veladas], ["Títulos", state.stats.titulos], ["Neto histórico", fmt(state.stats.resultadoNeto)],
             ].map(([k, v]) => (
               <div key={k as string} className="border border-line bg-panel2 px-2 py-1.5 text-center">
                 <div className="font-display text-2xl text-cream">{v}</div>
@@ -451,11 +451,11 @@ export function PanelPersonal() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-display text-lg tracking-wide text-cream">{info.nombre}</div>
-                  <div className="font-cond text-xs text-gold">Sueldo: {fmt(info.sueldo)}/sem</div>
+                  <div className="font-cond text-xs text-gold">Costo: {fmt(info.sueldo)}/semana</div>
                 </div>
                 <div className="grid h-9 w-9 place-items-center border border-line bg-ink text-sand"><I n={info.icono} className="h-4 w-4" /></div>
               </div>
-              <p className="mt-2 font-cond text-xs text-sand">{info.desc}</p>
+              <p className="mt-2 font-cond text-xs text-sand"><span className="text-cream">Aporta:</span> {info.desc}</p>
               {contratados.length > 0 && (
                 <div className="mt-3 border-t border-line pt-2">
                   <div className="font-cond text-[11px] uppercase tracking-wider text-mut">Personal activo:</div>

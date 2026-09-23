@@ -270,6 +270,16 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                   <p className="font-cond font-bold text-cream leading-snug">
                     {propActual.beneficio || "Incrementa el patrimonio y reputación del club."}
                   </p>
+                  {!esPropiedadMia && (
+                    <p className="pt-1 font-cond text-mut">
+                      Caja después de comprar: <b className={puedeComprar ? "text-cream" : "text-blood"}>{fmt(state.dinero - propActual.costo)}</b>
+                    </p>
+                  )}
+                  {propiedadSeleccionada === "sucursal" && (
+                    <p className="pt-1 font-cond text-mut">
+                      Recuperación estimada: <b className="text-gold">{state.personal.some(p => p.tipo === "gerente") ? "aprox. 2 semanas" : "primero necesitás un gerente"}</b>
+                    </p>
+                  )}
                 </div>
 
                 <div className="p-3 rounded-xl bg-ink/70 border border-line flex justify-between items-center text-xs font-mono-data font-bold">
@@ -366,7 +376,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2 text-xs font-cond text-mut">
             <span>
-              🏢 Sucursales: <b className="text-cream">{nSuc}</b> · Gerentes: <b className="text-cream">{state.personal.filter(p => p.tipo === "gerente").length}</b> · Ingreso pasivo por sucursal: <b className="text-gold">{fmt(650 + 8 * state.fama)}/sem</b>
+              🏢 Sucursales: <b className="text-cream">{nSuc}</b> · Gerentes: <b className="text-cream">{state.personal.filter(p => p.tipo === "gerente").length}</b> · Ingreso por sucursal con gerente: <b className="text-gold">{fmt(650 + 8 * state.fama)}/sem</b>
             </span>
             {onIrAPestaña && (
               <button onClick={() => onIrAPestaña("gimnasio")} className="text-cream font-bold hover:underline cursor-pointer">

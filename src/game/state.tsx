@@ -139,6 +139,7 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
     const neto = recaudado - costos;
     st.dinero += neto;
     st.stats.dineroGanado += Math.max(0, neto);
+    st.stats.resultadoNeto += neto;
     st.stats.veladas += 1;
     st.libroIngresos = linea(st.libroIngresos, "Entradas de la velada del sábado", neto);
     st.fama = clamp(st.fama + (neto > 0 ? 2 : 1), 0, 100);
@@ -226,6 +227,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   const total = totalIngresos - totalGastos;
   st.dinero += total;
   st.stats.dineroGanado += Math.max(0, total);
+  st.stats.resultadoNeto += total;
   // El libro visible conserva el último cierre para que el jugador pueda
   // entender de dónde salió el resultado, incluso después de cerrar el modal.
   st.libroIngresos = ingresos;
@@ -408,6 +410,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       st.pendientes = st.pendientes.filter(p => p.id !== a.peleaId);
       st.dinero += r.bolsa;
       st.stats.dineroGanado += r.bolsa;
+      st.stats.resultadoNeto += r.bolsa;
       st.libroIngresos = linea(st.libroIngresos, `Bolsa vs ${pelea.rival.nombre.split(" ")[0]} (${r.metodo})`, r.bolsa);
       st.stats.peleas += 1;
       if (r.gane) { st.stats.victorias += 1; if (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") st.stats.kos += 1; }
