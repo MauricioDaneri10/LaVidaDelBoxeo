@@ -74,6 +74,12 @@ function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[]
   return [...arr, { concepto, monto }];
 }
 
+// La capacidad del gimnasio cuenta a todo el plantel: alumnos, espera y boxeadores.
+// El margen extra evita que el scouting sature la partida con incorporaciones infinitas.
+function limitePlantel(st: EstadoJuego): number {
+  return capacidadAlumnos(st) + 4;
+}
+
 // ==================== FLUJOS SEMANALES ====================
 
 function diaDeGestion(s: EstadoJuego): EstadoJuego {
@@ -88,14 +94,14 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   // boca a boca del barrio (sin costo, solo oportunidad)
   const alumnos = alumnosActivos(st).length;
   const probBoca = 0.12 + st.fama / 500 + (st.personal.some(p => p.tipo === "asistente") ? 0.06 : 0) + (st.equipamiento.includes("carteles") ? 0.04 : 0);
-  if (st.semana > 1 && alumnos < capacidadAlumnos(st) && chance(probBoca)) {
+  if (st.semana > 1 && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st) && chance(probBoca)) {
     const nuevo = genPugilista({ rol: "alumno", joven: chance(0.4) });
     st.plantel = [...st.plantel, nuevo];
     st = conToast(st, `Boca a boca: ${nuevo.nombre.split(" ")[0]} se suma a las clases.`, "ok");
   }
 
   // la sucursal con entrenador local descubre talento
-  if (sucursales(st) > 0 && st.personal.some(p => p.tipo === "entrenadorLocal") && chance(0.12)) {
+  if (sucursales(st) > 0 && st.personal.some(p => p.tipo === "entrenadorLocal") && st.plantel.length < limitePlantel(st) && chance(0.12)) {
     const talento = genPugilista({ rol: "alumno", joven: true });
     talento.atrib.talento = clamp(talento.atrib.talento + azar(5, 15), 0, 97);
     st.plantel = normalizarListaEspera({ ...st, plantel: [...st.plantel, talento] }).plantel;
@@ -238,7 +244,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     recaudado = Math.round(recaudado * calcularModificadores(st).multiplicadorEventos);
     ingresos = linea(ingresos, `Dividendos: ${c.nombre}`, recaudado);
     if (c.tipo === "festival") st.fama = clamp(st.fama + 3, 0, 100);
-    if (c.tipo === "bingo" && chance(0.5) && alumnos < capacidadAlumnos(st)) {
+    if (c.tipo === "bingo" && chance(0.5) && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st)) {
       const nuevo = genPugilista({ rol: "alumno", joven: true });
     st.plantel = normalizarListaEspera({ ...st, plantel: [...st.plantel, nuevo] }).plantel;
       ingresos = linea(ingresos, `El bingo trajo a ${nuevo.nombre.split(" ")[0]} al gimnasio`, 0);
@@ -621,7 +627,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         st.patrocinio = { nombre: acc.nombre, semanal: acc.monto, semanas: acc.semanas };
         st = conToast(st, `Contrato firmado con ${acc.nombre}: ${fmt(acc.monto)}/semana.`, "oro");
       } else if (acc.tipo === "nuevoAlumno") {
-        if (st.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(st) + 4) return conToast(s, "La lista de espera está completa: ampliá el gimnasio para recibirlo.", "alerta");
+        if (st.plantel.length >= limitePlantel(st)) return conToast(s, "El plantel está completo: liberá un cupo o ampliá el gimnasio para recibirlo.", "alerta");
         const nuevo = genPugilista({ rol: "alumno", joven: true });
         st = normalizarListaEspera({ ...st, plantel: [...st.plantel, nuevo] });
         st = conToast(st, `${nuevo.nombre} entra al plantel de alumnos.`, "ok");
@@ -656,7 +662,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
 
     case "SCOUT": {
       if (s.ultimaSemanaScout === s.semana) return conToast(s, "El buscador de talentos ya se usó esta semana. Podés volver a buscar el próximo lunes.", "info");
-      if (s.plantel.filter(p => p.rol === "alumno").length >= capacidadAlumnos(s) + 4) return conToast(s, "La lista de espera está completa. Mejorá el gimnasio para recibir más alumnos.", "alerta");
+      if (s.plantel.length >= limitePlantel(s)) return conToast(s, "El plantel está completo. Liberá un cupo o mejorá el gimnasio para recibir más alumnos.", "alerta");
       const t = genPugilista({ rol: "alumno", joven: true });
       t.atrib.talento = clamp(t.atrib.talento + azar(4, 12), 0, 97);
       const next = normalizarListaEspera({ ...s, ultimaSemanaScout: s.semana, plantel: [...s.plantel, t] });

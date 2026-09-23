@@ -158,7 +158,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
       {!tieneDT && (
         <div className="border border-gold2/50 bg-gold/5 px-4 py-2.5 font-cond text-sm text-sand rounded-xl">
           <b className="text-gold">Cómo habilitar a tu primer boxeador:</b> obtené la Licencia de Entrenador en Mi Perfil,
-          completá sus <b>prácticas de combate</b> (8 a 10, los sábados) y luego emití su licencia individual.
+          completá sus <b>10 guanteos (sparring)</b> y luego emití su licencia individual.
         </div>
       )}
 
@@ -211,6 +211,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 export function PanelMercado() {
   const { state, dispatch } = useGame();
   const [cat, setCat] = useState<CategoriaMercado>("equipamiento");
+  const [pagina, setPagina] = useState(0);
   const [nombreMarca, setNombreMarca] = useState("");
   const ordenInicial = ["vendasGel", "botiquin", "soga", "pisoGoma"];
   const recomendadoId = ordenInicial.find(id => !state.equipamiento.includes(id as never) && EQUIPOS[id as keyof typeof EQUIPOS].cat === cat);
@@ -231,7 +232,7 @@ export function PanelMercado() {
         {CATEGORIAS.map(c => (
           <button
             key={c.id}
-            onClick={() => setCat(c.id)}
+            onClick={() => { setCat(c.id); setPagina(0); }}
             className={`border px-3 py-1.5 font-cond text-sm uppercase tracking-wider transition-colors cursor-pointer ${
               cat === c.id ? "border-gold bg-gold/15 text-gold" : "border-line bg-panel text-sand hover:border-line2"
             }`}
@@ -242,11 +243,11 @@ export function PanelMercado() {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map(([id, eq]) => {
+        {items.slice(pagina * 4, pagina * 4 + 4).map(([id, eq]) => {
           const comprado = state.equipamiento.includes(id as never);
           const bloqueado = id === "zonaElite" && !state.cursos.includes("altoRendimiento");
           return (
-            <div key={id} title={`${eq.nombre}: ${eq.desc} ${eq.efecto}`} className={`panel flex min-h-[132px] flex-col p-2 ${comprado ? "border-win/50" : ""}`}>
+            <div key={id} title={`${eq.nombre}: ${eq.desc} ${eq.efecto}`} className={`market-card panel flex min-h-[132px] flex-col p-2 ${comprado ? "border-win/50" : ""}`}>
               <div className="flex min-h-[42px] items-start justify-between gap-1">
                 <div className="flex items-center gap-2.5">
                   <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-gold2/50 bg-gold/10 text-gold shadow-inner"><I n={eq.icono} className="h-4 w-4" /></div>
@@ -294,6 +295,13 @@ export function PanelMercado() {
           );
         })}
       </div>
+      {items.length > 4 && (
+        <div className="flex items-center justify-center gap-2 font-cond text-xs text-mut">
+          <Btn small variant="dark" disabled={pagina === 0} onClick={() => setPagina(p => Math.max(0, p - 1))}>Anterior</Btn>
+          <span>{pagina + 1} / {Math.ceil(items.length / 4)}</span>
+          <Btn small variant="gold" disabled={(pagina + 1) * 4 >= items.length} onClick={() => setPagina(p => p + 1)}>Más</Btn>
+        </div>
+      )}
     </div>
   );
 }
@@ -357,8 +365,9 @@ export function PanelPerfil() {
         <h3 className="mb-2 font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>
         <div className="mb-2 flex flex-wrap justify-center gap-1.5">
           {ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`w-fit rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="mr-1 inline h-3.5 w-3.5" />{rama.nombre.replace("Rama ", "")}</button>)}
+          <Btn small variant="gold" className="w-fit" onClick={() => setDetalleRama(ramaActiva)}>Ver cursos</Btn>
         </div>
-        <div className="grid gap-2">
+        <div className="profile-branch-panel grid gap-2">
           {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
             <div key={rama.id} className="panel mx-auto w-fit max-w-full p-2">
               <div className={`mb-1 flex items-center gap-2 font-display text-base tracking-wide ${rama.color}`}>
@@ -445,6 +454,7 @@ export function PanelPerfil() {
 export function PanelPersonal() {
   const { state, dispatch } = useGame();
   const tipos = Object.keys(PERSONAL_INFO) as PersonalId[];
+  const [pagina, setPagina] = useState(0);
   const nSuc = sucursales(state);
 
   return (
@@ -456,12 +466,12 @@ export function PanelPersonal() {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        {tipos.map(t => {
+        {tipos.slice(pagina * 4, pagina * 4 + 4).map(t => {
           const info = PERSONAL_INFO[t];
           const contratados = state.personal.filter(p => p.tipo === t);
           const limiteSucursal = info.multiple && contratados.length >= Math.max(nSuc, 1);
           return (
-            <div key={t} className="panel flex min-h-[218px] flex-col p-4">
+            <div key={t} className="staff-card panel flex min-h-[218px] flex-col p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-display text-lg tracking-wide text-cream">{info.nombre}</div>
@@ -491,11 +501,18 @@ export function PanelPersonal() {
           );
         })}
       </div>
+      {tipos.length > 4 && (
+        <div className="flex items-center justify-center gap-2 font-cond text-xs text-mut">
+          <Btn small variant="dark" disabled={pagina === 0} onClick={() => setPagina(p => Math.max(0, p - 1))}>Anterior</Btn>
+          <span>{pagina + 1} / {Math.ceil(tipos.length / 4)}</span>
+          <Btn small variant="gold" disabled={(pagina + 1) * 4 >= tipos.length} onClick={() => setPagina(p => p + 1)}>Más personal</Btn>
+        </div>
+      )}
     </div>
   );
 }
 
-// ==================== AJUSTES: EXPORTAR / IMPORTAR ====================
+// ==================== AJUSTES: PARTIDAS Y ATAJOS ====================
 export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: () => void; atajos: Atajos; onCambiarAtajos: (atajos: Atajos) => void }) {
   const { state, dispatch } = useGame();
   const [sonido, setSonido] = useState(audioHabilitado);

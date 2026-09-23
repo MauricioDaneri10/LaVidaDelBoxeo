@@ -27,7 +27,7 @@ const CLAVE_ATAJOS = "vida-del-boxeo:atajos";
 export const ATAJOS_LABELS: Array<[keyof Atajos, string]> = [
   ["gimnasio", "Gimnasio"], ["ciudad", "Ciudad"], ["plantel", "Plantel"],
   ["mercado", "Mercado"], ["perfil", "Mi Perfil"], ["personal", "Personal"],
-  ["avanzar", "Cerrar el día"], ["semanaRapida", "Semana rápida"], ["cerrar", "Cerrar ventanas"],
+  ["avanzar", "Avanzar día"], ["semanaRapida", "Semana rápida"], ["cerrar", "Cerrar ventanas"],
 ];
 
 export function cargarAtajos(): Atajos {
@@ -54,4 +54,3 @@ export function normalizarTecla(valor: string, fallback: string): string {
 export function teclaCoincide(eventKey: string, configurada: string): boolean {
   return eventKey.toLowerCase() === configurada.toLowerCase();
 }
-

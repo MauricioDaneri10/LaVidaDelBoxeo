@@ -95,7 +95,8 @@ function PantallaPrincipal() {
   const ingresosEstimados = proyeccion.ingresos.reduce((total, l) => total + l.monto, 0);
   const gastosEstimados = proyeccion.gastos.reduce((total, l) => total + l.monto, 0);
   const balanceEstimado = proyeccion.total;
-  const tieneEnfoqueInicial = state.plantel.some(p => p.rol === "alumno" && p.combo !== "acondicionamiento");
+  const alumnosActivosIniciales = state.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
+  const tieneEnfoqueInicial = alumnosActivosIniciales.length > 0 && alumnosActivosIniciales.every(p => p.combo !== "acondicionamiento");
   const guiaInicial = [
     { texto: "Elegir enfoque para cada boxeador", hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
     { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
@@ -223,7 +224,7 @@ function PantallaPrincipal() {
           )}
 
           {/* ESCENARIO / VISTA CENTRAL CON TRANSICIONES FLUIDAS */}
-          <main className="min-h-0 flex-1 overflow-hidden">
+          <main className="app-main min-h-0 flex-1 overflow-hidden">
               {pestana === "gimnasio" && <GymView onAbrir={setFichaId} onSeleccionarBoxeador={(b) => setFichaId(b.id)} />}
               {pestana === "ciudad" && <CityMap onIrAPestaña={(tab) => setPestana(tab as Pestana)} />}
               {pestana === "plantel" && (

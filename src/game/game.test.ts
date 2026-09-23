@@ -157,6 +157,18 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(siguienteSemana.plantel.length).toBe(primera.plantel.length + 1);
   });
 
+  it("evita que el plantel crezca sin límite después de licenciar boxeadores", () => {
+    const base = crearEstadoBase();
+    const lleno = {
+      ...base,
+      creado: true,
+      plantel: Array.from({ length: capacidadAlumnos(base) + 4 }, (_, i) => genPugilista({ rol: i < 10 ? "boxeador" : "alumno" })),
+    };
+    const resultado = reductor(lleno, { type: "SCOUT" });
+    expect(resultado.plantel).toHaveLength(lleno.plantel.length);
+    expect(resultado.ultimaSemanaScout).toBe(lleno.ultimaSemanaScout);
+  });
+
   it("retirar a un alumno libera una plaza y promueve al primero de la espera", () => {
     const base = crearEstadoBase();
     const alumnos = Array.from({ length: capacidadAlumnos(base) + 1 }, () => genPugilista({ rol: "alumno" }));

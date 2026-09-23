@@ -14,6 +14,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   const { state, dispatch, nivel } = useGame();
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
   const [rankingAbierto, setRankingAbierto] = useState(false);
+  const [rankingPagina, setRankingPagina] = useState(0);
   const [salonAbierto, setSalonAbierto] = useState(false);
   const [socialAbierto, setSocialAbierto] = useState(false);
 
@@ -421,7 +422,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
       </div>
       <div className="grid min-h-0 grid-cols-2 gap-1.5 border-t border-line pt-2 sm:grid-cols-4">
-        <Btn small variant="gold" onClick={() => setRankingAbierto(true)}>Ranking mundial · {ranking.length}</Btn>
+        <Btn small variant="gold" onClick={() => { setRankingPagina(0); setRankingAbierto(true); }}>Ranking mundial · {ranking.length}</Btn>
         <Btn small variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la fama</Btn>
         <Btn small variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
           {state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}
@@ -432,13 +433,20 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         <Modal wide fit title="Ranking Mundial" icon="trophy" onClose={() => setRankingAbierto(false)}>
           <div className="space-y-1.5">
             <p className="mb-2 font-cond text-xs text-sand">Récord, nocauts, títulos y circuito de todos los clubes.</p>
-            {ranking.map((item, i) => (
-              <div key={item.pugilista.id} className={`grid grid-cols-[28px_1fr_auto] items-center gap-2 rounded-lg border p-2 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
-                <span className="text-center font-display text-lg text-gold">{i + 1}</span>
-                <div className="min-w-0"><div className="truncate font-display text-sm text-cream">{item.pugilista.nombre}</div><div className="truncate font-cond text-[10px] uppercase text-mut">{item.club} · {item.pugilista.circuito === "pro" ? "Profesional" : "Amateur"} · {item.pugilista.division}</div></div>
-                <div className="text-right font-mono-data text-[11px] text-sand"><div>{item.pugilista.record.v}-{item.pugilista.record.d}-{item.pugilista.record.e ?? 0}</div><div className="text-gold">{item.pugilista.record.ko} KO · {item.puntos} pts</div></div>
+            <div className="grid gap-1.5 sm:grid-cols-2">
+            {ranking.slice(rankingPagina * 10, rankingPagina * 10 + 10).map((item, i) => (
+              <div key={item.pugilista.id} className={`grid grid-cols-[24px_1fr_auto] items-center gap-1.5 rounded-lg border p-1.5 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
+                <span className="text-center font-display text-lg text-gold">{rankingPagina * 10 + i + 1}</span>
+                <div className="min-w-0"><div className="truncate font-display text-xs text-cream">{item.pugilista.nombre}</div><div className="truncate font-cond text-[9px] uppercase text-mut">{item.club} · {item.pugilista.circuito === "pro" ? "Profesional" : "Amateur"} · {item.pugilista.division}</div></div>
+                <div className="text-right font-mono-data text-[10px] text-sand"><div>{item.pugilista.record.v}-{item.pugilista.record.d}-{item.pugilista.record.e ?? 0}</div><div className="text-gold">{item.pugilista.record.ko} KO · {item.puntos} pts</div></div>
               </div>
             ))}
+            </div>
+            <div className="mt-2 flex items-center justify-center gap-2 font-cond text-xs text-mut">
+              <Btn small variant="dark" disabled={rankingPagina === 0} onClick={() => setRankingPagina(p => Math.max(0, p - 1))}>Anterior</Btn>
+              <span>{rankingPagina + 1} / {Math.max(1, Math.ceil(ranking.length / 10))}</span>
+              <Btn small variant="gold" disabled={(rankingPagina + 1) * 10 >= ranking.length} onClick={() => setRankingPagina(p => p + 1)}>Más ranking</Btn>
+            </div>
           </div>
         </Modal>
       )}

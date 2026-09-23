@@ -230,3 +230,24 @@ html.movimiento-reducido *::after {
   .btn-poster { letter-spacing: .045em; }
   .fondo-app::after { background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.2)); }
 }
+
+/* Las ventanas normales de escritorio tienen menos altura que la pantalla completa. */
+@media (max-height: 800px) and (min-width: 701px) {
+  .fondo-app > .flex-1 { gap: .5rem; padding-top: .5rem; padding-bottom: .5rem; }
+  .app-nav { margin-bottom: .4rem !important; padding: .25rem !important; gap: .25rem !important; }
+  .app-nav button { padding: .35rem .6rem !important; font-size: .78rem !important; }
+  .action-banner { margin-bottom: .35rem !important; padding-top: .25rem !important; padding-bottom: .25rem !important; }
+  .forecast-strip { margin-bottom: .5rem !important; padding: .35rem .6rem !important; gap: .35rem 1rem !important; font-size: .72rem !important; }
+  .app-main > .game-screen { gap: .35rem !important; }
+  .market-card { min-height: 108px !important; padding: .45rem !important; }
+  .market-card .min-h-\[42px\] { min-height: 32px !important; }
+  .market-card .min-h-\[24px\], .market-card .min-h-\[22px\] { min-height: 16px !important; }
+  .market-card .mt-3 { margin-top: .35rem !important; }
+  .staff-card { min-height: 170px !important; padding: .65rem !important; }
+  .staff-card .mt-2 { margin-top: .35rem !important; }
+  .staff-card .min-h-\[42px\] { min-height: 30px !important; }
+  .staff-card > div:first-child > div:first-child > div:first-child { font-size: .9rem !important; line-height: 1.05 !important; }
+  .staff-card > p { margin-top: .25rem !important; min-height: 28px !important; font-size: .65rem !important; line-height: 1.15 !important; }
+  .staff-card .mt-3 { margin-top: .35rem !important; }
+  .profile-branch-panel { display: none !important; }
+}
