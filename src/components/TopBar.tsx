@@ -25,11 +25,11 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
   ].filter(Boolean) as string[];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-ink/95 backdrop-blur-sm select-none">
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-ink/90 shadow-[0_12px_32px_rgba(0,0,0,.28)] backdrop-blur-xl select-none">
       <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
         {/* Marca e Identidad del Club con Emblema */}
         <div className="flex items-center gap-2.5">
-          <div className="grid h-10 w-10 place-items-center border-2 border-blood bg-blood/15 text-blood text-xl shadow-md"
+          <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-blood bg-blood/15 text-blood text-xl shadow-md"
                title={`${logoActual.nombre} — ${logoActual.lema}`}>
             <span>{logoActual.emoji || "🥊"}</span>
           </div>
@@ -44,7 +44,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
         </div>
 
         {/* Calendario y Fecha Oficial */}
-        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-2 rounded-xl border border-line/80 bg-panel/80 px-3 py-1.5 shadow-sm">
           <I n="calendar" className="h-4 w-4 text-gold" />
           <div className="leading-tight">
             <div className={`font-display text-lg tracking-wide ${finDeSemana ? "text-blood" : "text-cream"}`}>
@@ -57,7 +57,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
         </div>
 
         {/* Tesorería y Fondos del Club */}
-        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-2 rounded-xl border border-line/80 bg-panel/80 px-3 py-1.5 shadow-sm">
           <I n="coin" className="h-4 w-4 text-gold" />
           <div className="leading-tight">
             <div className="font-display text-xl tracking-wide text-gold">{fmt(state.dinero)}</div>
@@ -66,7 +66,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
         </div>
 
         {/* Nivel de Prestigio & Fama */}
-        <div className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-2 rounded-xl border border-line/80 bg-panel/80 px-3 py-1.5 shadow-sm">
           <I n="star" className="h-4 w-4 text-blood" />
           <div className="w-24 leading-tight">
             <div className="flex items-baseline justify-between">
@@ -95,7 +95,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
         <div className="ml-auto flex items-center gap-2">
           {onAjustes && (
             <button onClick={onAjustes} title="Configuración y partidas"
-              className="grid h-9 w-9 place-items-center border border-line bg-panel2 text-sand transition-colors hover:border-gold2 hover:text-gold cursor-pointer">
+              className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-panel2 text-sand transition-colors hover:border-gold2 hover:text-gold cursor-pointer">
               <I n="gear" className="h-4.5 w-4.5" />
             </button>
           )}
@@ -120,7 +120,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
           )}
         </div>
       </div>
-      <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-2 border-t border-line/70 px-4 py-1.5">
+      <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-2 border-t border-line/70 bg-gradient-to-r from-transparent via-gold/5 to-transparent px-4 py-1.5">
         <span className="font-cond text-[11px] font-bold uppercase tracking-wider text-mut">Mejoras activas</span>
         {mejoras.length ? mejoras.map(m => <span key={m} className="rounded-full border border-gold2/50 bg-gold/10 px-2.5 py-0.5 font-cond text-xs text-gold">{m}</span>) : <span className="font-cond text-xs text-mut">Todavía no hay mejoras instaladas</span>}
       </div>

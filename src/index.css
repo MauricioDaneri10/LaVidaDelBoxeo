@@ -21,29 +21,68 @@
   --font-body: "Segoe UI", Tahoma, sans-serif;
 }
 
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+::selection { background: rgba(232, 178, 58, 0.35); color: var(--color-cream); }
+
 html, body {
   background: var(--color-ink);
   color: var(--color-cream);
   font-family: var(--font-body);
   min-height: 100%;
   line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* fondo ambiental de sala de boxeo */
 .fondo-app {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
   background:
-    radial-gradient(900px 480px at 70% -10%, rgba(232, 178, 58, 0.07), transparent 60%),
-    radial-gradient(700px 500px at 0% 110%, rgba(212, 52, 44, 0.06), transparent 60%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 4px),
+    radial-gradient(900px 480px at 80% -10%, rgba(232, 178, 58, 0.10), transparent 62%),
+    radial-gradient(700px 500px at -10% 90%, rgba(212, 52, 44, 0.08), transparent 62%),
+    linear-gradient(135deg, rgba(255,255,255,.018) 25%, transparent 25%) 0 0 / 6px 6px,
+    linear-gradient(315deg, rgba(255,255,255,.012) 25%, transparent 25%) 0 0 / 6px 6px,
     var(--color-ink);
 }
 
-.panel {
-  background: linear-gradient(180deg, var(--color-panel2), var(--color-panel));
-  border: 1px solid var(--color-line);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+.fondo-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.32) 100%);
 }
-.hard-shadow { box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45); }
+
+.panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.035), transparent 35%),
+    linear-gradient(180deg, rgba(38,32,25,.98), rgba(25,20,15,.98));
+  border: 1px solid rgba(185, 138, 34, .24);
+  border-radius: 18px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 16px 38px rgba(0, 0, 0, 0.28);
+}
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232,178,58,.55), transparent);
+  opacity: .6;
+  pointer-events: none;
+}
+.hard-shadow { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
 
 .btn-poster {
   font-family: var(--font-display);
@@ -53,18 +92,28 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 10px;
   transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.28), 0 8px 18px rgba(0, 0, 0, .14);
   cursor: pointer;
   user-select: none;
 }
-.btn-poster:hover:not(:disabled) { filter: brightness(1.12); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45); }
-.btn-poster:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4); }
+.btn-poster:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.28), 0 12px 24px rgba(0, 0, 0, .22); }
+.btn-poster:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
 .btn-poster:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
-.stat-bar { height: 8px; background: #120e09; border: 1px solid var(--color-line); position: relative; overflow: hidden; }
+button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+.stat-bar { height: 8px; background: #120e09; border: 1px solid rgba(185,138,34,.28); border-radius: 999px; position: relative; overflow: hidden; }
 .stat-bar i { position: absolute; inset: 0 auto 0 0; transition: width 0.5s ease; }
+
+/* Lenguaje visual común para tarjetas interactivas y estados de la interfaz. */
+.panel button:not(.btn-poster) { transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
+.panel button:not(.btn-poster):hover { border-color: rgba(232,178,58,.5); }
+.text-balance { text-wrap: balance; }
 
 .scroll-fino::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-fino::-webkit-scrollbar-thumb { background: var(--color-line2); }
@@ -140,4 +189,10 @@ button { line-height: 1.2; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+@media (max-width: 700px) {
+  .panel { border-radius: 14px; }
+  .btn-poster { letter-spacing: .045em; }
+  .fondo-app::after { background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.2)); }
 }

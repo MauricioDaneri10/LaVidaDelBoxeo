@@ -100,7 +100,7 @@ function PantallaPrincipal() {
       <div className="mx-auto flex max-w-[1560px] gap-4 px-4 py-4">
         <div className="min-w-0 flex-1">
           {/* NAVEGACIÓN PRINCIPAL ENTRE LAS 6 PESTAÑAS */}
-          <nav className="sticky top-[76px] z-30 mb-4 flex flex-wrap gap-1.5 border border-line bg-ink/92 p-1.5 backdrop-blur-sm rounded-xl">
+          <nav className="app-nav relative z-30 mb-4 flex flex-wrap gap-1.5 border border-gold2/20 bg-ink/82 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,.22)] backdrop-blur-xl rounded-2xl lg:sticky lg:top-[102px]">
             {pestanas.map(p => (
               <button
                 key={p.id}
@@ -142,7 +142,7 @@ function PantallaPrincipal() {
           </nav>
 
           {siguientePaso && state.dia <= 5 && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gold2/60 bg-gold/10 px-4 py-3 shadow-sm">
+            <div className="action-banner mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-4 py-3 shadow-sm">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold text-ink font-bold">→</div>
               <div className="min-w-0 flex-1">
                 <div className="font-display text-sm uppercase tracking-wide text-gold">Siguiente paso</div>
@@ -152,7 +152,7 @@ function PantallaPrincipal() {
             </div>
           )}
           {state.dia <= 5 && (
-            <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-panel/80 px-4 py-2.5 font-cond text-sm">
+            <div className="forecast-strip mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-panel/70 px-4 py-2.5 font-cond text-sm">
               <span className="text-sand">Previsión semanal</span>
               <span className="text-win">Ingresos {fmt(ingresosEstimados)}</span>
               <span className="text-blood">Gastos {fmt(gastosEstimados)}</span>

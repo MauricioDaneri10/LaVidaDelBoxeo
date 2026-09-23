@@ -19,7 +19,7 @@ function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }
   const { dispatch } = useGame();
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className={`border border-line bg-panel ${compacto ? "p-2.5" : "p-3"} shadow-sm`}>
+      className={`rounded-xl border border-line bg-panel ${compacto ? "p-2.5" : "p-3"} shadow-sm`}>
       <div className="flex items-center gap-2">
         <I n={ICONO_TIPO[ev.tipo] ?? "phone"} className="h-4 w-4 text-gold" />
         <span className="font-display text-base leading-tight tracking-wide text-cream">{ev.titulo}</span>
@@ -200,7 +200,7 @@ export default function DockLateral({
 
   if (esEscritorio) {
     return (
-      <aside className="anim-dock flex h-[calc(100vh-140px)] w-[320px] shrink-0 flex-col border border-line bg-panel/80 select-none"
+      <aside className="anim-dock flex h-[calc(100vh-140px)] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-gold2/20 bg-panel/75 select-none"
         style={{ boxShadow: "-8px 0 24px rgba(0,0,0,0.3)" }}>
         <div className="flex items-center gap-2 border-b border-line bg-panel2/70 px-3 py-2">
           <span className={`grid h-7 w-7 place-items-center border ${hayNovedad ? "border-gold text-gold anim-latido" : "border-line2 text-sand"}`}>
@@ -212,7 +212,7 @@ export default function DockLateral({
         <div className="grid grid-cols-4 border-b border-line">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setPestana(t.id)}
-              className={`relative flex flex-col items-center gap-0.5 border-b-2 px-1 py-2 transition-colors cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"} ${t.pulso && pestana !== t.id ? "guia-luminica" : ""}`}>
+            className={`relative flex flex-col items-center gap-0.5 rounded-t-lg border-b-2 px-1 py-2 transition-colors cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"} ${t.pulso && pestana !== t.id ? "guia-luminica" : ""}`}>
               <I n={t.icono} className="h-4 w-4" />
               <span className="font-cond text-[10px] uppercase tracking-wide">{t.nombre}</span>
               {t.badge > 0 && <span className="absolute right-1.5 top-1 grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}
@@ -226,7 +226,7 @@ export default function DockLateral({
 
   // Versión compacta para pantallas móviles
   return (
-    <div className="border-t border-line bg-panel/95 select-none">
+    <div className="rounded-t-2xl border-t border-line bg-panel/95 select-none shadow-[0_-12px_28px_rgba(0,0,0,.25)]">
       <div className="grid grid-cols-4">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setPestana(pestana === t.id ? "mensajes" : t.id)}
