@@ -71,6 +71,9 @@ export interface CompuBox { jab: CajaGolpes; poder: CajaGolpes; }
 export interface TarjetaJuez { a: number; b: number; }
 
 export interface ResultadoPelea {
+  /** Identidad del atleta propio; permite mostrar el historial correcto por boxeador. */
+  miId?: string;
+  rivalNombre?: string;
   gane: boolean;
   empate: boolean;
   metodo: "Nocaut" | "Nocaut Técnico" | "Decisión Unánime" | "Decisión Dividida" | "Empate";

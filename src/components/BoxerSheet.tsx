@@ -106,8 +106,9 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
 
   // Historial de peleas de este atleta o del club
   const historialAtleta = state.historial.filter(h => {
-    // Si el resumen o el método coincide o si hay registros históricos
-    return true;
+    // Las partidas antiguas pueden no tener miId: solo se muestran en la
+    // ficha cuando el resultado está identificado de forma segura.
+    return h.miId === p.id;
   }).slice(0, 5);
 
   return (

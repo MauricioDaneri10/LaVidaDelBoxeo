@@ -63,6 +63,19 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(resultado.metodo).toBe("Empate");
   });
 
+  it("asigna las caídas al boxeador correcto en el resultado", () => {
+    const mio = genPugilista({ rol: "boxeador" });
+    const rival = genPugilista({ rol: "boxeador" });
+    const estado = crearEstadoPelea({ id: "caidas", miId: mio.id, rival, bolsa: 600, esTitulo: 0, velada: false }, mio, []);
+    estado.A.caidas = 2;
+    estado.B.caidas = 1;
+    const resultado = resolverPelea(estado);
+    expect(resultado.miId).toBe(mio.id);
+    expect(resultado.rivalNombre).toBe(rival.nombre);
+    expect(resultado.caidasA).toBe(2);
+    expect(resultado.caidasB).toBe(1);
+  });
+
   it("no permite que una partida corrupta desborde los límites básicos", () => {
     const base = crearEstadoBase();
     const estado = sanitizarEstado({

@@ -179,11 +179,13 @@ function PantallaPrincipal() {
           )}
           {state.dia <= 5 && (
             <div className="forecast-strip mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-panel/70 px-4 py-2.5 font-cond text-sm">
-              <span className="text-sand">Previsión semanal</span>
-              <span className="text-win">Ingresos {fmt(ingresosEstimados)}</span>
-              <span className="text-blood">Gastos {fmt(gastosEstimados)}</span>
-              <span className={balanceEstimado >= 0 ? "text-gold" : "text-blood"}>Resultado {balanceEstimado >= 0 ? "+" : ""}{fmt(balanceEstimado)}</span>
-              <span className="text-mut">Las prácticas de alumnos activos se cobran; la lista de espera no.</span>
+              <span className="font-display uppercase tracking-wide text-sand">Previsión del domingo</span>
+              <span className="text-win">Entradas seguras {fmt(ingresosEstimados)}</span>
+              <span className="text-blood">Gastos previstos {fmt(gastosEstimados)}</span>
+              <span className={balanceEstimado >= 0 ? "text-gold font-bold" : "text-blood font-bold"}>
+                {balanceEstimado >= 0 ? "A favor" : "En pérdida"} {balanceEstimado >= 0 ? "+" : "−"}{fmt(Math.abs(balanceEstimado))}
+              </span>
+              <span className="text-mut">No incluye eventos, peleas ni veladas: son ingresos variables.</span>
             </div>
           )}
 

@@ -119,7 +119,12 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
     libres.slice(0, 1).forEach(p => {
       const ofertas = generarOfertas(p);
       const fuerte = valoracion(p.atrib) >= 55;
-      const elegida = fuerte ? ofertas[2] : ofertas[1];
+      // La automatización respeta las mismas reglas que la elección manual:
+      // un representante no puede prometer un título internacional sin TV.
+      const ofertasValidas = ofertas.map(of => of.esTitulo >= 3 && !st.cursos.includes("tv")
+        ? { ...of, esTitulo: 0 as const, etiqueta: "Pelea de experiencia", detalle: "Necesitás el curso de Televisión para aspirar a títulos internacionales." }
+        : of);
+      const elegida = fuerte ? ofertasValidas[2] : ofertasValidas[1];
       st.pendientes = [...st.pendientes, { id: uid(), miId: p.id, rival: elegida.rival, bolsa: elegida.bolsa, esTitulo: elegida.esTitulo, velada: st.veladaProgramada }];
       st = conToast(st, `Tu Representante agendó a ${p.nombre.split(" ")[0]} vs ${elegida.rival.nombre.split(" ")[0]}.`, "info");
     });
@@ -224,8 +229,10 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   const total = totalIngresos - totalGastos;
   st.dinero += total;
   st.stats.dineroGanado += Math.max(0, total);
-  st.libroIngresos = [];
-  st.libroGastos = [];
+  // El libro visible conserva el último cierre para que el jugador pueda
+  // entender de dónde salió el resultado, incluso después de cerrar el modal.
+  st.libroIngresos = ingresos;
+  st.libroGastos = gastos;
 
   // patrocinio: descontar semanas
   if (st.patrocinio) {
@@ -493,7 +500,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "DESPEDIR": {
       const m = s.personal.find(p => p.id === a.id);
       if (!m) return s;
-      return conToast({ ...s, personal: s.personal.filter(p => p.id !== a.id) },
+      return conToast(normalizarListaEspera({ ...s, personal: s.personal.filter(p => p.id !== a.id) }),
         `${m.nombre} deja el club en buenos términos.`, "info");
     }
 

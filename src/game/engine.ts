@@ -456,8 +456,10 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
     ? `${metodo} en el asalto ${e.asalto}`
     : `${metodo} (${tarjetas.map(t => `${t.a}-${t.b}`).join(", ")})`;
   return {
+    miId: e.A.p.id,
+    rivalNombre: e.B.p.nombre,
     gane, empate, metodo, tarjetas,
-    caidasA: e.B.caidas, caidasB: e.A.caidas,
+    caidasA: e.A.caidas, caidasB: e.B.caidas,
     registroA: e.A.registro, registroB: e.B.registro,
     bolsa: gane ? e.pelea.bolsa : Math.round(e.pelea.bolsa * 0.3),
     fama,

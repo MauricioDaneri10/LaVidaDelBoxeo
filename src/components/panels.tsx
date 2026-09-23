@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, sanitizarEstado, sucursales, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, nivelGimnasio, sanitizarEstado, sucursales, valoracion } from "../game/engine";
 import { CLAVE_GUARDADO, guardarPartida, useGame } from "../game/state";
 import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
@@ -322,7 +322,7 @@ export function PanelPerfil() {
         <div>
           <h2 className="font-display text-2xl tracking-wide text-gold">Perfil del Coach · {state.nombreJugador}</h2>
           <p className="font-cond text-sm text-sand">
-            Semana {state.semana} al frente de <b className="text-cream">{state.nombreGimnasio}</b>. Nivel de gimnasio: <b className="text-gold">{state.fama >= 75 ? 4 : state.fama >= 50 ? 3 : state.fama >= 25 ? 2 : 1}</b> · Legados: <b className="text-neonc">{state.legados}</b>
+            Semana {state.semana} al frente de <b className="text-cream">{state.nombreGimnasio}</b>. Nivel de gimnasio: <b className="text-gold">{nivelGimnasio(state)}</b> · Legados: <b className="text-neonc">{state.legados}</b>
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {[

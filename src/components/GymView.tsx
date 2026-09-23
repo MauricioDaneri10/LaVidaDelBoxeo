@@ -369,12 +369,12 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
       )}
 
-      {/* ROSTER LATERAL RÁPIDO (DRAWER DESPLEGABLE) */}
+      {/* PLANTEL LATERAL RÁPIDO (PANEL DESPLEGABLE) */}
       {drawerAbierto && (
         <div className="absolute inset-y-0 right-0 z-30 w-72 bg-ink/95 border-l border-line p-4 shadow-2xl flex flex-col justify-between backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-line pb-2">
             <span className="font-display text-base text-cream uppercase tracking-wider">
-              Plantel del Gimnasio ({todos.length})
+              Plantel del gimnasio ({todos.length})
             </span>
             <button
               onClick={() => setDrawerAbierto(false)}
@@ -442,7 +442,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-panel2 border border-line text-xs font-cond uppercase text-gold hover:border-gold2 transition-colors cursor-pointer"
           >
             <I n="users" className="w-3.5 h-3.5" />
-            <span>Plantel rápido ({todos.length})</span>
+            <span>Ver plantel ({todos.length})</span>
           </button>
           <span className="hidden font-cond text-[12px] uppercase tracking-wider text-mut xl:block">
             Haz clic en un atleta para ver su ficha
