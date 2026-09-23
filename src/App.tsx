@@ -44,6 +44,32 @@ function PantallaPrincipal() {
   const peleaActual = state.pendientes[0];
   const enCartelera = carteleraAbierta && state.dia === 6 && peleaActual;
 
+  useEffect(() => {
+    const manejarAtajo = (event: KeyboardEvent) => {
+      const objetivo = event.target as HTMLElement | null;
+      if (objetivo && ["INPUT", "TEXTAREA", "SELECT"].includes(objetivo.tagName)) return;
+      if (event.key === "Escape") {
+        setFichaId(null);
+        setAjustes(false);
+        setCarteleraAbierta(false);
+        return;
+      }
+      if (fichaId || ajustes || carteleraAbierta) return;
+      const tecla = event.key.toLowerCase();
+      const pantallas: Pestana[] = ["gimnasio", "ciudad", "plantel", "mercado", "perfil", "personal"];
+      if (/^[1-6]$/.test(tecla)) {
+        setPestana(pantallas[Number(tecla) - 1]);
+      } else if (tecla === "n" || event.key === " ") {
+        event.preventDefault();
+        if (state.dia < 6 || state.pendientes.length === 0) dispatch({ type: "AVANZAR_DIA" });
+      } else if (tecla === "s" && state.dia < 6) {
+        dispatch({ type: "SEMANA_RAPIDA" });
+      }
+    };
+    window.addEventListener("keydown", manejarAtajo);
+    return () => window.removeEventListener("keydown", manejarAtajo);
+  }, [ajustes, carteleraAbierta, fichaId, state.dia, state.pendientes.length]);
+
   const alTerminarPelea = (r: ResultadoPelea) => {
     if (peleaActual) {
       if (r.gane) {

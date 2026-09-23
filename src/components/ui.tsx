@@ -52,6 +52,7 @@ const ICONOS: Record<string, string[]> = {
   boot: ["M7 3.5h7v8l4.5 3.5a2.5 2.5 0 0 1-1.5 4.5H5.5A1.5 1.5 0 0 1 4 18V16c2.5-.5 3-2.5 3-5z", "M7 8h7"],
   shield: ["M12 3.5l7 2.5v5.5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z", "M9 11.5l2.2 2.2L15.5 9"],
   bell: ["M12 4a5.5 5.5 0 0 1 5.5 5.5V14l1.5 3H5l1.5-3V9.5A5.5 5.5 0 0 1 12 4z", "M10 20a2 2 0 0 0 4 0", "M12 2.5V4"],
+  volume: ["M4 9v6h4l5 4V5L8 9z", "M16 9.5a4 4 0 0 1 0 5", "M18.5 7a7 7 0 0 1 0 10"],
   download: ["M12 4v10", "M8 10.5l4 4 4-4", "M5 19.5h14"],
   upload: ["M12 15V5", "M8 8.5l4-4 4 4", "M5 19.5h14"],
   gear: ["M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z", "M12 2.5v3", "M12 18.5v3", "M2.5 12h3", "M18.5 12h3", "M5.3 5.3l2.1 2.1", "M16.6 16.6l2.1 2.1", "M5.3 18.7l2.1-2.1", "M16.6 7.4l2.1-2.1"],
@@ -141,7 +142,7 @@ export function Modal({ title, icon, onClose, children, wide }: {
               {icon && <I n={icon} className="h-5 w-5" />}{title}
             </h3>
             {onClose && (
-              <button onClick={onClose} className="text-mut transition-colors hover:text-blood"><I n="x" className="h-5 w-5" /></button>
+              <button onClick={onClose} aria-label="Cerrar ventana" title="Cerrar" className="rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
             )}
           </div>
           <div className="p-5">{children}</div>

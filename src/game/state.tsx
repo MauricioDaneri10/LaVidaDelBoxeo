@@ -9,7 +9,18 @@ import {
 import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
 
 const CLAVE = "vida-del-boxeo-v2";
+export const CLAVE_GUARDADO = CLAVE;
 let toastId = 1;
+
+export function guardarPartida(estado: EstadoJuego): boolean {
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify(estado));
+    localStorage.setItem(`${CLAVE}:guardadoEn`, new Date().toISOString());
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function cargarInicial(): EstadoJuego {
   const base = crearEstadoBase();
@@ -583,7 +594,7 @@ const GameCtx = createContext<Ctx | null>(null);
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reductor, undefined, cargarInicial);
   useEffect(() => {
-    try { localStorage.setItem(CLAVE, JSON.stringify(state)); } catch { /* sin espacio */ }
+    guardarPartida(state);
   }, [state]);
   return <GameCtx.Provider value={{ state, dispatch, nivel: nivelGimnasio(state) }}>{children}</GameCtx.Provider>;
 }

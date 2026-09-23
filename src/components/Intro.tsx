@@ -14,6 +14,7 @@ export default function Intro() {
   const logoActual = LOGOS_DISPONIBLES.find(l => l.id === logoSeleccionado) || LOGOS_DISPONIBLES[0];
 
   const iniciarNuevoJuego = () => {
+    if (hayCarrera && !window.confirm("Ya tenés una carrera guardada. ¿Querés reemplazarla por una nueva?")) return;
     dispatch({
       type: "NUEVO_JUEGO",
       nombre: nombre.trim() || "El Coach",

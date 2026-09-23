@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
+import { audioHabilitado, setAudioHabilitado } from "../game/audio";
 import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, fmt, sanitizarEstado, sucursales, valoracion } from "../game/engine";
-import { useGame } from "../game/state";
+import { CLAVE_GUARDADO, guardarPartida, useGame } from "../game/state";
 import type { Accion, CategoriaMercado, CursoId, EstadoJuego, PersonalId, Pugilista, RamaCurso } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
 
@@ -24,9 +25,18 @@ export function importarPartidaJSON(
   onError?: () => void
 ) {
   const lector = new FileReader();
+  if (archivo.size > 2_000_000) {
+    dispatch({ type: "TOAST", texto: "El archivo es demasiado grande (máximo 2 MB).", tono: "alerta" });
+    if (onError) onError();
+    return;
+  }
   lector.onload = () => {
     try {
-      const estado = sanitizarEstado(JSON.parse(String(lector.result)));
+      const bruto: unknown = JSON.parse(String(lector.result));
+      if (!bruto || typeof bruto !== "object" || !Array.isArray((bruto as { plantel?: unknown }).plantel)) {
+        throw new Error("formato inválido");
+      }
+      const estado = sanitizarEstado(bruto);
       dispatch({ type: "IMPORTAR", estado });
       if (onExito) onExito();
     } catch {
@@ -469,9 +479,26 @@ export function PanelPersonal() {
 export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
   const { state, dispatch } = useGame();
   const archivoRef = useRef<HTMLInputElement>(null);
+  const [guardadoEn, setGuardadoEn] = useState(() => {
+    try { return localStorage.getItem(`${CLAVE_GUARDADO}:guardadoEn`); } catch { return null; }
+  });
+  const [sonido, setSonido] = useState(audioHabilitado);
+  const [mensaje, setMensaje] = useState<string | null>(null);
 
   const exportar = () => {
     exportarPartidaJSON(state);
+    setMensaje("Archivo preparado para descargar.");
+  };
+
+  const guardarAhora = () => {
+    if (guardarPartida(state)) {
+      const ahora = new Date().toISOString();
+      setGuardadoEn(ahora);
+      setMensaje("Partida guardada en este navegador.");
+      dispatch({ type: "TOAST", texto: "Partida guardada correctamente.", tono: "ok" });
+    } else {
+      setMensaje("No se pudo guardar. Exportá un archivo .json como respaldo.");
+    }
   };
 
   const importar = (archivo: File) => {
@@ -481,10 +508,11 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
   return (
     <Modal title="Configuración y Partida" icon="gear" onClose={onCerrar}>
       <div className="space-y-3">
-        <div className="border border-line bg-panel2 p-3">
+        <div className="border border-line bg-panel2 p-3 rounded-xl">
           <div className="font-display text-lg text-cream">Guardar y cargar</div>
-          <p className="font-cond text-xs text-sand">La partida se guarda sola en este navegador después de cada acción.</p>
+          <p className="font-cond text-xs text-sand">La partida se guarda sola después de cada acción. También podés crear un respaldo para moverla a otra computadora.</p>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Btn small variant="gold" onClick={guardarAhora}><I n="check" className="h-3.5 w-3.5" /> Guardar ahora</Btn>
             <Btn small variant="gold" onClick={exportar}><I n="download" className="h-3.5 w-3.5" /> Exportar .json</Btn>
             <Btn small variant="dark" onClick={() => archivoRef.current?.click()}><I n="upload" className="h-3.5 w-3.5" /> Importar .json</Btn>
             <input
@@ -499,9 +527,13 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
               }}
             />
           </div>
+          <div className="mt-2 font-cond text-[11px] text-mut">
+            {guardadoEn ? `Último guardado: ${new Date(guardadoEn).toLocaleString()}` : "Todavía no hay un guardado registrado."}
+          </div>
+          {mensaje && <div className="mt-2 rounded-lg border border-gold2/40 bg-gold/10 px-2.5 py-1.5 font-cond text-xs text-gold">{mensaje}</div>}
         </div>
 
-        <div className="border border-blood/40 bg-blood/5 p-3">
+        <div className="border border-blood/40 bg-blood/5 p-3 rounded-xl">
           <div className="font-display text-lg text-[#ff8a7e]">Zona de riesgo</div>
           <p className="font-cond text-xs text-sand">Borra la carrera actual (los legados también). No se puede deshacer.</p>
           <Btn
@@ -517,6 +549,32 @@ export function ModalAjustes({ onCerrar }: { onCerrar: () => void }) {
           >
             <I n="x" className="h-3.5 w-3.5" /> Reiniciar carrera
           </Btn>
+        </div>
+
+        <div className="border border-line bg-panel2 p-3 rounded-xl">
+          <div className="font-display text-lg text-cream">Atajos de teclado</div>
+          <div className="mt-2 grid gap-1.5 font-cond text-xs text-sand sm:grid-cols-2">
+            <span><kbd className="keycap">1–6</kbd> Cambiar de pantalla</span>
+            <span><kbd className="keycap">N</kbd> Cerrar el día</span>
+            <span><kbd className="keycap">S</kbd> Semana rápida</span>
+            <span><kbd className="keycap">Esc</kbd> Cerrar ventanas</span>
+          </div>
+        </div>
+
+        <div className="border border-line bg-panel2 p-3 rounded-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display text-lg text-cream">Sonido</div>
+              <p className="font-cond text-xs text-sand">Campana, golpes, monedas y notificaciones.</p>
+            </div>
+            <Btn small variant={sonido ? "gold" : "dark"} onClick={() => {
+              const siguiente = !sonido;
+              setSonido(siguiente);
+              setAudioHabilitado(siguiente);
+            }}>
+              <I n={sonido ? "volume" : "x"} className="h-3.5 w-3.5" /> {sonido ? "Activado" : "Silenciado"}
+            </Btn>
+          </div>
         </div>
 
         <div className="font-cond text-[11px] leading-relaxed text-mut">

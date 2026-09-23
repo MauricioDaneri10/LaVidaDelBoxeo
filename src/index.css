@@ -114,6 +114,20 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .panel button:not(.btn-poster) { transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
 .panel button:not(.btn-poster):hover { border-color: rgba(232,178,58,.5); }
 .text-balance { text-wrap: balance; }
+.keycap {
+  display: inline-flex;
+  min-width: 1.55rem;
+  justify-content: center;
+  border: 1px solid var(--color-line2);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--color-ink);
+  color: var(--color-gold);
+  padding: .08rem .3rem;
+  font-family: var(--font-cond);
+  font-size: .68rem;
+  font-weight: 700;
+}
 
 .scroll-fino::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-fino::-webkit-scrollbar-thumb { background: var(--color-line2); }
