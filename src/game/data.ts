@@ -125,8 +125,10 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
   manoplasPro: { nombre: "Manoplas Pro", costo: 650, desc: "Precisión quirúrgica con el entrenador.", efecto: "+25% de ganancia en Ataque y Técnica", cat: "equipamiento", icono: "target" },
   soga: { nombre: "Sogas de Salto", costo: 200, desc: "El clásico que nunca falla.", efecto: "Habilita la estación Soga y Cardio, +15% en Resistencia", cat: "equipamiento", icono: "rope" },
   pisoGoma: { nombre: "Piso de Goma", costo: 800, desc: "Menos impacto, más sesiones.", efecto: "+2 de recuperación de energía semanal", cat: "equipamiento", icono: "plot" },
+  cuerdaVelocidad: { nombre: "Cuerda de Velocidad", costo: 700, desc: "Trabajo de pies y coordinación para todos.", efecto: "+10% de ganancia en Velocidad", cat: "equipamiento", icono: "rope" },
+  plataformaReaccion: { nombre: "Plataforma de Reacción", costo: 1200, desc: "Reflejos, lectura y respuesta bajo presión.", efecto: "+10% de ganancia en Defensa y Eficacia", cat: "equipamiento", icono: "target" },
   ringReglamentario: { nombre: "Ring Reglamentario", costo: 2500, desc: "Doce cuerdas de pura seriedad.", efecto: "+25% en Técnica y Defensa, tus veladas recaudan más", cat: "equipamiento", icono: "ring" },
-  zonaElite: { nombre: "Zona Élite VIP", costo: 15000, desc: "Ring privado con neón para tus 3 estrellas.", efecto: "3 cupos Élite: entrenan +70% más rápido", cat: "equipamiento", icono: "trophy" },
+  zonaElite: { nombre: "Zona Élite", costo: 15000, desc: "Espacio de alto rendimiento para tus 3 mejores boxeadores.", efecto: "3 cupos Élite: entrenan +70% más rápido", cat: "equipamiento", icono: "trophy" },
   bucal: { nombre: "Bucal", costo: 180, desc: "Bucal moldeado a medida para cada mandíbula.", efecto: "+5% de esquiva en combate", cat: "indumentaria", icono: "shield" },
   cabezal: { nombre: "Cabezal", costo: 600, desc: "Cabezal olímpico para protegerte durante el sparring.", efecto: "-5% de daño recibido en combate", cat: "indumentaria", icono: "cap" },
   botas: { nombre: "Botas", costo: 750, desc: "Botas antideslizantes con agarre total sobre la lona.", efecto: "+5% de esquiva en combate", cat: "indumentaria", icono: "boot" },
@@ -146,7 +148,7 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
 export const CURSOS: Record<CursoId, { nombre: string; rama: RamaCurso; nivel: 1 | 2 | 3; costo: number; desc: string; req: CursoId | null }> = {
   dt: { nombre: "Licencia de Entrenador", rama: "deportiva", nivel: 1, costo: 500, desc: "Te habilita como entrenador responsable para registrar y dirigir atletas federados.", req: null },
   nutricion: { nombre: "Nutrición Deportiva", rama: "deportiva", nivel: 2, costo: 1500, desc: "Planes de alimentación para el plantel: +6 de recuperación de energía semanal.", req: "dt" },
-  altoRendimiento: { nombre: "Alto Rendimiento", rama: "deportiva", nivel: 3, costo: 4000, desc: "Metodología de élite: +20% de ganancia en todo y habilita la Zona Élite VIP.", req: "nutricion" },
+  altoRendimiento: { nombre: "Alto Rendimiento", rama: "deportiva", nivel: 3, costo: 4000, desc: "Metodología de élite: +20% de ganancia y habilita la Zona Élite.", req: "nutricion" },
   veladas: { nombre: "Organización de Veladas", rama: "promotora", nivel: 1, costo: 800, desc: "Arma tu propia cartelera de los sábados y cobra entradas.", req: null },
   prensa: { nombre: "Prensa y Medios", rama: "promotora", nivel: 2, costo: 2000, desc: "Tu nombre en los diarios: más sponsors y mejor recaudación de veladas.", req: "veladas" },
   tv: { nombre: "Televisión Estelar", rama: "promotora", nivel: 3, costo: 6000, desc: "Contratos de TV: veladas en la Arena Central y derechos de transmisión.", req: "prensa" },
@@ -164,6 +166,8 @@ export const PERSONAL_INFO: Record<PersonalId, { nombre: string; sueldo: number;
   difusion: { nombre: "Jefe de Difusión", sueldo: 100, desc: "Ventas de marca ×1.8, más sponsors y +15% en eventos y veladas.", multiple: false, icono: "star" },
   gerente: { nombre: "Gerente de Sucursal", sueldo: 110, desc: "Administra una sucursal y habilita su ingreso pasivo semanal.", multiple: true, icono: "store" },
   entrenadorLocal: { nombre: "Entrenador Local", sueldo: 80, desc: "Suma $200 al ingreso de la sucursal y descubre talentos automáticamente.", multiple: true, icono: "cap" },
+  coordinadorSucursal: { nombre: "Coordinador de Sucursales", sueldo: 140, desc: "Permite administrar una sede adicional y mantiene sus operaciones ordenadas.", multiple: true, icono: "store" },
+  ojeador: { nombre: "Ojeador de Talentos", sueldo: 85, desc: "Mejora la calidad de las búsquedas y atrae alumnos con más potencial.", multiple: false, icono: "target" },
 };
 
 // ==================== TÍTULOS Y CINTURONES ====================
@@ -251,9 +255,9 @@ export const PROPIEDADES_INFO = PROPIEDADES;
 
 // ==================== EVENTOS COMUNITARIOS ====================
 export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival", { nombre: string; inversion: number; min: number; max: number; extra: string }> = {
-  bingo: { nombre: "Gran Bingo Familiar del Club", inversion: 200, min: 600, max: 1400, extra: "Atrae alumnos al gimnasio" },
-  naipes: { nombre: "Torneo de Juegos de Mesa y Naipes", inversion: 100, min: 400, max: 900, extra: "Noche de camaradería" },
-  festival: { nombre: "Noche de Festival y Exhibición de Boxeo", inversion: 500, min: 1000, max: 2500, extra: "+3 de Fama garantizada" },
+  bingo: { nombre: "Gran Bingo Familiar del Club", inversion: 200, min: 320, max: 650, extra: "Atrae alumnos al gimnasio" },
+  naipes: { nombre: "Torneo de Juegos de Mesa y Naipes", inversion: 100, min: 180, max: 420, extra: "Noche de camaradería" },
+  festival: { nombre: "Noche de Festival y Exhibición de Boxeo", inversion: 500, min: 700, max: 1400, extra: "+3 de Fama garantizada" },
 };
 
 // Eventos de club ampliados

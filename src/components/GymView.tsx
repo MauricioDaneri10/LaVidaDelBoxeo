@@ -355,7 +355,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         <div className="absolute right-[2%] top-[24%] z-10 h-[26%] w-[34%] border-2 border-neonc/60 bg-neonc/5 p-2 rounded-xl"
           style={{ boxShadow: "0 0 24px rgba(56,224,207,0.18) inset, 0 0 18px rgba(56,224,207,0.2)" }}>
           <div className="anim-neon flex items-center gap-1.5 font-cond text-[11px] uppercase tracking-[0.2em] text-neonc">
-            <I n="trophy" className="h-3.5 w-3.5" /> Zona Élite VIP · +70% velocidad
+            <I n="trophy" className="h-3.5 w-3.5" /> Zona Élite · +70% velocidad
           </div>
           <div className="relative mt-1 h-[78%]">
             <div className="pointer-events-none absolute inset-x-2 bottom-0 h-[45%] border-t-2 border-neonc/40 bg-neonc/5" />

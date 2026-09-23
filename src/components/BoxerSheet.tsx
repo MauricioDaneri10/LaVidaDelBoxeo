@@ -183,7 +183,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
 
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <Chip tone={p.rol === "boxeador" ? "blood" : "mut"}>
-                  {p.rol === "boxeador" ? "Licencia individual" : "Alumno"}
+                      {p.rol === "boxeador" ? (p.circuito === "pro" ? "Licencia Profesional" : "Licencia Amateur") : "Pugil en formación"}
                 </Chip>
                 {p.rol === "boxeador" && (
                   <Chip tone={p.circuito === "pro" ? "gold" : "mut"}>
@@ -191,7 +191,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                   </Chip>
                 )}
                 <Chip>{p.division}</Chip>
-                {p.elite && <Chip tone="neon">Élite VIP</Chip>}
+                {p.elite && <Chip tone="neon">Zona Élite</Chip>}
                 {p.titulo > 0 && (
                   <Chip tone="gold">
                     <I n="trophy" className="h-3 w-3" /> {TITULOS[p.titulo as 1 | 2 | 3 | 4].nombre}
@@ -331,7 +331,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       {p.enEspera
                         ? "Está en lista de espera: cuando se libere una plaza podrá continuar."
                         : p.fogueo >= p.fogueoMeta
-                        ? "¡Atleta listo para tramitar su licencia individual!"
+                        ? "¡Pugil listo para tramitar su licencia!"
                         : `Requiere ${p.fogueoMeta - p.fogueo} guanteos más para tramitar la licencia.`}
                     </p>
                     {!state.cursos.includes("dt") && onIrAPestana && (
@@ -345,7 +345,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                         variant="gold"
                         onClick={() => dispatch({ type: "LICENCIAR", id: p.id })}
                       >
-                        Emitir licencia del atleta ({fmt(200)})
+                        Tramitar licencia del pugil ({fmt(200)})
                       </Btn>
                     )}
                   </div>
@@ -353,9 +353,9 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     {p.enEspera
                       ? "Está en lista de espera y todavía no puede entrenar ni competir."
                       : !state.cursos.includes("dt")
-                      ? "Obtené la Licencia de Entrenador para federar atletas del club."
+                      ? "Obtené la Licencia de Entrenador para federar boxeadores del club."
                       : p.fogueo >= p.fogueoMeta
-                      ? "Prácticas completas: la ficha ya puede emitir la licencia individual para competir los sábados."
+                      ? "Prácticas completas: la ficha ya puede tramitar la licencia amateur para competir."
                       : "Completá las prácticas de combate de los sábados para habilitar la competencia amateur."}
                   </div>
                 </div>
@@ -363,7 +363,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <span className="font-display text-base tracking-wide text-cream block">
-                      Gestión Profesional del Pugilista
+                      Gestión
                     </span>
                     <span className="font-cond text-xs text-mut">
                       {peleaAgendada ? "Pelea pactada: respetá el descanso y la recuperación." : p.lesion ? `Lesión ${p.lesion.gravedad}: ${p.lesion.semanas} semana(s) de recuperación.` : p.energia < 70 ? "Necesita descansar antes de pactar una pelea." : "Disponible para pactar una pelea."}
@@ -376,7 +376,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       variant={p.elite ? "gold" : "ghost"}
                       onClick={() => dispatch({ type: "ALTERNAR_ELITE", id: p.id })}
                     >
-                      {p.elite ? "✓ En Zona Élite VIP" : "+ Promover a Zona Élite"}
+                      {p.elite ? "✓ En Zona Élite" : "+ Promover a Zona Élite"}
                     </Btn>
 
                     {!peleaAgendada && (

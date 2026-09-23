@@ -154,6 +154,8 @@ export function sucursales(e: EstadoJuego): number {
 export function capacidadAlumnos(e: EstadoJuego): number {
   return 10 + calcularModificadores(e).capacidadAlumnos;
 }
+export function capacidadAmateurs(_e: EstadoJuego): number { return 10; }
+export function capacidadProfesionales(_e: EstadoJuego): number { return 10; }
 export function alumnosActivos(e: EstadoJuego): Pugilista[] {
   return e.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
 }
@@ -327,7 +329,7 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
     {
       id: uid(), nivel: "accesible", bolsa: bolsa(250), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg - 5, 22, 95), p.division, azar(40, 70), p.genero, p.circuito),
-      etiqueta: "Rival Accesible", detalle: "Nivel menor (−5). Victoria segura para cuidar el invicto.",
+      etiqueta: "Rival Accesible", detalle: "Nivel menor (−5), con experiencia cercana a la tuya.",
     },
     {
       id: uid(), nivel: "parejo", bolsa: bolsa(600), esTitulo: 0,
@@ -340,11 +342,24 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
       etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking.",
     },
   ];
+  // La primera etapa debe sentirse competitiva: el rival generado queda a
+  // no más de tres peleas del historial del pugil, nunca diez de golpe.
+  const experiencia = totalPeleas(p);
+  const ajustarExperiencia = (rival: Pugilista) => {
+    const peleas = clamp(experiencia + azar(-3, 3), 0, experiencia + 3);
+    const victorias = Math.floor(peleas * (0.45 + azar(0, 20) / 100));
+    const derrotas = peleas - victorias;
+    rival.record = { v: victorias, d: derrotas, e: 0, ko: Math.min(victorias, azar(0, Math.max(0, victorias))) };
+    if (rival.circuito === "amateur") rival.peleasAmateur = peleas;
+    else { rival.peleasProfesionales = peleas; rival.victoriasProfesionales = victorias; rival.derrotasProfesionales = derrotas; rival.kosProfesionales = rival.record.ko; }
+    return rival;
+  };
+  ofertas.forEach(oferta => { oferta.rival = ajustarExperiencia(oferta.rival); });
   const tit = tituloAspirable(p);
   if (tit > 0) {
     const info = TITULOS[tit as 1 | 2 | 3 | 4];
     const bolsa = tit === 4 ? azar(60, 150) * 1000 : info.bolsa;
-    const campeon = genRivalPorVG(clamp(vg + azar(6, 9), 30, 97), p.division, azar(65, 85), p.genero, "pro");
+    const campeon = ajustarExperiencia(genRivalPorVG(clamp(vg + azar(6, 9), 30, 97), p.division, azar(65, 85), p.genero, "pro"));
     campeon.circuito = "pro";
     campeon.titulo = tit;
     ofertas[2] = {
@@ -604,16 +619,17 @@ export function simularPeleaEntera(e: EstadoPelea, planJugador: PlanId): Resulta
 export function generarEventos(e: EstadoJuego): EventoJuego[] {
   const eventos: EventoJuego[] = [];
   if (chance(0.55)) {
-    const tipo = elegir(["bingo", "naipes", "festival"] as const);
-    const info = { bingo: { n: "Gran Bingo Familiar del Club", inv: 200 }, naipes: { n: "Torneo de Juegos de Mesa y Naipes", inv: 100 }, festival: { n: "Noche de Festival y Exhibición", inv: 500 } }[tipo];
+    const tipo = elegir(["reparacion", "entrevista", "colecta"] as const);
+    const info = {
+      reparacion: { titulo: "Se rompió el saco del gimnasio", texto: "La comisión avisa que una herramienta importante quedó inutilizada. Podés repararla ahora o esperar.", tipoEvento: "mantenimiento" as const, opciones: [{ texto: "Reparar por $120", accion: { tipo: "mantenimiento" as const, costo: 120, monto: 1 } }, { texto: "Dejarlo para después", accion: { tipo: "nada" as const } }] },
+      entrevista: { titulo: "Entrevista en Radio Guante", texto: "La prensa quiere conocer tu proyecto. Una respuesta clara puede atraer seguidores; una mala declaración puede enfriar al barrio.", tipoEvento: "entrevista" as const, opciones: [{ texto: "Hablar del proyecto", accion: { tipo: "entrevista" as const, fama: 2, monto: 80 } }, { texto: "Declinar la entrevista", accion: { tipo: "nada" as const } }] },
+      colecta: { titulo: "Colecta solidaria del barrio", texto: "La comisión propone una colecta puntual para sostener el gimnasio. No es un bingo ni una actividad social: vence en pocos días.", tipoEvento: "recaudacion" as const, opciones: [{ texto: "Aportar $80 y organizarla", accion: { tipo: "recaudacion" as const, costo: 80, monto: 180 } }, { texto: "No organizarla", accion: { tipo: "nada" as const } }] },
+    }[tipo];
     eventos.push({
-      id: uid(), tipo: "comunitario", de: "Comisión del Club", titulo: info.n,
-      texto: `El barrio quiere juntarse en el gimnasio. Organizar cuesta ${fmt(info.inv)} y se liquida el domingo.`,
+      id: uid(), tipo: info.tipoEvento, de: "Comisión del Club", titulo: info.titulo,
+      texto: info.texto,
       venceEn: 4,
-      opciones: [
-        { texto: `Organizar (−${fmt(info.inv)})`, accion: { tipo: "programarComunitario", comunitario: tipo, monto: info.inv, nombre: info.n } },
-        { texto: "Esta semana no", accion: { tipo: "nada" } },
-      ],
+      opciones: info.opciones,
     });
   }
   if (e.fama >= 10 && !e.patrocinio && chance(0.4)) {
@@ -664,7 +680,7 @@ export function crearEstadoBase(): EstadoJuego {
     schemaVersion: 3,
     creado: false,
     nombreJugador: "", nombreGimnasio: "",
-    dinero: 900, fama: 4,
+    dinero: 900, fama: 4, seguidores: 480, recreativos: 0,
     dia: 1, semana: 1, mes: 1, anio: 2026,
     ultimaSemanaScout: 0,
     plantel: alumnos,
@@ -788,10 +804,10 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
     return pelea ? [pelea] : [];
   }) : [];
   s.historial = Array.isArray(r.historial) ? (r.historial as ResultadoPelea[]) : [];
-  const equiposValidos = ["vendasGel", "sacosCuero", "perasDoble", "manoplasPro", "soga", "pisoGoma", "ringReglamentario", "zonaElite", "bucal", "cabezal", "botas", "batas", "botiquin", "vestuarios", "barraProteinas", "sauna", "carteles", "sonido", "marquesina", "vitrina", "estudioMarca"];
+  const equiposValidos = ["vendasGel", "sacosCuero", "perasDoble", "manoplasPro", "soga", "pisoGoma", "cuerdaVelocidad", "plataformaReaccion", "ringReglamentario", "zonaElite", "bucal", "cabezal", "botas", "batas", "botiquin", "vestuarios", "barraProteinas", "sauna", "carteles", "sonido", "marquesina", "vitrina", "estudioMarca"];
   s.equipamiento = Array.isArray(r.equipamiento) ? (r.equipamiento as GearId[]).filter(g => equiposValidos.includes(g)) : [];
   s.cursos = Array.isArray(r.cursos) ? (r.cursos as EstadoJuego["cursos"]) : [];
-  const personalValidos = ["directorTecnico", "representante", "preparador", "asistente", "difusion", "gerente", "entrenadorLocal"];
+  const personalValidos = ["directorTecnico", "representante", "preparador", "asistente", "difusion", "gerente", "entrenadorLocal", "coordinadorSucursal", "ojeador"];
   s.personal = Array.isArray(r.personal) ? (r.personal as EstadoJuego["personal"]).filter(p => p && personalValidos.includes(p.tipo)) : [];
   const propiedadesValidas = ["local", "terreno", "sucursal", "apartamento", "mansion", "arena"];
   s.propiedades = Array.isArray(r.propiedades) ? (r.propiedades as EstadoJuego["propiedades"]).filter(p => propiedadesValidas.includes(p)) : [];
@@ -800,10 +816,9 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.prensa = Array.isArray(r.prensa) ? (r.prensa as EstadoJuego["prensa"]) : [];
   s.cinturones = Array.isArray(r.cinturones) ? (r.cinturones as EstadoJuego["cinturones"]) : [];
   s.salonFama = Array.isArray(r.salonFama) ? (r.salonFama as EstadoJuego["salonFama"]).slice(0, 50) : [];
-  s.consejos = base.consejos.map(c => {
-    const guardado = Array.isArray(r.consejos) ? (r.consejos as EstadoJuego["consejos"]).find(x => x.id === c.id) : undefined;
-    return guardado ? { ...c, cumplido: !!guardado.cumplido, reclamado: !!guardado.reclamado } : c;
-  });
+  s.consejos = Array.isArray(r.consejos)
+    ? (r.consejos as EstadoJuego["consejos"]).map(c => ({ ...c, fama: Math.max(0, Number(c.fama) || 0), dinero: Math.max(0, Number(c.dinero) || 0), cumplido: !!c.cumplido, reclamado: !!c.reclamado }))
+    : base.consejos;
   s.libroIngresos = Array.isArray(r.libroIngresos) ? (r.libroIngresos as EstadoJuego["libroIngresos"]) : [];
   s.libroGastos = Array.isArray(r.libroGastos) ? (r.libroGastos as EstadoJuego["libroGastos"]) : [];
   s.stats = { ...base.stats, ...(r.stats ?? {}) };
@@ -813,6 +828,8 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.partidaId = typeof r.partidaId === "string" && r.partidaId ? r.partidaId : uid();
   s.dinero = Number.isFinite(Number(r.dinero)) ? Number(r.dinero) : 0;
   s.fama = clamp(Number(r.fama) || 0, 0, 100);
+  s.seguidores = Math.max(0, Number(r.seguidores) || Math.round(s.fama * 120));
+  s.recreativos = clamp(Number(r.recreativos) || 0, 0, 999);
   s.dia = clamp(Number(r.dia) || 1, 1, 7);
   s.semana = Math.max(1, Number(r.semana) || 1);
   s.ultimaSemanaScout = Math.max(0, Number(r.ultimaSemanaScout) || 0);

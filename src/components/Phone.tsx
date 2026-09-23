@@ -165,7 +165,7 @@ export default function DockLateral({
                 {alumnoListoParaFederar.nombre} está listo para competir oficialmente.
               </p>
               <p className="font-cond text-xs text-sand mt-0.5 leading-tight">
-                Abrí su ficha técnica para emitir su licencia individual ($200).
+                Abrí su ficha técnica para tramitar su licencia amateur ($200).
               </p>
             </div>
           )}
@@ -187,7 +187,7 @@ export default function DockLateral({
             <div key={c.id} className={`border p-2.5 shadow-sm ${c.reclamado ? "border-line bg-panel opacity-60" : c.cumplido ? "border-gold2/70 bg-gold/10" : "border-line bg-panel"}`}>
               <p className="font-cond text-sm leading-snug text-sand">{c.texto}</p>
               <div className="mt-1.5 flex items-center justify-between">
-                <span className="font-cond text-[11px] uppercase tracking-wide text-mut">Recompensa: +{c.fama} de fama</span>
+                <span className="font-cond text-[11px] uppercase tracking-wide text-mut">Recompensa: +{c.fama} fama{c.dinero ? ` · ${c.dinero} pesos` : ""}</span>
                 {c.reclamado ? <span className="font-cond text-[11px] uppercase text-win">Cobrado</span>
                   : !c.cumplido ? <span className="font-cond text-[11px] uppercase text-mut">Pendiente</span> : (
                     <button onClick={() => { notificacion(); dispatch({ type: "RECLAMAR_CONSEJO", id: c.id }); }}

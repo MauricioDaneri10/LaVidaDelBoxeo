@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import BoxerSheet from "./components/BoxerSheet";
 import CityMap from "./components/CityMap";
+import CalendarioView from "./components/CalendarView";
 import FightScreen from "./components/FightScreen";
 import GymView from "./components/GymView";
 import Intro from "./components/Intro";
@@ -16,7 +17,7 @@ import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
 
-export type Pestana = "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal";
+export type Pestana = "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal" | "calendario";
 
 function PantallaPrincipal() {
   const { state, dispatch } = useGame();
@@ -111,20 +112,22 @@ function PantallaPrincipal() {
   const guiaInicial = [
     { texto: "Elegir enfoque para cada boxeador", hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
     { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
-    { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta), tab: "plantel" as Pestana },
+    { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.fogueo >= p.fogueoMeta)), tab: "plantel" as Pestana },
     { texto: "Habilitar al primer boxeador", hecho: state.plantel.some(p => p.rol === "boxeador"), tab: "plantel" as Pestana },
   ];
   const siguientePaso = !tieneEnfoqueInicial
     ? { texto: "Elegí un enfoque de entrenamiento para cada boxeador.", boton: "Abrir Plantel", tab: "plantel" as Pestana }
     : !state.equipamiento.length
       ? { texto: "Equipá el gimnasio para activar sus estaciones y beneficios.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
-      : !state.plantel.some(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta)
-        ? { texto: "Completá 10 guanteos para preparar al primer atleta.", boton: "Ver Plantel", tab: "plantel" as Pestana }
+      : !state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.fogueo >= p.fogueoMeta))
+        ? { texto: "Completá 10 guanteos para preparar al primer boxeador.", boton: "Ver Plantel", tab: "plantel" as Pestana }
         : !state.cursos.includes("dt")
-          ? { texto: "Obtené la Licencia de Entrenador para emitir licencias individuales.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
-          : primerAlumnoListo
-            ? { texto: `${primerAlumnoListo.nombre} está listo: emití su licencia individual.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
-            : null;
+          ? { texto: "Obtené la Licencia de Entrenador para tramitar licencias de boxeadores.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
+          : state.plantel.some(p => p.rol === "boxeador")
+            ? { texto: "Revisá el calendario para organizar la semana.", boton: "Abrir Calendario", tab: "calendario" as Pestana }
+            : primerAlumnoListo
+              ? { texto: `${primerAlumnoListo.nombre} está listo: tramitá su licencia.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
+              : null;
 
   const pestanas: { id: Pestana; nombre: string; icono: string; pulso: boolean }[] = [
     { id: "gimnasio", nombre: "Gimnasio", icono: "ring", pulso: false },
@@ -142,6 +145,7 @@ function PantallaPrincipal() {
     { id: "mercado", nombre: "Mercado", icono: "cart", pulso: false },
     { id: "perfil", nombre: "Mi Perfil", icono: "cap", pulso: false },
     { id: "personal", nombre: "Personal", icono: "users", pulso: false },
+    { id: "calendario", nombre: "Calendario", icono: "calendar", pulso: state.pendientes.length > 0 },
   ];
 
   return (
@@ -265,6 +269,7 @@ function PantallaPrincipal() {
               {pestana === "mercado" && <PanelMercado />}
               {pestana === "perfil" && <PanelPerfil />}
               {pestana === "personal" && <PanelPersonal />}
+              {pestana === "calendario" && <CalendarioView />}
           </main>
         </div>
 

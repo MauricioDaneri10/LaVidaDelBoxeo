@@ -75,6 +75,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
               <span className="font-cond text-[10px] uppercase text-mut">Fama</span>
             </div>
             <div className="stat-bar"><i style={{ width: `${state.fama}%`, background: "var(--color-blood)" }} /></div>
+            <div className="mt-0.5 font-cond text-[9px] uppercase tracking-wide text-mut">Seguidores {state.seguidores.toLocaleString("es-AR")}</div>
           </div>
         </div>
 

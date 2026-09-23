@@ -326,9 +326,9 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             <p className="font-cond text-xs text-sand">Los mejores récords, nocauts y títulos de todos los clubes de la ciudad.</p>
           </div>
           <span className="font-mono-data text-xs text-mut">{ranking.length} competidores registrados</span>
-          <div className="flex flex-wrap justify-end gap-1.5">
-            <Btn small variant="gold" onClick={() => setRankingAbierto(true)}>Ver ranking</Btn>
-            <Btn small variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la Fama</Btn>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            <Btn small variant="gold" className="w-fit" onClick={() => setRankingAbierto(true)}>Ranking mundial</Btn>
+            <Btn small variant="ghost" className="w-fit" onClick={() => setSalonAbierto(true)}>Salón de la Fama</Btn>
           </div>
         </div>
         <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
@@ -420,10 +420,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           </div>
         </div>
       </div>
-      <div className="grid min-h-0 grid-cols-2 gap-1.5 border-t border-line pt-2 sm:grid-cols-4">
-        <Btn small variant="gold" onClick={() => { setRankingPagina(0); setRankingAbierto(true); }}>Ranking mundial · {ranking.length}</Btn>
-        <Btn small variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la fama</Btn>
-        <Btn small variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
+      <div className="flex min-h-0 flex-wrap justify-center gap-1.5 border-t border-line pt-2">
+        <Btn small className="w-fit" variant="gold" onClick={() => { setRankingPagina(0); setRankingAbierto(true); }}>Ranking mundial</Btn>
+        <Btn small className="w-fit" variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la fama</Btn>
+        <Btn small className="w-fit" variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
           {state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}
         </Btn>
       </div>

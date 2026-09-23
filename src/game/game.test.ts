@@ -5,6 +5,7 @@ import {
   aplicarEntrenamientoSemanal,
   calcularModificadores,
   capacidadAlumnos,
+  capacidadProfesionales,
   cerrarAsalto,
   crearEstadoBase,
   crearEstadoPelea,
@@ -25,6 +26,35 @@ import { conflictosAtajos, ATAJOS_DEFAULT } from "./shortcuts";
 import { formatearMoneda, formatearNumero } from "../i18n";
 
 describe("reglas principales de La Vida del Boxeo", () => {
+  it("asigna el mejor enfoque inmediatamente al contratar el entrenador automático", () => {
+    const base = { ...crearEstadoBase(), creado: true, cursos: ["dt"] as ReturnType<typeof crearEstadoBase>["cursos"] };
+    const resultado = reductor(base, { type: "CONTRATAR", tipo: "directorTecnico" });
+    expect(resultado.personal.some(p => p.tipo === "directorTecnico")).toBe(true);
+    expect(resultado.plantel.every(p => p.enEspera || p.combo !== "acondicionamiento")).toBe(true);
+  });
+
+  it("limita el salto profesional a diez plazas y mantiene el contador de recreativos", () => {
+    const base = crearEstadoBase();
+    const pros = Array.from({ length: capacidadProfesionales(base) }, () => ({ ...genPugilista({ rol: "boxeador" }), circuito: "pro" as const }));
+    const amateur = { ...genPugilista({ rol: "boxeador" }), circuito: "amateur" as const, peleasAmateur: 50 };
+    let siguiente = { ...base, creado: true, plantel: [...pros, amateur], fama: 32, recreativos: 0 };
+    for (let i = 0; i < 6; i++) siguiente = reductor(siguiente, { type: "AVANZAR_DIA" });
+    siguiente = reductor(siguiente, { type: "CERRAR_DOMINGO" });
+    expect(siguiente.plantel.filter(p => p.circuito === "pro")).toHaveLength(10);
+    expect(siguiente.recreativos).toBeGreaterThanOrEqual(1);
+  });
+
+  it("sostiene una partida durante 120 semanas sin saturar ni romper el calendario", () => {
+    let estado = { ...crearEstadoBase(), creado: true };
+    for (let semana = 0; semana < 120; semana++) {
+      for (let dia = 0; dia < 6; dia++) estado = reductor(estado, { type: "AVANZAR_DIA" });
+      estado = reductor(estado, { type: "AVANZAR_DIA" });
+      estado = reductor(estado, { type: "CERRAR_DOMINGO" });
+      expect(estado.semana).toBe(semana + 2);
+      expect(estado.plantel.length).toBeLessThanOrEqual(30);
+      expect(estado.dia).toBe(1);
+    }
+  });
   it("entrena una sola vez por semana aunque se avancen varios días", () => {
     let estado = crearEstadoBase();
     estado.creado = true;

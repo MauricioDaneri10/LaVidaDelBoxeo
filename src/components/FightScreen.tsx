@@ -489,7 +489,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
           <div className="panel p-4 rounded-2xl space-y-3">
             <div className="flex items-center justify-between border-b border-line pb-2">
               <span className="font-display text-lg tracking-wide text-gold flex items-center gap-2">
-                <I n="target" className="h-4 w-4" /> Estadísticas CompuBox en Vivo
+                <I n="target" className="h-4 w-4" /> Estadísticas
               </span>
               <span className="font-mono-data text-[10px] text-mut uppercase">Registro Computarizado</span>
             </div>

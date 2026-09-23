@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { CATEGORIAS, COMUNITARIOS, CURSOS, EQUIPOS, EVENTOS_CLUB_INFO, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sucursales, totalPeleas, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sucursales, totalPeleas, valoracion } from "../game/engine";
 import { guardarEnRanura, useGame } from "../game/state";
 import { ATAJOS_DEFAULT, ATAJOS_LABELS, conflictosAtajos, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { CategoriaMercado, CursoId, PersonalId, Pugilista, RamaCurso } from "../game/types";
@@ -22,6 +22,13 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   const boxeadores = state.plantel.filter(p => p.rol === "boxeador");
   const tieneDT = state.cursos.includes("dt");
   const cupoAlumnos = capacidadAlumnos(state);
+  const amateurs = boxeadores.filter(p => p.circuito === "amateur").length;
+  const profesionales = boxeadores.filter(p => p.circuito === "pro").length;
+  const [paginaBoxeadores, setPaginaBoxeadores] = useState(0);
+  const [paginaAlumnos, setPaginaAlumnos] = useState(0);
+  const porPagina = 5;
+  const boxeadoresVisibles = boxeadores.slice(paginaBoxeadores * porPagina, paginaBoxeadores * porPagina + porPagina);
+  const alumnosVisibles = alumnos.slice(paginaAlumnos * porPagina, paginaAlumnos * porPagina + porPagina);
 
   const seleccionarAtleta = (p: Pugilista) => {
     if (onAbrir) onAbrir(p.id);
@@ -90,7 +97,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
                   }}
                   className="btn-poster guia-luminica ml-auto border border-[#ffe0a0]/50 bg-gold px-3 py-1 text-sm text-ink cursor-pointer"
                 >
-                  <span>Emitir licencia {fmt(200)}</span>
+                  <span>Tramitar licencia · {fmt(200)}</span>
                 </button>
               )}
               {p.enEspera && (
@@ -139,9 +146,10 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   return (
     <div className="game-screen h-full overflow-hidden space-y-3">
       <div className="panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
-        <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Atletas</h2>
+        <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Boxeadores</h2>
         <Chip tone={alumnosEspera.length ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEspera.length ? ` · ${alumnosEspera.length} en espera` : ""}</Chip>
-        <Chip tone="blood"><I n="glove" className="h-3 w-3" /> Federados {boxeadores.length}</Chip>
+        <Chip tone="blood"><I n="glove" className="h-3 w-3" /> Amateurs {amateurs}/{capacidadAmateurs(state)} · Profesionales {profesionales}/{capacidadProfesionales(state)}</Chip>
+        <Chip tone="neon"><I n="users" className="h-3 w-3" /> Recreativos {state.recreativos}</Chip>
         <Chip><I n="bell" className="h-3 w-3" /> Cartelera del sábado: {state.pendientes.length} pelea(s)</Chip>
         <div className="ml-auto flex gap-2">
           <Btn
@@ -158,7 +166,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
       {!tieneDT && (
         <div className="border border-gold2/50 bg-gold/5 px-4 py-2.5 font-cond text-sm text-sand rounded-xl">
           <b className="text-gold">Cómo habilitar a tu primer boxeador:</b> obtené la Licencia de Entrenador en Mi Perfil,
-          completá sus <b>10 guanteos (sparring)</b> y luego emití su licencia individual.
+          completá sus <b>10 guanteos (sparring)</b> y luego tramitá su licencia amateur.
         </div>
       )}
 
@@ -169,8 +177,9 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             <span>🥊 Boxeadores Federados Oficiales ({boxeadores.length})</span>
           </h3>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            {boxeadores.map(p => <Tarjeta key={p.id} p={p} />)}
+            {boxeadoresVisibles.map(p => <Tarjeta key={p.id} p={p} />)}
           </div>
+          {boxeadores.length > porPagina && <div className="mt-1 flex justify-center gap-2 font-cond text-xs text-mut"><button className="cursor-pointer" disabled={paginaBoxeadores === 0} onClick={() => setPaginaBoxeadores(p => Math.max(0, p - 1))}>Anterior</button><span>{paginaBoxeadores + 1}/{Math.ceil(boxeadores.length / porPagina)}</span><button className="cursor-pointer text-gold" disabled={(paginaBoxeadores + 1) * porPagina >= boxeadores.length} onClick={() => setPaginaBoxeadores(p => p + 1)}>Más boxeadores</button></div>}
         </section>
       )}
 
@@ -180,8 +189,9 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             <span>🥋 Alumnos en Formación y Práctica ({alumnos.length}/{cupoAlumnos})</span>
         </h3>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {alumnos.map(p => <Tarjeta key={p.id} p={p} />)}
+          {alumnosVisibles.map(p => <Tarjeta key={p.id} p={p} />)}
         </div>
+        {alumnos.length > porPagina && <div className="mt-1 flex justify-center gap-2 font-cond text-xs text-mut"><button className="cursor-pointer" disabled={paginaAlumnos === 0} onClick={() => setPaginaAlumnos(p => Math.max(0, p - 1))}>Anterior</button><span>{paginaAlumnos + 1}/{Math.ceil(alumnos.length / porPagina)}</span><button className="cursor-pointer text-gold" disabled={(paginaAlumnos + 1) * porPagina >= alumnos.length} onClick={() => setPaginaAlumnos(p => p + 1)}>Más alumnos</button></div>}
         {alumnos.length === 0 && (
           <p className="font-cond text-sm italic text-mut">
             Sin alumnos: la fama y el boca a boca traerán nuevos talentos al gimnasio.

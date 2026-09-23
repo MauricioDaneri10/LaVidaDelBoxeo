@@ -115,7 +115,7 @@ export interface ResultadoPelea {
 }
 
 export type GearId =
-  | "vendasGel" | "sacosCuero" | "perasDoble" | "manoplasPro" | "soga" | "pisoGoma" | "ringReglamentario" | "zonaElite"
+  | "vendasGel" | "sacosCuero" | "perasDoble" | "manoplasPro" | "soga" | "pisoGoma" | "cuerdaVelocidad" | "plataformaReaccion" | "ringReglamentario" | "zonaElite"
   | "bucal" | "cabezal" | "botas" | "batas"
   | "botiquin" | "vestuarios" | "barraProteinas" | "sauna"
   | "carteles" | "sonido" | "marquesina" | "vitrina" | "estudioMarca";
@@ -125,15 +125,16 @@ export type CategoriaMercado = "equipamiento" | "indumentaria" | "instalaciones"
 export type CursoId = "dt" | "nutricion" | "altoRendimiento" | "veladas" | "prensa" | "tv" | "clubes" | "franquicias" | "imperio";
 export type RamaCurso = "deportiva" | "promotora" | "empresarial";
 
-export type PersonalId = "directorTecnico" | "representante" | "preparador" | "asistente" | "difusion" | "gerente" | "entrenadorLocal";
+export type PersonalId = "directorTecnico" | "representante" | "preparador" | "asistente" | "difusion" | "gerente" | "entrenadorLocal" | "coordinadorSucursal" | "ojeador";
 
 export interface MiembroPersonal { id: string; tipo: PersonalId; nombre: string; }
 
-export type TipoEvento = "desafio" | "patrocinio" | "comunitario" | "prospecto" | "federacion";
+export type TipoEvento = "desafio" | "patrocinio" | "comunitario" | "prospecto" | "federacion" | "mantenimiento" | "entrevista" | "recaudacion";
 
 export interface AccionEvento {
-  tipo: "dinero" | "fama" | "nuevoAlumno" | "programarComunitario" | "aceptarPatrocinio" | "exhibicion" | "nada";
+  tipo: "dinero" | "fama" | "nuevoAlumno" | "programarComunitario" | "aceptarPatrocinio" | "exhibicion" | "mantenimiento" | "entrevista" | "recaudacion" | "nada";
   monto?: number;
+  costo?: number;
   fama?: number;
   nombre?: string;
   semanas?: number;
@@ -154,7 +155,7 @@ export interface EventoJuego {
 
 export interface PatrocinioActivo { nombre: string; semanal: number; semanas: number; }
 export interface ComunitarioProgramado { tipo: "bingo" | "naipes" | "festival"; nombre: string; }
-export interface Consejo { id: string; texto: string; fama: number; cumplido: boolean; reclamado: boolean; }
+export interface Consejo { id: string; texto: string; fama: number; dinero?: number; cumplido: boolean; reclamado: boolean; }
 export interface NotaPrensa { id: string; semana: number; texto: string; }
 export interface Cinturon { id: string; dueno: string; nivel: 1 | 2 | 3 | 4; semana: number; }
 export interface EntradaSalonFama {
@@ -179,6 +180,8 @@ export interface EstadoJuego {
   nombreGimnasio: string;
   dinero: number;
   fama: number;
+  seguidores: number;
+  recreativos: number;
   dia: number; // 1 = Lunes ... 6 = Sábado · 7 = Domingo de Balance
   semana: number;
   /** Semana en la que se utilizó por última vez el buscador de talentos. */
