@@ -116,11 +116,12 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
     <Modal
       wide
       fit
+      className="boxer-sheet-modal"
       title={`Ficha Técnica · ${p.nombre}`}
       icon="user"
       onClose={onCerrar}
     >
-      <div className="space-y-1.5 select-none text-[.96em]">
+      <div className="boxer-sheet-content space-y-1.5 select-none text-[.96em]">
         
         {/* BARRA DE NAVEGACIÓN ANTERIOR / SIGUIENTE ENTRE ATLETAS */}
         <div className="flex items-center justify-between border-b border-line pb-1.5">
@@ -156,10 +157,10 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
         </div>
 
         {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (IZQ: HERO + RADAR, DER: ATRIBUTOS + ENTRENAMIENTO + HISTORIAL) */}
-        <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="boxer-sheet-main grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
           
           {/* COLUMNA IZQUIERDA: HERO + FIGURA PROCEDIMENTAL + RADAR PENTAGONAL */}
-          <div className="space-y-2">
+          <div className="boxer-sheet-left space-y-2">
             
             {/* ESCENARIO DEL ATLETA CON FIGURA PROCEDIMENTAL */}
             <div className="relative flex h-28 items-end justify-center overflow-hidden border border-line bg-gradient-to-b from-panel2 to-ink rounded-2xl shadow-inner">
@@ -234,7 +235,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
           </div>
 
           {/* COLUMNA DERECHA: ATRIBUTOS DE LOS 3 PILARES + ENTRENAMIENTO + ACCIONES + HISTORIAL */}
-          <div className="space-y-2">
+          <div className="boxer-sheet-right space-y-2">
             
             {/* LOS 3 PILARES CANÓNICOS (11 ATRIBUTOS) */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -295,7 +296,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
               <I n="target" className="h-5 w-5 text-gold shrink-0 mt-0.5" />
               <div className="space-y-0.5 text-xs font-cond">
                 <span className="font-bold uppercase tracking-wider text-gold">Consejo de Esquina:</span>
-                <p className="text-cream leading-relaxed">{consejo}</p>
+                <p className="text-cream leading-relaxed">Enfoque recomendado: <b>{COMBOS[consejo]?.nombre ?? "Descanso"}</b></p>
                 {aspirable > 0 && (
                   <p className="text-neonc text-[11px] pt-1">
                     • Posibilidad de disputa: <b>{TITULOS[aspirable as 1 | 2 | 3 | 4].nombre}</b>.

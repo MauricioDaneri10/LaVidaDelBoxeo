@@ -65,6 +65,9 @@ export default function DockLateral({
   const hayNovedad = mensajes.length > 0 || patrocinios.length > 0 || consejosListos.length > 0;
   const esEscritorio = lado === "escritorio";
   const [movilAbierto, setMovilAbierto] = useState(false);
+  const [paginaConsejos, setPaginaConsejos] = useState(0);
+  const consejosPorPagina = 2;
+  const consejosVisibles = state.consejos.slice(paginaConsejos * consejosPorPagina, paginaConsejos * consejosPorPagina + consejosPorPagina);
 
   // Inteligencia Contextual: Detección proactiva del estado del plantel
   const alumnoListoParaFederar = alumnosActivos(state).find(b => puedeHabilitar(b, state));
@@ -180,7 +183,7 @@ export default function DockLateral({
           )}
 
           {/* Hitos Canónicos de Don Anselmo */}
-          {state.consejos.map(c => (
+          {consejosVisibles.map(c => (
             <div key={c.id} className={`border p-2.5 shadow-sm ${c.reclamado ? "border-line bg-panel opacity-60" : c.cumplido ? "border-gold2/70 bg-gold/10" : "border-line bg-panel"}`}>
               <p className="font-cond text-sm leading-snug text-sand">{c.texto}</p>
               <div className="mt-1.5 flex items-center justify-between">
@@ -195,6 +198,13 @@ export default function DockLateral({
               </div>
             </div>
           ))}
+          {state.consejos.length > consejosPorPagina && (
+            <div className="flex items-center justify-center gap-2 pt-1 font-cond text-xs text-mut">
+              <button className="btn-poster border border-line px-2 py-1 disabled:opacity-40" disabled={paginaConsejos === 0} onClick={() => setPaginaConsejos(p => Math.max(0, p - 1))}>Anterior</button>
+              <span>{paginaConsejos + 1} / {Math.ceil(state.consejos.length / consejosPorPagina)}</span>
+              <button className="btn-poster border border-gold2/50 px-2 py-1 text-gold disabled:opacity-40" disabled={(paginaConsejos + 1) * consejosPorPagina >= state.consejos.length} onClick={() => setPaginaConsejos(p => p + 1)}>Más consejos</button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -208,7 +218,7 @@ export default function DockLateral({
           <span className={`grid h-7 w-7 place-items-center border ${hayNovedad ? "border-gold text-gold anim-latido" : "border-line2 text-sand"}`}>
             <I n="phone" className="h-4 w-4" />
           </span>
-          <span className="font-display text-lg tracking-wide text-cream">Teléfono del Club</span>
+          <span className="font-display text-lg tracking-wide text-cream">Panel del Club</span>
           {hayNovedad && <span className="ml-auto h-2 w-2 rounded-full bg-blood anim-latido" />}
         </div>
         <div className="grid grid-cols-4 border-b border-line">

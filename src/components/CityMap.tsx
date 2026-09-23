@@ -16,7 +16,6 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const [rankingPagina, setRankingPagina] = useState(0);
   const [salonAbierto, setSalonAbierto] = useState(false);
-  const [socialAbierto, setSocialAbierto] = useState(false);
 
   const nSuc = sucursales(state);
   const ranking = rankingMundial(state);
@@ -427,7 +426,6 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         <Btn small variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
           {state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}
         </Btn>
-        <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}>Finanzas sociales</Btn>
       </div>
       {rankingAbierto && (
         <Modal wide fit title="Ranking Mundial" icon="trophy" onClose={() => setRankingAbierto(false)}>
@@ -464,26 +462,6 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               ))}
             </div>
           )}
-        </Modal>
-      )}
-      {socialAbierto && (
-        <Modal wide fit title="Finanzas sociales" icon="calendar" onClose={() => setSocialAbierto(false)}>
-          <div className="space-y-2">
-            <p className="font-cond text-xs text-sand">Elegí una actividad, invertí una vez y cobrá el resultado al cerrar la semana.</p>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {(["bingo", "naipes", "festival"] as const).map(k => {
-                const c = COMUNITARIOS[k];
-                const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : EVENTOS_CLUB_INFO.festivalBoxeo;
-                return <div key={k} className="rounded-xl border border-line bg-panel2 p-2 text-xs">
-                  <div className="mb-1 text-base">{evInfo?.emoji || "🎟️"}</div>
-                  <div className="font-display text-sm text-cream">{c.nombre}</div>
-                  <div className="mb-2 font-cond text-mut">Inv. {fmt(c.inversion)} · retorno {fmt(c.min)}–{fmt(c.max)}</div>
-                  <button className="w-fit rounded border border-gold2/50 px-2 py-1 text-[11px] text-gold hover:bg-gold/10 disabled:opacity-40" disabled={state.comunitarios.length > 0 || state.dinero < c.inversion || state.dia >= 6} onClick={() => dispatch({ type: "PROGRAMAR_SOCIAL", actividad: k })}>{state.comunitarios.some(x => x.tipo === k) ? "Agendado" : "Agendar"}</button>
-                </div>;
-              })}
-            </div>
-            <div className="border-t border-line pt-2 font-cond text-xs text-mut">Sucursales: <b className="text-cream">{nSuc}</b> · Gerentes: <b className="text-cream">{state.personal.filter(p => p.tipo === "gerente").length}</b> · ingreso estimado: <b className="text-gold">{fmt(650 + 8 * state.fama)}/sem</b></div>
-          </div>
         </Modal>
       )}
 

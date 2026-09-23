@@ -124,8 +124,8 @@ export function FilaStat({ label, v }: { label: string; v: number }) {
 }
 
 // Modal con animación Framer Motion
-export function Modal({ title, icon, onClose, children, wide, fit }: {
-  title: ReactNode; icon?: string; onClose?: () => void; children: ReactNode; wide?: boolean; fit?: boolean;
+export function Modal({ title, icon, onClose, children, wide, fit, className = "" }: {
+  title: ReactNode; icon?: string; onClose?: () => void; children: ReactNode; wide?: boolean; fit?: boolean; className?: string;
 }) {
   return (
     <AnimatePresence>
@@ -136,7 +136,7 @@ export function Modal({ title, icon, onClose, children, wide, fit }: {
           initial={{ scale: 0.92, y: 24, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 320, damping: 28 }}
-           className={`panel relative flex w-full flex-col ${wide ? "max-w-4xl" : "max-w-lg"} max-h-[calc(100vh-1rem)] overflow-hidden scroll-fino hard-shadow`}>
+           className={`panel relative flex w-full flex-col ${wide ? "max-w-4xl" : "max-w-lg"} max-h-[calc(100vh-1rem)] overflow-hidden scroll-fino hard-shadow ${className}`}>
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-panel2/95 px-5 py-3 backdrop-blur-sm">
             <h3 className="font-display flex items-center gap-2 text-2xl tracking-wide text-gold">
               {icon && <I n={icon} className="h-5 w-5" />}{title}

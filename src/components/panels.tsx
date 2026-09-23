@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { CATEGORIAS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
+import { CATEGORIAS, COMUNITARIOS, CURSOS, EQUIPOS, EVENTOS_CLUB_INFO, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
 import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, sucursales, totalPeleas, valoracion } from "../game/engine";
 import { guardarEnRanura, useGame } from "../game/state";
@@ -312,6 +312,7 @@ export function PanelPerfil() {
   const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
   const [ramaActiva, setRamaActiva] = useState<RamaCurso>("deportiva");
   const [detalleRama, setDetalleRama] = useState<RamaCurso | null>(null);
+  const [socialAbierto, setSocialAbierto] = useState(false);
   const ramas: { id: RamaCurso; nombre: string; icono: string; color: string }[] = [
     { id: "deportiva", nombre: "Rama Deportiva", icono: "glove", color: "text-blood" },
     { id: "promotora", nombre: "Rama Promotora", icono: "ring", color: "text-gold" },
@@ -362,10 +363,9 @@ export function PanelPerfil() {
 
       {/* CURSOS */}
       {seccionPerfil === "cursos" && <section className="mx-auto min-h-0 max-w-3xl">
-        <h3 className="mb-2 font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>
+        <h3 className="mb-2 text-center font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>
         <div className="mb-2 flex flex-wrap justify-center gap-1.5">
           {ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`w-fit rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="mr-1 inline h-3.5 w-3.5" />{rama.nombre.replace("Rama ", "")}</button>)}
-          <Btn small variant="gold" className="w-fit" onClick={() => setDetalleRama(ramaActiva)}>Ver cursos</Btn>
         </div>
         <div className="profile-branch-panel grid gap-2">
           {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
@@ -410,6 +410,10 @@ export function PanelPerfil() {
         </div>
       </section>}
 
+      <div className="mt-3 flex justify-center">
+        <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}><I n="calendar" className="h-3.5 w-3.5" /> Finanzas sociales</Btn>
+      </div>
+
       {detalleRama && (
         <Modal wide fit title={`Cursos · ${ramas.find(r => r.id === detalleRama)?.nombre ?? "Rama"}`} icon="cap" onClose={() => setDetalleRama(null)}>
           <div className="space-y-2">
@@ -422,6 +426,26 @@ export function PanelPerfil() {
                 <p className="mt-1 font-cond text-xs text-sand">{c.desc}</p>
               </div>;
             })}
+          </div>
+        </Modal>
+      )}
+
+      {socialAbierto && (
+        <Modal wide fit title="Finanzas sociales" icon="calendar" onClose={() => setSocialAbierto(false)}>
+          <div className="space-y-2">
+            <p className="font-cond text-xs text-sand">Elegí una actividad, invertí una vez y cobrá el resultado al cerrar la semana.</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(["bingo", "naipes", "festival"] as const).map(k => {
+                const c = COMUNITARIOS[k];
+                const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : EVENTOS_CLUB_INFO.festivalBoxeo;
+                return <div key={k} className="rounded-xl border border-line bg-panel2 p-2 text-xs">
+                  <div className="mb-1 text-base">{evInfo?.emoji || "🎟️"}</div>
+                  <div className="font-display text-sm text-cream">{c.nombre}</div>
+                  <div className="mb-2 font-cond text-mut">Inv. {fmt(c.inversion)} · retorno {fmt(c.min)}–{fmt(c.max)}</div>
+                  <button className="w-fit rounded border border-gold2/50 px-2 py-1 text-[11px] text-gold hover:bg-gold/10 disabled:opacity-40" disabled={state.comunitarios.length > 0 || state.dinero < c.inversion || state.dia >= 6} onClick={() => dispatch({ type: "PROGRAMAR_SOCIAL", actividad: k })}>{state.comunitarios.some(x => x.tipo === k) ? "Agendado" : "Agendar"}</button>
+                </div>;
+              })}
+            </div>
           </div>
         </Modal>
       )}

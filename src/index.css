@@ -250,4 +250,11 @@ html.movimiento-reducido *::after {
   .staff-card > p { margin-top: .25rem !important; min-height: 28px !important; font-size: .65rem !important; line-height: 1.15 !important; }
   .staff-card .mt-3 { margin-top: .35rem !important; }
   .profile-branch-panel { display: none !important; }
+  .boxer-sheet-content { font-size: .88em !important; }
+  .boxer-sheet-main { gap: .45rem !important; }
+  .boxer-sheet-right, .boxer-sheet-left { gap: .4rem !important; }
+  .boxer-sheet-right > .panel, .boxer-sheet-left > .panel { padding: .5rem !important; }
+  .boxer-sheet-right .min-h-\[56px\] { min-height: 46px !important; }
+  .boxer-sheet-right .p-2\.5 { padding: .45rem !important; }
+  .boxer-sheet-left > div:first-child { height: 5.5rem !important; }
 }

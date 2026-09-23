@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import BoxerSheet from "./components/BoxerSheet";
 import CityMap from "./components/CityMap";
 import FightScreen from "./components/FightScreen";
@@ -25,6 +26,16 @@ function PantallaPrincipal() {
   const [ajustes, setAjustes] = useState(false);
   const [carteleraAbierta, setCarteleraAbierta] = useState(false);
   const [atajos, setAtajos] = useState<Atajos>(() => cargarAtajos());
+  const diaAnterior = useRef(state.dia);
+  const [transicionDia, setTransicionDia] = useState(false);
+
+  useEffect(() => {
+    if (diaAnterior.current === state.dia) return;
+    diaAnterior.current = state.dia;
+    setTransicionDia(true);
+    const timer = window.setTimeout(() => setTransicionDia(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [state.dia]);
 
   useEffect(() => { guardarAtajos(atajos); }, [atajos]);
 
@@ -140,6 +151,23 @@ function PantallaPrincipal() {
         onAjustes={() => setAjustes(true)}
         pulsoAvanzar={state.dia === 6 && state.pendientes.length > 0}
       />
+
+      <AnimatePresence>
+        {transicionDia && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22 }}
+            className="pointer-events-none fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-xl border border-gold2/70 bg-panel2/95 px-5 py-2 text-center shadow-2xl backdrop-blur-md"
+          >
+            <div className="font-display text-sm uppercase tracking-wide text-gold">Día actualizado</div>
+            <div className="font-cond text-xs text-sand">
+              {state.dia === 6 ? "Sábado: guanteos y peleas programadas." : state.dia === 7 ? "Domingo: balance semanal listo para revisar." : "Preparación: revisá energía, enfoques y pendientes."}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mx-auto flex min-h-0 w-full flex-1 gap-4 overflow-hidden px-4 py-3">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
