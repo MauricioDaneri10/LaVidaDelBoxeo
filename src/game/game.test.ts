@@ -236,7 +236,18 @@ describe("reglas principales de La Vida del Boxeo", () => {
     let estado = { ...crearEstadoBase(), creado: true, fama: 40, seguidores: 10_000 };
     for (let i = 0; i < 6; i++) estado = reductor(estado, { type: "AVANZAR_DIA" });
     estado = reductor(estado, { type: "CERRAR_DOMINGO" });
-    expect(estado.seguidores).toBe(4_800);
+    expect(estado.seguidores).toBe(2_600);
+  });
+
+  it("ofrece un préstamo único y descuenta cuotas en cada balance", () => {
+    let estado = { ...crearEstadoBase(), creado: true, dinero: -143 };
+    estado = reductor(estado, { type: "PEDIR_PRESTAMO" });
+    expect(estado.dinero).toBe(357);
+    expect(estado.prestamo?.saldo).toBe(600);
+    for (let i = 0; i < 6; i++) estado = reductor(estado, { type: "AVANZAR_DIA" });
+    estado = reductor(estado, { type: "CERRAR_DOMINGO" });
+    expect(estado.prestamo?.saldo).toBe(540);
+    expect(estado.libroGastos.some(l => l.concepto.includes("Cuota del préstamo"))).toBe(true);
   });
 
   it("evita que el plantel crezca sin límite después de licenciar boxeadores", () => {

@@ -144,7 +144,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   };
 
   return (
-    <div className="game-screen h-full overflow-hidden space-y-3">
+    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-3">
       <div className="panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Plantel de Boxeadores</h2>
         <Chip tone={alumnosEspera.length ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEspera.length ? ` · ${alumnosEspera.length} en espera` : ""}</Chip>
@@ -230,7 +230,7 @@ export function PanelMercado() {
     .sort(([a], [b]) => (a === recomendadoId ? -1 : b === recomendadoId ? 1 : 0));
 
   return (
-    <div className="game-screen h-full overflow-hidden space-y-2">
+    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
       <div className="panel flex flex-wrap items-center gap-2 p-2.5">
         <h2 className="font-display text-xl tracking-wide text-gold">Equipamiento e Instalaciones</h2>
         <span className="font-cond text-xs text-sand">Caja: <b className="text-gold">{fmt(state.dinero)}</b></span>
@@ -312,6 +312,11 @@ export function PanelMercado() {
           <Btn small variant="gold" disabled={(pagina + 1) * 4 >= items.length} onClick={() => setPagina(p => p + 1)}>Más</Btn>
         </div>
       )}
+      <div className="mt-auto grid gap-2 sm:grid-cols-3">
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Caja disponible</span><b className="mt-1 block text-gold">{fmt(state.dinero)}</b></div>
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Mejoras instaladas</span><b className="mt-1 block text-cream">{state.equipamiento.length} / 21</b></div>
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Consejo</span><b className="mt-1 block text-neonc">Priorizá recuperación si la energía baja</b></div>
+      </div>
     </div>
   );
 }
@@ -331,7 +336,7 @@ export function PanelPerfil() {
   const puedeLegado = state.plantel.some(p => p.titulo === 4) || state.fama >= 85;
 
   return (
-    <div className="game-screen h-full overflow-hidden space-y-2">
+    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
       <div className="panel grid gap-2 p-2.5 md:grid-cols-[1fr_auto]">
         <div>
           <h2 className="font-display text-xl tracking-wide text-gold">Perfil del Coach · {state.nombreJugador}</h2>
@@ -421,7 +426,7 @@ export function PanelPerfil() {
       </section>}
 
       <div className="mt-3 flex justify-center">
-        <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}><I n="calendar" className="h-3.5 w-3.5" /> Finanzas sociales</Btn>
+        <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}><I n="calendar" className="h-3.5 w-3.5" /> Actividades del club</Btn>
       </div>
 
       {detalleRama && (
@@ -441,13 +446,13 @@ export function PanelPerfil() {
       )}
 
       {socialAbierto && (
-        <Modal wide fit title="Finanzas sociales" icon="calendar" onClose={() => setSocialAbierto(false)}>
+        <Modal wide fit title="Actividades del club" icon="calendar" onClose={() => setSocialAbierto(false)}>
           <div className="space-y-2">
             <p className="font-cond text-xs text-sand">Elegí una actividad, invertí una vez y cobrá el resultado al cerrar la semana.</p>
             <div className="grid gap-2 sm:grid-cols-3">
-              {(["bingo", "naipes", "festival"] as const).map(k => {
+              {(["bingo", "naipes", "festival", "claseAbierta"] as const).map(k => {
                 const c = COMUNITARIOS[k];
-                const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : EVENTOS_CLUB_INFO.festivalBoxeo;
+                const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : k === "festival" ? EVENTOS_CLUB_INFO.festivalBoxeo : { emoji: "🏫" };
                 return <div key={k} className="rounded-xl border border-line bg-panel2 p-2 text-xs">
                   <div className="mb-1 text-base">{evInfo?.emoji || "🎟️"}</div>
                   <div className="font-display text-sm text-cream">{c.nombre}</div>
@@ -480,6 +485,11 @@ export function PanelPerfil() {
           })}
         </div>
       </section>}
+      <div className="mx-auto mt-auto grid max-w-5xl gap-2 sm:grid-cols-3">
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Seguidores</span><b className="mt-1 block text-gold">{state.seguidores.toLocaleString("es-AR")}</b></div>
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Resultado histórico</span><b className="mt-1 block text-cream">{fmt(state.stats.resultadoNeto)}</b></div>
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Caja de emergencia</span><b className="mt-1 block text-neonc">{state.prestamo ? `Préstamo: ${fmt(state.prestamo.saldo)}` : "Sin deuda activa"}</b></div>
+      </div>
     </div>
   );
 }
@@ -492,7 +502,7 @@ export function PanelPersonal() {
   const nSuc = sucursales(state);
 
   return (
-    <div className="game-screen h-full overflow-hidden space-y-2">
+    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
       <div className="panel flex flex-wrap items-center gap-4 p-4">
         <h2 className="font-display text-2xl tracking-wide text-gold">Cuerpo Técnico & Empleados</h2>
         <span className="font-cond text-sm text-sand">Contratados: <b className="text-cream">{state.personal.length}</b></span>
@@ -542,6 +552,11 @@ export function PanelPersonal() {
           <Btn small variant="gold" disabled={(pagina + 1) * 2 >= tipos.length} onClick={() => setPagina(p => p + 1)}>Más personal</Btn>
         </div>
       )}
+      <div className="mt-auto panel grid gap-2 p-3 sm:grid-cols-3 font-cond text-xs text-sand">
+        <div><span className="text-mut">Nómina actual</span><b className="mt-1 block text-gold">{fmt(state.personal.reduce((ac, p) => ac + PERSONAL_INFO[p.tipo].sueldo, 0))} / semana</b></div>
+        <div><span className="text-mut">Gestión automática</span><b className="mt-1 block text-neonc">{state.personal.some(p => p.tipo === "directorTecnico") ? "Activa" : "Manual"}</b></div>
+        <div><span className="text-mut">Próximo criterio</span><b className="mt-1 block text-cream">Contratá según la caja</b></div>
+      </div>
     </div>
   );
 }

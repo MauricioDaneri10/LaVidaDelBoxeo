@@ -390,9 +390,9 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-            {(["bingo", "naipes", "festival"] as const).map(k => {
+            {(["bingo", "naipes", "festival", "claseAbierta"] as const).map(k => {
               const c = COMUNITARIOS[k];
-              const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : EVENTOS_CLUB_INFO.festivalBoxeo;
+              const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : k === "festival" ? EVENTOS_CLUB_INFO.festivalBoxeo : { emoji: "🏫" };
               const emoji = evInfo?.emoji || "🎟️";
               return (
                 <div key={k} className="p-1.5 rounded-xl bg-panel2 border border-line text-[10px] font-cond space-y-0.5">

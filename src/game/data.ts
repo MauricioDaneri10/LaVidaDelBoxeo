@@ -254,10 +254,11 @@ export const PROPIEDADES: Record<PropiedadId, {
 export const PROPIEDADES_INFO = PROPIEDADES;
 
 // ==================== EVENTOS COMUNITARIOS ====================
-export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival", { nombre: string; inversion: number; min: number; max: number; extra: string }> = {
+export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival" | "claseAbierta", { nombre: string; inversion: number; min: number; max: number; extra: string }> = {
   bingo: { nombre: "Gran Bingo Familiar del Club", inversion: 200, min: 320, max: 650, extra: "Atrae alumnos al gimnasio" },
   naipes: { nombre: "Torneo de Juegos de Mesa y Naipes", inversion: 100, min: 180, max: 420, extra: "Noche de camaradería" },
   festival: { nombre: "Noche de Festival y Exhibición de Boxeo", inversion: 500, min: 700, max: 1400, extra: "+3 de Fama garantizada" },
+  claseAbierta: { nombre: "Clase Abierta del Barrio", inversion: 60, min: 100, max: 220, extra: "Atrae alumnos recreativos" },
 };
 
 // Eventos de club ampliados

@@ -290,7 +290,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     }
   });
   st.comunitarios = [];
-  const seguidoresObjetivo = Math.max(0, Math.round(st.fama * 120 + st.stats.victorias * 80 - derrotas * 20));
+  const seguidoresObjetivo = Math.max(0, Math.round(200 + st.fama * 60 + st.stats.victorias * 40 - derrotas * 20));
   // Los seguidores reflejan la salud actual del club: la fama y los resultados
   // los atraen, pero una mala racha también puede hacerlos bajar.
   st.seguidores = seguidoresObjetivo;
@@ -311,6 +311,16 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     const costoFinanciero = Math.max(10, Math.ceil(Math.abs(st.dinero) * 0.03));
     gastos = linea(gastos, "Costo financiero por caja negativa", costoFinanciero);
     st = conToast(st, `La caja está en negativo: se suma un costo financiero de ${fmt(costoFinanciero)}.`, "alerta");
+  }
+
+  if (st.prestamo && st.prestamo.saldo > 0) {
+    const cuota = Math.min(st.prestamo.cuota, st.prestamo.saldo);
+    gastos = linea(gastos, `Cuota del préstamo (${st.prestamo.semanasRestantes} restantes)`, cuota);
+    st.prestamo = { ...st.prestamo, saldo: st.prestamo.saldo - cuota, semanasRestantes: Math.max(0, st.prestamo.semanasRestantes - 1) };
+    if (st.prestamo.saldo <= 0) {
+      st.prestamo = null;
+      st = conToast(st, "Préstamo cancelado: la caja vuelve a ser completamente tuya.", "ok");
+    }
   }
 
   const total = totalIngresos - gastos.reduce((a, l) => a + l.monto, 0);
@@ -689,6 +699,11 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.comunitarios.length > 0) return conToast(s, "Ya hay una actividad social agendada para esta semana.", "info");
       if (s.dinero < info.inversion) return conToast(s, `Necesitás ${fmt(info.inversion)} para organizar ${info.nombre}.`, "alerta");
       return conToast({ ...s, dinero: s.dinero - info.inversion, comunitarios: [{ tipo: a.actividad, nombre: info.nombre }] }, `${info.nombre} agendado para el domingo. Se invertieron ${fmt(info.inversion)}.`, "ok");
+    }
+
+    case "PEDIR_PRESTAMO": {
+      if (s.prestamo && s.prestamo.saldo > 0) return conToast(s, "Ya tenés un préstamo activo. Primero terminá de pagarlo.", "info");
+      return conToast({ ...s, dinero: s.dinero + 500, prestamo: { saldo: 600, cuota: 60, semanasRestantes: 10 } }, "Préstamo de emergencia aprobado: recibís $500 y devolvés $600 en 10 cuotas.", "oro");
     }
 
     case "EVENTO": {

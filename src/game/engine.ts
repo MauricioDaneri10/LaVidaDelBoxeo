@@ -224,6 +224,7 @@ export function proyeccionSemanal(e: EstadoJuego): { ingresos: LineaLibro[]; gas
   const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
   if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
   if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: Math.max(10, Math.ceil(Math.abs(e.dinero) * 0.03)) });
+  if (e.prestamo && e.prestamo.saldo > 0) gastos.push({ concepto: `Cuota del préstamo (${e.prestamo.semanasRestantes} restantes)`, monto: Math.min(e.prestamo.cuota, e.prestamo.saldo) });
   const totalIngresos = ingresos.reduce((total, l) => total + l.monto, 0);
   const totalGastos = gastos.reduce((total, l) => total + l.monto, 0);
   return { ingresos, gastos, total: totalIngresos - totalGastos };
@@ -728,6 +729,7 @@ export function crearEstadoBase(): EstadoJuego {
     personal: [],
     propiedades: [],
     patrocinio: null,
+    prestamo: null,
     eventos: [],
     comunitarios: [],
     consejos: CONSEJOS_INICIALES.map(c => ({ ...c, cumplido: false, reclamado: false })),
@@ -852,7 +854,7 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.partidaId = typeof r.partidaId === "string" && r.partidaId ? r.partidaId : uid();
   s.dinero = Number.isFinite(Number(r.dinero)) ? Number(r.dinero) : 0;
   s.fama = clamp(Number(r.fama) || 0, 0, 100);
-  s.seguidores = Math.max(0, Number(r.seguidores) || Math.round(s.fama * 120));
+  s.seguidores = Math.max(0, Number(r.seguidores) || Math.round(200 + s.fama * 60));
   s.recreativos = clamp(Number(r.recreativos) || 0, 0, 999);
   s.dia = clamp(Number(r.dia) || 1, 1, 7);
   s.semana = Math.max(1, Number(r.semana) || 1);
@@ -861,6 +863,9 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.resumen = null;
   s.patrocinio = r.patrocinio && typeof r.patrocinio === "object" && typeof r.patrocinio.nombre === "string"
     ? { nombre: r.patrocinio.nombre, semanal: Math.max(0, Number(r.patrocinio.semanal) || 0), semanas: Math.max(0, Number(r.patrocinio.semanas) || 0) }
+    : null;
+  s.prestamo = r.prestamo && typeof r.prestamo === "object"
+    ? { saldo: Math.max(0, Number(r.prestamo.saldo) || 0), cuota: Math.max(0, Number(r.prestamo.cuota) || 0), semanasRestantes: Math.max(0, Number(r.prestamo.semanasRestantes) || 0) }
     : null;
   s.marcaRopa = typeof r.marcaRopa === "string" ? r.marcaRopa : "";
   s.nombreJugador = typeof r.nombreJugador === "string" ? r.nombreJugador : "";

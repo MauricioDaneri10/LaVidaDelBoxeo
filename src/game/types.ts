@@ -138,7 +138,7 @@ export interface AccionEvento {
   fama?: number;
   nombre?: string;
   semanas?: number;
-  comunitario?: "bingo" | "naipes" | "festival";
+  comunitario?: TipoComunitario;
 }
 
 export interface OpcionEvento { texto: string; accion: AccionEvento; }
@@ -154,7 +154,9 @@ export interface EventoJuego {
 }
 
 export interface PatrocinioActivo { nombre: string; semanal: number; semanas: number; }
-export interface ComunitarioProgramado { tipo: "bingo" | "naipes" | "festival"; nombre: string; }
+export type TipoComunitario = "bingo" | "naipes" | "festival" | "claseAbierta";
+export interface ComunitarioProgramado { tipo: TipoComunitario; nombre: string; }
+export interface PrestamoActivo { saldo: number; cuota: number; semanasRestantes: number; }
 export interface Consejo { id: string; texto: string; fama: number; dinero?: number; cumplido: boolean; reclamado: boolean; }
 export interface NotaPrensa { id: string; semana: number; texto: string; }
 export interface Cinturon { id: string; dueno: string; nivel: 1 | 2 | 3 | 4; semana: number; }
@@ -200,6 +202,7 @@ export interface EstadoJuego {
   personal: MiembroPersonal[];
   propiedades: PropiedadId[];
   patrocinio: PatrocinioActivo | null;
+  prestamo: PrestamoActivo | null;
   eventos: EventoJuego[];
   comunitarios: ComunitarioProgramado[];
   consejos: Consejo[];
@@ -268,7 +271,8 @@ export type Accion =
   | { type: "DESPEDIR"; id: string }
   | { type: "RETIRAR_ATLETA"; id: string }
   | { type: "ALTERNAR_VELADA" }
-  | { type: "PROGRAMAR_SOCIAL"; actividad: "bingo" | "naipes" | "festival" }
+  | { type: "PROGRAMAR_SOCIAL"; actividad: TipoComunitario }
+  | { type: "PEDIR_PRESTAMO" }
   | { type: "EVENTO"; id: string; opcion: number }
   | { type: "RECLAMAR_CONSEJO"; id: string }
   | { type: "TOAST"; texto: string; tono?: Toast["tono"] }

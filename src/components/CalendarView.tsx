@@ -15,7 +15,7 @@ export default function CalendarioView() {
     ...state.comunitarios.map(c => ({ dia: 7, titulo: c.nombre, detalle: "Recaudación del domingo", tono: "text-neonc" })),
   ];
   return (
-    <div className="game-screen h-full overflow-hidden space-y-3">
+    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-3">
       <div className="panel flex items-center justify-between gap-3 p-3">
         <div><h2 className="font-display text-2xl tracking-wide text-gold">Calendario del club</h2><p className="font-cond text-xs text-sand">Semana {state.semana} · {MESES[fecha.getMonth()]} {fecha.getFullYear()}</p></div>
         <div className="rounded-xl border border-gold2/40 bg-gold/10 px-3 py-2 text-right font-cond text-xs text-gold"><I n="calendar" className="mr-1 inline h-4 w-4" />{DIAS[state.dia - 1]} {fecha.getDate()}</div>
@@ -40,6 +40,11 @@ export default function CalendarioView() {
         <div className="rounded-lg border border-line bg-panel2 p-2 font-cond text-xs text-sand">Próximo paso <b className="block text-cream">{state.dia === 6 ? "Resolver cartelera" : "Preparar equipo"}</b></div>
       </div>
       <Btn small variant="dark" disabled><I n="info" className="h-3.5 w-3.5" /> Las fechas se actualizan al avanzar el día.</Btn>
+      <div className="mt-auto grid gap-2 sm:grid-cols-3">
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Caja prevista</span><b className="mt-1 block text-gold">{fmt(state.dinero)}</b></div>
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Seguidores actuales</span><b className="mt-1 block text-cream">{state.seguidores.toLocaleString("es-AR")}</b></div>
+        <div className="panel p-3 font-cond text-xs text-sand"><span className="text-mut">Recordatorio</span><b className="mt-1 block text-neonc">{state.dia === 7 ? "Revisá el balance" : "Prepará la próxima sesión"}</b></div>
+      </div>
     </div>
   );
 }

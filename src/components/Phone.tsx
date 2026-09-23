@@ -179,6 +179,8 @@ export default function DockLateral({
               <p className="font-cond text-xs text-sand mt-0.5">
                 Fondos por debajo de $300. Cuidado con los salarios del personal en el balance del domingo.
               </p>
+              {!state.prestamo && <button onClick={() => dispatch({ type: "PEDIR_PRESTAMO" })} className="mt-2 btn-poster border border-gold2/60 bg-gold/15 px-2.5 py-1 font-cond text-xs text-gold cursor-pointer">Pedir préstamo de emergencia · $500</button>}
+              {state.prestamo && <p className="mt-1 font-cond text-[11px] text-gold">Préstamo activo: quedan {state.prestamo.semanasRestantes} cuotas de {fmt(state.prestamo.cuota)}.</p>}
             </div>
           )}
 
