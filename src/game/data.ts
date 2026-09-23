@@ -53,9 +53,9 @@ export const APODOS = [
 export const RASGOS = [
   { id: "mandibula", nombre: "Mandíbula de Acero", desc: "Resiste mejor los golpes de poder (+defensa efectiva)." },
   { id: "hijo", nombre: "Hijo de Leyenda", desc: "Crece más rápido en mentalidad e inteligencia." },
-  { id: "tren", nombre: "Tren Inferior", desc: "Potencia de golpes notablemente superior." },
+  { id: "tren", nombre: "Potencia de golpe", desc: "Potencia de golpe notablemente superior." },
   { id: "gacela", nombre: "Gacela del Ring", desc: "Velocidad y esquivas por encima de la media." },
-  { id: "reloj", nombre: "Reloj Suizo", desc: "Mantiene el ritmo: gasta menos energía por golpe." },
+  { id: "reloj", nombre: "Ritmo constante", desc: "Mantiene el ritmo y gasta menos energía por golpe." },
   { id: "espejo", nombre: "Lector de Espejos", desc: "Gran eficacia: pocos golpes al aire." },
   { id: "volcan", nombre: "Volcán Dormido", desc: "Cuando conecta de poder, duele el doble (críticos más frecuentes)." },
   { id: "maraton", nombre: "Maratonista", desc: "Recupera energía entre asaltos como pocos." },
@@ -105,8 +105,8 @@ export const COMBOS: Record<ComboId, {
   estilista: { nombre: "Enfoque Estilista", corto: "Estilista", desc: "Eficacia + Velocidad + Técnica + Defensa. Boxeo de precisión y manos limpias.", stats: ["eficacia", "velocidad", "tecnica", "defensa"], energia: -8, bonus: 1, icono: "spark" },
   presion: { nombre: "Presión Asfixiante", corto: "Presión", desc: "Resistencia + Ataque + Eficacia + Velocidad. No dejar respirar al rival.", stats: ["resistencia", "ataque", "eficacia", "velocidad"], energia: -8, bonus: 1, icono: "bolt" },
   tactico: { nombre: "Maestro Táctico", corto: "Táctico", desc: "Defensa + Inteligencia + Mentalidad + Técnica. Ganar la pelea antes de pelearla.", stats: ["defensa", "inteligencia", "mentalidad", "tecnica"], energia: -6, bonus: 1, icono: "target" },
-  acondicionamiento: { nombre: "Acondicionamiento Total", corto: "Doble Turno", desc: "Fuerza + Resistencia + Velocidad + Eficacia. Doble turno Lun-Mié-Vie: +35% de ganancia, −6 de energía extra.", stats: ["fuerza", "resistencia", "velocidad", "eficacia"], energia: -14, bonus: 1.35, icono: "dumbbell" },
-  descanso: { nombre: "Descanso Activo y Spa", corto: "Descanso", desc: "+25 de Energía, y un poco de Mentalidad e Inteligencia. El cuerpo también entrena descansando.", stats: ["mentalidad", "inteligencia"], energia: 25, bonus: 0.5, icono: "heart" },
+  acondicionamiento: { nombre: "Enfoque Completo", corto: "Completo", desc: "Fuerza + Resistencia + Velocidad + Eficacia. Mejora equilibrada.", stats: ["fuerza", "resistencia", "velocidad", "eficacia"], energia: -14, bonus: 1.35, icono: "dumbbell" },
+  descanso: { nombre: "Descanso", corto: "Descanso", desc: "+25 de energía y recuperación mental. El cuerpo también entrena descansando.", stats: ["mentalidad", "inteligencia"], energia: 25, bonus: 0.5, icono: "heart" },
 };
 export const LISTA_COMBOS = Object.keys(COMBOS) as ComboId[];
 
@@ -325,13 +325,13 @@ export const MEDIOS = ["Diario La Ciudad", "Radio Guante", "Canal 8 Deportes", "
 
 // ==================== CONSEJOS DE DON ANSELMO ====================
 export const CONSEJOS_INICIALES: Omit<Consejo, "cumplido" | "reclamado">[] = [
-  { id: "c1", texto: "Prepará a tu primer alumno: completá sus prácticas, conseguí la licencia de entrenador y habilitalo para competir.", fama: 5 },
-  { id: "c2", texto: "Ganá tu primera pelea oficial. La esquina siempre cree en vos.", fama: 5 },
+  { id: "c1", texto: "Prepará a tu primer alumno: completá sus prácticas, conseguí la licencia de entrenador y habilitalo para competir.", fama: 2 },
+  { id: "c2", texto: "Ganá tu primera pelea oficial. La esquina siempre cree en vos.", fama: 2 },
   { id: "c3", texto: "Comprá tu primer equipamiento en el mercado. Un gimnasio serio se nota en las herramientas.", fama: 3 },
-  { id: "c4", texto: "Organizá tu primera velada de boxeo. La recaudación es tuya.", fama: 8 },
-  { id: "c5", texto: "Llegá a 40 de fama. Que todo el barrio hable de tu gimnasio.", fama: 6 },
-  { id: "c6", texto: "Colgá tu primer cinturón en la pared del gimnasio.", fama: 10 },
-  { id: "c7", texto: "Contratá a tu primer miembro del personal. Nadie llega solo a la cima.", fama: 4 },
+  { id: "c4", texto: "Organizá tu primera velada de boxeo. La recaudación es tuya.", fama: 2 },
+  { id: "c5", texto: "Llegá a 40 de fama. Que todo el barrio hable de tu gimnasio.", fama: 3 },
+  { id: "c6", texto: "Colgá tu primer cinturón en la pared del gimnasio.", fama: 3 },
+  { id: "c7", texto: "Contratá a tu primer miembro del personal. Nadie llega solo a la cima.", fama: 1 },
 ];
 
 // Calendario

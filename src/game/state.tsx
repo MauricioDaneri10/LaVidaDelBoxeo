@@ -87,7 +87,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
 
   // boca a boca del barrio (sin costo, solo oportunidad)
   const alumnos = alumnosActivos(st).length;
-  const probBoca = 0.3 + st.fama / 160 + (st.personal.some(p => p.tipo === "asistente") ? 0.15 : 0) + (st.equipamiento.includes("carteles") ? 0.1 : 0);
+  const probBoca = 0.12 + st.fama / 500 + (st.personal.some(p => p.tipo === "asistente") ? 0.06 : 0) + (st.equipamiento.includes("carteles") ? 0.04 : 0);
   if (st.semana > 1 && alumnos < capacidadAlumnos(st) && chance(probBoca)) {
     const nuevo = genPugilista({ rol: "alumno", joven: chance(0.4) });
     st.plantel = [...st.plantel, nuevo];
@@ -121,14 +121,14 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
   st.stats = { ...st.stats };
 
   // Guanteos (sparring): alumnos, amateurs y profesionales pueden hacerlos.
-  const conEnergia = st.plantel.filter(p => !p.enEspera && p.energia >= 20 && (p.rol === "boxeador" || p.fogueo < p.fogueoMeta));
+  const conEnergia = st.plantel.filter(p => !p.enEspera && p.energia >= 20);
   if (conEnergia.length > 0 && st.plantel.length >= 2) {
     const lugares = ["en el gimnasio", "con el " + elegir(["Club La Loma", "Club Ferro"]), "en una exhibición de barrio"];
     const lugar = elegir(lugares);
     let guanteos = 0;
     st.plantel = st.plantel.map(p => {
-      if (p.enEspera || p.energia < 20 || (p.rol === "alumno" && p.fogueo >= p.fogueoMeta)) return p;
-      const avance = azar(1, 2);
+      if (p.enEspera || p.energia < 20) return p;
+      const avance = p.rol === "alumno" ? (p.fogueo < p.fogueoMeta ? azar(1, 2) : 0) : azar(1, 2);
       guanteos += avance;
       const n = { ...p, atrib: { ...p.atrib } };
       n.fogueo = Math.min(p.fogueoMeta, p.fogueo + avance);
@@ -258,7 +258,15 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   }
   const totalGastos = gastos.reduce((a, l) => a + l.monto, 0);
 
-  const total = totalIngresos - totalGastos;
+  // La deuda es posible, pero visible y con un costo creciente. Nunca se
+  // corrige silenciosamente ni se convierte en dinero infinito.
+  if (st.dinero < 0) {
+    const costoFinanciero = Math.max(10, Math.ceil(Math.abs(st.dinero) * 0.03));
+    gastos = linea(gastos, "Costo financiero por caja negativa", costoFinanciero);
+    st = conToast(st, `La caja está en negativo: se suma un costo financiero de ${fmt(costoFinanciero)}.`, "alerta");
+  }
+
+  const total = totalIngresos - gastos.reduce((a, l) => a + l.monto, 0);
   st.dinero += total;
   st.stats.dineroGanado += Math.max(0, total);
   st.stats.resultadoNeto += total;
@@ -537,6 +545,18 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!info.multiple && s.personal.some(p => p.tipo === a.tipo)) return conToast(s, "Ese puesto ya está cubierto.", "info");
       if ((a.tipo === "gerente" || a.tipo === "entrenadorLocal") && s.personal.filter(p => p.tipo === a.tipo).length >= sucursales(s))
         return conToast(s, "Necesitás una sucursal más para ese puesto.", "alerta");
+      const requisito: Partial<Record<PersonalId, { semana?: number; fama?: number; curso?: keyof typeof CURSOS }>> = {
+        representante: { semana: 2, curso: "veladas" },
+        preparador: { semana: 2 },
+        asistente: { semana: 2 },
+        difusion: { semana: 3, fama: 8 },
+        gerente: { semana: 4, curso: "franquicias" },
+        entrenadorLocal: { semana: 4, curso: "franquicias" },
+      };
+      const req = requisito[a.tipo];
+      if (req?.semana && s.semana < req.semana) return conToast(s, `${info.nombre} se habilita a partir de la semana ${req.semana}.`, "info");
+      if (req?.fama && s.fama < req.fama) return conToast(s, `${info.nombre} requiere ${req.fama} de fama.`, "info");
+      if (req?.curso && !s.cursos.includes(req.curso)) return conToast(s, `Necesitás el curso ${CURSOS[req.curso].nombre}.`, "info");
       const nombres = ["Héctor Paz", "Miriam Sol", "Justo Lerma", "Carla Benítez", "Tito Aguirre", "Nadia Ríos", "Oscar Vidal", "Pamela Cruz"];
       const nuevo = { id: uid(), tipo: a.tipo as PersonalId, nombre: elegir(nombres) };
       return conToast({ ...s, personal: [...s.personal, nuevo] },
@@ -557,12 +577,17 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!p) return s;
       const nombre = p.nombre.split(" ")[0];
       const antes = alumnosEnEspera(s).map(x => x.id);
-      const siguiente = normalizarListaEspera({ ...s, plantel: s.plantel.filter(x => x.id !== a.id) });
+      const esLeyenda = p.rol === "boxeador" && (p.titulo >= 3 || p.record.v >= 15 || p.record.ko >= 10);
+      const siguiente = normalizarListaEspera({
+        ...s,
+        plantel: s.plantel.filter(x => x.id !== a.id),
+        salonFama: esLeyenda ? [{ id: p.id, nombre: p.nombre, club: s.nombreGimnasio, record: { ...p.record }, titulos: p.titulo, semanaRetiro: s.semana, motivo: p.titulo >= 3 ? "Campeón de alto nivel" : "Récord histórico" }, ...s.salonFama].slice(0, 50) : s.salonFama,
+      });
       const promovido = alumnosActivos(siguiente).find(x => !antes.includes(x.id));
       return conToast(siguiente,
         promovido
           ? `${nombre} deja el club. Se liberó una plaza: ${promovido.nombre.split(" ")[0]} sale de la lista de espera.`
-          : `${nombre} deja el club y la plaza queda disponible.`, "info");
+          : esLeyenda ? `${nombre} se retira y entra al Salón de la Fama del club.` : `${nombre} deja el club y la plaza queda disponible.`, "info");
     }
 
     case "ALTERNAR_VELADA": {

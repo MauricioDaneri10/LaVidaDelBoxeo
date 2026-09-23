@@ -157,6 +157,15 @@ export interface ComunitarioProgramado { tipo: "bingo" | "naipes" | "festival"; 
 export interface Consejo { id: string; texto: string; fama: number; cumplido: boolean; reclamado: boolean; }
 export interface NotaPrensa { id: string; semana: number; texto: string; }
 export interface Cinturon { id: string; dueno: string; nivel: 1 | 2 | 3 | 4; semana: number; }
+export interface EntradaSalonFama {
+  id: string;
+  nombre: string;
+  club: string;
+  record: RecordBoxeo;
+  titulos: number;
+  semanaRetiro: number;
+  motivo: string;
+}
 export interface LineaLibro { concepto: string; monto: number; }
 export interface ResumenSemanal { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number; }
 
@@ -193,6 +202,7 @@ export interface EstadoJuego {
   consejos: Consejo[];
   prensa: NotaPrensa[];
   cinturones: Cinturon[];
+  salonFama: EntradaSalonFama[];
   veladaProgramada: boolean;
   libroIngresos: LineaLibro[];
   libroGastos: LineaLibro[];

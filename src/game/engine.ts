@@ -235,7 +235,9 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
   const lineas: string[] = [];
   const plantel = e.plantel.map(b => {
     if (b.enEspera) return b;
-    const comboId: ComboId = tieneDT ? consejoEsquina(b, rivalSabado) : b.combo;
+    const comboId: ComboId = tieneDT
+      ? (b.lesion || b.energia < 70 ? "descanso" : consejoEsquina(b, rivalSabado))
+      : b.combo;
     const combo = COMBOS[comboId];
     const n = { ...b, atrib: { ...b.atrib }, combo: comboId };
     const base = 1.05 * (0.65 + b.atrib.talento / 110);
@@ -270,7 +272,7 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
     }
     return n;
   });
-  if (tieneDT) lineas.unshift("El Director Técnico Principal ajustó los combos de todo el plantel.");
+  if (tieneDT) lineas.unshift("El Director Técnico ajustó el descanso y el enfoque de cada atleta.");
   return { plantel, lineas };
 }
 
@@ -677,6 +679,7 @@ export function crearEstadoBase(): EstadoJuego {
     consejos: CONSEJOS_INICIALES.map(c => ({ ...c, cumplido: false, reclamado: false })),
     prensa: [],
     cinturones: [],
+    salonFama: [],
     veladaProgramada: false,
     libroIngresos: [],
     libroGastos: [],
@@ -782,6 +785,7 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.comunitarios = Array.isArray(r.comunitarios) ? (r.comunitarios as EstadoJuego["comunitarios"]) : [];
   s.prensa = Array.isArray(r.prensa) ? (r.prensa as EstadoJuego["prensa"]) : [];
   s.cinturones = Array.isArray(r.cinturones) ? (r.cinturones as EstadoJuego["cinturones"]) : [];
+  s.salonFama = Array.isArray(r.salonFama) ? (r.salonFama as EstadoJuego["salonFama"]).slice(0, 50) : [];
   s.consejos = base.consejos.map(c => {
     const guardado = Array.isArray(r.consejos) ? (r.consejos as EstadoJuego["consejos"]).find(x => x.id === c.id) : undefined;
     return guardado ? { ...c, cumplido: !!guardado.cumplido, reclamado: !!guardado.reclamado } : c;
@@ -793,7 +797,7 @@ export function sanitizarEstado(raw: unknown): EstadoJuego {
   s.ultimaSemanaEntrenada = Math.max(0, Number(r.ultimaSemanaEntrenada) || 0);
   s.nombrePartida = typeof r.nombrePartida === "string" && r.nombrePartida ? r.nombrePartida : (s.nombreGimnasio || "Mi carrera");
   s.partidaId = typeof r.partidaId === "string" && r.partidaId ? r.partidaId : uid();
-  s.dinero = Math.max(0, Number(r.dinero) || 0);
+  s.dinero = Number.isFinite(Number(r.dinero)) ? Number(r.dinero) : 0;
   s.fama = clamp(Number(r.fama) || 0, 0, 100);
   s.dia = clamp(Number(r.dia) || 1, 1, 7);
   s.semana = Math.max(1, Number(r.semana) || 1);

@@ -98,7 +98,7 @@ function PantallaPrincipal() {
   const guiaInicial = [
     { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
     { texto: "Elegir un enfoque de entrenamiento", hecho: state.plantel.some(p => p.rol === "alumno" && p.combo !== "acondicionamiento"), tab: "plantel" as Pestana },
-    { texto: "Completar prácticas de combate", hecho: state.plantel.some(p => p.rol === "alumno" && p.fogueo > 0), tab: "plantel" as Pestana },
+    { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "alumno" && p.fogueo >= p.fogueoMeta), tab: "plantel" as Pestana },
     { texto: "Habilitar al primer boxeador", hecho: state.plantel.some(p => p.rol === "boxeador"), tab: "plantel" as Pestana },
   ];
   const siguientePaso = !state.equipamiento.length
@@ -416,7 +416,7 @@ function PantallaPrincipal() {
             className="mt-4 w-full py-2.5"
             onClick={() => dispatch({ type: "CERRAR_DOMINGO" })}
           >
-            <I n="play" className="h-4 w-4" /> Cerrar el domingo y abrir el gimnasio el lunes
+            <I n="play" className="h-4 w-4" /> Continuar
           </Btn>
         </Modal>
       )}

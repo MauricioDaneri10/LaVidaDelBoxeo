@@ -14,6 +14,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   const { state, dispatch, nivel } = useGame();
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
   const [rankingAbierto, setRankingAbierto] = useState(false);
+  const [salonAbierto, setSalonAbierto] = useState(false);
 
   const nSuc = sucursales(state);
   const ranking = rankingMundial(state);
@@ -30,7 +31,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   ).map(id => ({ id, data: PROPIEDADES[id] }));
 
   return (
-    <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_270px_60px_minmax(0,1fr)] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
+    <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_minmax(180px,1fr)_auto_minmax(170px,auto)] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
       
       {/* CABECERA URBANÍSTICA */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
@@ -324,7 +325,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             <p className="font-cond text-xs text-sand">Los mejores récords, nocauts y títulos de todos los clubes de la ciudad.</p>
           </div>
           <span className="font-mono-data text-xs text-mut">{ranking.length} competidores registrados</span>
-          <Btn small variant="gold" onClick={() => setRankingAbierto(true)}>Ver ranking mundial</Btn>
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Btn small variant="gold" onClick={() => setRankingAbierto(true)}>Ver ranking</Btn>
+            <Btn small variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la Fama</Btn>
+          </div>
         </div>
         <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
           {ranking.slice(0, 3).map((item, i) => (
@@ -427,6 +431,22 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               </div>
             ))}
           </div>
+        </Modal>
+      )}
+      {salonAbierto && (
+        <Modal wide fit title="Salón de la Fama" icon="trophy" onClose={() => setSalonAbierto(false)}>
+          <p className="mb-2 font-cond text-xs text-sand">Las carreras históricas permanecen aunque el boxeador ya no compita.</p>
+          {state.salonFama.length === 0 ? <p className="py-8 text-center font-cond text-sm italic text-mut">Todavía no hay leyendas retiradas.</p> : (
+            <div className="grid gap-1.5 sm:grid-cols-2">
+              {state.salonFama.map((leyenda, i) => (
+                <div key={leyenda.id} className="rounded-lg border border-gold2/50 bg-gold/10 p-2">
+                  <div className="flex items-center justify-between"><span className="font-display text-sm text-gold">#{i + 1} {leyenda.nombre}</span><span className="font-cond text-[10px] text-mut">S{leyenda.semanaRetiro}</span></div>
+                  <div className="font-cond text-xs text-sand">{leyenda.club} · {leyenda.record.v}-{leyenda.record.d}-{leyenda.record.e} · {leyenda.record.ko} KO · {leyenda.titulos} títulos</div>
+                  <div className="font-cond text-[11px] text-cream">{leyenda.motivo}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </Modal>
       )}
 

@@ -32,10 +32,10 @@ function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }
         {ev.opciones.map((op, i) => (
           <button key={i}
             onClick={() => { dispatch({ type: "EVENTO", id: ev.id, opcion: i }); }}
-            className={`btn-poster px-3 py-1 text-sm cursor-pointer ${i === 0
+            className={`btn-poster min-w-[92px] px-3 py-1 text-sm cursor-pointer ${i === 0
               ? "border border-[#ffe0a0]/50 bg-gold text-ink"
               : "border border-line bg-panel2 text-sand hover:border-line2"}`}>
-            <span>{i === 0 && op.accion.tipo !== "nada" ? "Aceptar · " : ""}{op.texto}</span>
+             <span>{i === 0 ? "Aceptar" : "No aceptar"}</span>
           </button>
         ))}
       </div>

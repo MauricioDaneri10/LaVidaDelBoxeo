@@ -33,7 +33,7 @@ const PILARES: { titulo: string; color: string; stats: { k: keyof import("../gam
     stats: [
       { k: "inteligencia", n: "Inteligencia" },
       { k: "mentalidad", n: "Mentalidad" },
-      { k: "talento", n: "Talento (techo)" },
+      { k: "talento", n: "Talento" },
     ],
   },
 ];
@@ -120,7 +120,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
       icon="user"
       onClose={onCerrar}
     >
-      <div className="space-y-2 select-none">
+      <div className="space-y-1.5 select-none text-[.96em]">
         
         {/* BARRA DE NAVEGACIÓN ANTERIOR / SIGUIENTE ENTRE ATLETAS */}
         <div className="flex items-center justify-between border-b border-line pb-1.5">
@@ -170,7 +170,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
 
             {/* TARJETA DE VALORACIÓN GENERAL Y DATOS BIOGRÁFICOS */}
             <div className="space-y-1.5 border border-line bg-panel p-2.5 rounded-2xl">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="font-cond text-xs uppercase tracking-widest text-mut">Valoración General</span>
                 <span className="font-display text-3xl text-gold" style={{ textShadow: "2px 2px 0 rgba(0,0,0,0.5)" }}>
                   {vg}
@@ -262,8 +262,8 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                 <span className="font-display text-lg tracking-wide text-gold flex items-center gap-1.5">
                   <I n="glove" className="h-4 w-4" /> Enfoque de Entrenamiento Semanal
                 </span>
-                <span className="font-cond text-xs text-mut">
-                  Asignado: <b className="text-cream">{COMBOS[p.combo]?.nombre || "Libre"}</b>
+                <span className="min-w-[120px] text-center font-cond text-xs leading-tight text-mut">
+                  <span className="block">Asignado</span><b className="block text-cream">{COMBOS[p.combo]?.nombre || "Libre"}</b>
                 </span>
               </div>
 
@@ -275,14 +275,14 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     <button
                       key={cid}
                       onClick={() => cambiarCombo(cid)}
-                      className={`p-1.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`min-h-[56px] p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
                         esActivo
                           ? "border-gold bg-gold/15 text-gold shadow-md scale-[1.02]"
                           : "border-line bg-panel2 text-sand hover:border-line2"
                       }`}
                     >
-                      <div className="font-display text-xs truncate text-cream">{cb.nombre}</div>
-                      <div className="font-cond text-[10px] text-mut truncate">{cb.desc}</div>
+                      <div className="font-display text-xs leading-tight text-cream">{cb.nombre}</div>
+                      <div className="font-cond text-[10px] leading-tight text-mut line-clamp-2">{cb.desc}</div>
                     </button>
                   );
                 })}

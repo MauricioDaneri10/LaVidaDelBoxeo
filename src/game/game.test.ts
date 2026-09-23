@@ -104,7 +104,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
       plantel: [{ ...base.plantel[0], energia: 500, fogueo: -4 }],
     });
 
-    expect(estado.dinero).toBe(0);
+    expect(estado.dinero).toBe(-500);
     expect(estado.fama).toBe(100);
     expect(estado.dia).toBe(7);
     expect(estado.plantel[0].energia).toBe(100);

@@ -11,6 +11,7 @@ interface TopBarProps {
 export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps) {
   const { state, dispatch } = useGame();
   const finDeSemana = state.dia >= 6;
+  const fechaActual = new Date(2026, 0, 1 + ((state.semana - 1) * 7) + (state.dia - 1));
 
   const avanzar = () => dispatch({ type: "AVANZAR_DIA" });
   const semanaRapida = () => dispatch({ type: "SEMANA_RAPIDA" });
@@ -48,10 +49,10 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
           <I n="calendar" className="h-4 w-4 text-gold" />
           <div className="leading-tight">
             <div className={`font-display text-lg tracking-wide ${finDeSemana ? "text-blood" : "text-cream"}`}>
-              {DIAS[state.dia - 1]} {state.dia === 6 ? "· Noche de Peleas" : state.dia === 7 ? "· Balance Semanal" : ""}
+              {DIAS[state.dia - 1]} {fechaActual.getDate()} · {state.dia === 6 ? "Noche de peleas" : state.dia === 7 ? "Balance semanal" : "Preparación"}
             </div>
             <div className="font-cond text-[11px] uppercase tracking-widest text-mut">
-              Semana {state.semana} · {MESES[state.mes - 1]} {state.anio}
+              Semana {state.semana} · {MESES[fechaActual.getMonth()]} {fechaActual.getFullYear()}
             </div>
           </div>
         </div>
@@ -115,7 +116,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
               disabled={state.dia === 6 && state.pendientes.length > 0}>
               {state.dia === 6
                 ? (state.pendientes.length > 0 ? "Resolvé la cartelera primero" : <><I n="play" className="h-4 w-4" /> Ir al Balance del Domingo</>)
-                : <><I n="play" className="h-4 w-4" /> Cerrar el día</>}
+                : <><I n="play" className="h-4 w-4" /> Avanzar día</>}
             </Btn>
           )}
         </div>
@@ -131,8 +132,8 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
           const etiqueta = numero <= 5 ? "Entreno" : numero === 6 ? (pelea ? "Pelea" : "Guanteo") : "Balance";
           return (
             <div key={dia} className={`min-w-0 rounded-md border px-1.5 py-0.5 text-center ${state.dia === numero ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-mut"}`}>
-              <div className="font-display text-[10px] uppercase tracking-wide">{dia.slice(0, 3)}</div>
-              <div className={`truncate font-cond text-[9px] ${pelea ? "text-blood" : ""}`}>{etiqueta}</div>
+              <div className="font-display text-[10px] uppercase tracking-wide">{dia.slice(0, 3)} {new Date(2026, 0, 1 + ((state.semana - 1) * 7) + numero - 1).getDate()}</div>
+              <div className={`truncate font-cond text-[9px] ${pelea ? "text-blood" : ""}`}>{numero <= 5 ? "Preparación" : etiqueta}</div>
             </div>
           );
         })}

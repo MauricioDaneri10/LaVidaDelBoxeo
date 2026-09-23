@@ -348,8 +348,8 @@ export function PanelPerfil() {
       </div>
 
       <div className="flex gap-2 rounded-xl border border-line bg-panel2 p-1">
-        <button onClick={() => setSeccionPerfil("cursos")} className={`flex-1 rounded-lg px-3 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "cursos" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Cursos del coach</button>
-        <button onClick={() => setSeccionPerfil("bienes")} className={`flex-1 rounded-lg px-3 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "bienes" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Bienes raíces</button>
+        <button onClick={() => setSeccionPerfil("cursos")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "cursos" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Cursos</button>
+        <button onClick={() => setSeccionPerfil("bienes")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "bienes" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Bienes raíces</button>
       </div>
 
       {/* CURSOS */}
@@ -395,7 +395,7 @@ export function PanelPerfil() {
                     );
                   })}
               </div>
-              <Btn small variant="gold" className="mt-2 w-full" onClick={() => setDetalleRama(rama.id)}>Ver cursos de esta rama</Btn>
+            <Btn small variant="gold" className="mt-2 w-fit max-w-full" onClick={() => setDetalleRama(rama.id)}>Ver cursos</Btn>
             </div>
           ))}
         </div>
@@ -461,7 +461,7 @@ export function PanelPersonal() {
           const contratados = state.personal.filter(p => p.tipo === t);
           const limiteSucursal = info.multiple && contratados.length >= Math.max(nSuc, 1);
           return (
-            <div key={t} className="panel p-4">
+            <div key={t} className="panel flex min-h-[218px] flex-col p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-display text-lg tracking-wide text-cream">{info.nombre}</div>
@@ -469,7 +469,7 @@ export function PanelPersonal() {
                 </div>
                 <div className="grid h-9 w-9 place-items-center border border-line bg-ink text-sand"><I n={info.icono} className="h-4 w-4" /></div>
               </div>
-              <p className="mt-2 font-cond text-xs text-sand"><span className="text-cream">Aporta:</span> {info.desc}</p>
+              <p className="mt-2 min-h-[42px] font-cond text-xs text-sand"><span className="text-cream">Aporta:</span> {info.desc}</p>
               {contratados.length > 0 && (
                 <div className="mt-3 border-t border-line pt-2">
                   <div className="font-cond text-[11px] uppercase tracking-wider text-mut">Personal activo:</div>
@@ -482,7 +482,7 @@ export function PanelPersonal() {
                 </div>
               )}
               {(!info.multiple || !limiteSucursal) && !(contratados.length > 0 && !info.multiple) && (
-                <Btn small variant="gold" className="mt-3 w-full" onClick={() => dispatch({ type: "CONTRATAR", tipo: t })}>
+                <Btn small variant="gold" className="mt-auto w-fit min-w-[126px] self-stretch" onClick={() => dispatch({ type: "CONTRATAR", tipo: t })}>
                   <I n="case" className="h-3.5 w-3.5" /> Contratar {info.multiple ? `(${contratados.length}/${Math.max(nSuc, 1)})` : ""}
                 </Btn>
               )}
@@ -611,7 +611,7 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
           </div>
           <div className="mt-2 grid gap-1.5 font-cond text-xs text-sand sm:grid-cols-2">
             <span><kbd className="keycap">{atajos.gimnasio}</kbd> Gimnasio · <kbd className="keycap">{atajos.ciudad}</kbd> Ciudad · <kbd className="keycap">{atajos.plantel}</kbd> Plantel</span>
-            <span><kbd className="keycap">{atajos.avanzar === " " ? "Espacio" : atajos.avanzar}</kbd> Cerrar el día · <kbd className="keycap">{atajos.semanaRapida}</kbd> Semana rápida · <kbd className="keycap">{atajos.cerrar}</kbd> Cerrar</span>
+            <span><kbd className="keycap">{atajos.avanzar === " " ? "Espacio" : atajos.avanzar}</kbd> Avanzar día · <kbd className="keycap">{atajos.semanaRapida}</kbd> Semana rápida · <kbd className="keycap">{atajos.cerrar}</kbd> Cerrar</span>
           </div>
         </div>
 
