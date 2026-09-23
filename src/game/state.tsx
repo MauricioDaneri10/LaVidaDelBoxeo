@@ -7,6 +7,7 @@ import {
   normalizarListaEspera, puedePactarPelea, sucursales, uid, valoracion,
 } from "./engine";
 import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PartidaGuardada, PersonalId, Pugilista, ResultadoPelea, SaveEnvelope, Toast } from "./types";
+import { persistencia } from "./storage";
 
 const CLAVE = "vida-del-boxeo-v2";
 const CLAVE_PARTIDAS = `${CLAVE}:partidas`;
@@ -43,14 +44,14 @@ function envoltura(estado: EstadoJuego, savedAt = new Date().toISOString()): Sav
 
 export function listarPartidas(): PartidaGuardada[] {
   try {
-    const raw = localStorage.getItem(CLAVE_PARTIDAS);
+    const raw = persistencia.getItem(CLAVE_PARTIDAS);
     const partidas = raw ? JSON.parse(raw) as PartidaGuardada[] : [];
     return Array.isArray(partidas) ? partidas.filter(p => p && p.id && p.estado) : [];
   } catch { return []; }
 }
 
 function guardarLista(partidas: PartidaGuardada[]) {
-  localStorage.setItem(CLAVE_PARTIDAS, JSON.stringify(partidas.slice(0, 5)));
+  persistencia.setItem(CLAVE_PARTIDAS, JSON.stringify(partidas.slice(0, 5)));
 }
 
 export function borrarPartida(id: string) {
@@ -64,20 +65,20 @@ export function guardarEnRanura(estado: EstadoJuego, nombre = estado.nombreParti
     const estadoGuardado = { ...estado, nombrePartida: nombre.trim() || "Mi carrera", partidaId: id };
     const partida: PartidaGuardada = { id, nombre: estadoGuardado.nombrePartida, coach: estadoGuardado.nombreJugador, gimnasio: estadoGuardado.nombreGimnasio, semana: estadoGuardado.semana, dia: estadoGuardado.dia, dinero: estadoGuardado.dinero, guardadaEn: ahora, estado: estadoGuardado };
     guardarLista([partida, ...listarPartidas().filter(p => p.id !== id)]);
-    localStorage.setItem(CLAVE, JSON.stringify(envoltura(estadoGuardado, ahora)));
-    localStorage.setItem(`${CLAVE}:guardadoEn`, ahora);
+    persistencia.setItem(CLAVE, JSON.stringify(envoltura(estadoGuardado, ahora)));
+    persistencia.setItem(`${CLAVE}:guardadoEn`, ahora);
     return true;
   } catch { return false; }
 }
 
 export function guardarPartida(estado: EstadoJuego): boolean {
   try {
-    const anterior = localStorage.getItem(CLAVE);
-    if (anterior) localStorage.setItem(`${CLAVE}:respaldo`, anterior);
+    const anterior = persistencia.getItem(CLAVE);
+    if (anterior) persistencia.setItem(`${CLAVE}:respaldo`, anterior);
     if (estado.creado) return guardarEnRanura(estado);
     const ahora = new Date().toISOString();
-    localStorage.setItem(CLAVE, JSON.stringify(envoltura(estado, ahora)));
-    localStorage.setItem(`${CLAVE}:guardadoEn`, ahora);
+    persistencia.setItem(CLAVE, JSON.stringify(envoltura(estado, ahora)));
+    persistencia.setItem(`${CLAVE}:guardadoEn`, ahora);
     return true;
   } catch {
     return false;
@@ -87,14 +88,14 @@ export function guardarPartida(estado: EstadoJuego): boolean {
 function cargarInicial(): EstadoJuego {
   const base = crearEstadoBase();
   try {
-    const raw = localStorage.getItem(CLAVE);
+    const raw = persistencia.getItem(CLAVE);
     if (!raw) return base;
     const migrado = migrarGuardado(JSON.parse(raw));
     const estado = sanitizarEstado(migrado.estado);
     return migrado.migrado ? { ...estado, toasts: [{ id: 0, texto: "Partida actualizada al formato nuevo y guardada de forma segura.", tono: "info" }] } : estado;
   } catch {
     try {
-      const respaldo = localStorage.getItem(`${CLAVE}:respaldo`);
+      const respaldo = persistencia.getItem(`${CLAVE}:respaldo`);
       if (!respaldo) throw new Error("Sin respaldo");
       const migrado = migrarGuardado(JSON.parse(respaldo));
       const estado = sanitizarEstado(migrado.estado);

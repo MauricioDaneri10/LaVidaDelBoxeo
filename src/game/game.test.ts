@@ -29,6 +29,7 @@ import { conflictosAtajos, ATAJOS_DEFAULT } from "./shortcuts";
 import { formatearMoneda, formatearNumero } from "../i18n";
 import { usarSemilla } from "./random";
 import { leerDiagnosticos } from "../diagnostics";
+import { crearPersistencia } from "./storage";
 
 describe("reglas principales de La Vida del Boxeo", () => {
   it("asigna el mejor enfoque inmediatamente al contratar el entrenador automático", () => {
@@ -376,6 +377,14 @@ describe("reglas principales de La Vida del Boxeo", () => {
 
   it("mantiene el diagnóstico de cliente acotado y separado de la partida", () => {
     expect(leerDiagnosticos()).toEqual([]);
+  });
+
+  it("permite ejecutar la persistencia con un adaptador aislado del navegador", () => {
+    const almacenamiento = crearPersistencia();
+    almacenamiento.setItem("prueba", "ok");
+    expect(almacenamiento.getItem("prueba")).toBe("ok");
+    almacenamiento.removeItem("prueba");
+    expect(almacenamiento.getItem("prueba")).toBeNull();
   });
 });
 
