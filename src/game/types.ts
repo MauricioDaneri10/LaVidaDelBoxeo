@@ -231,11 +231,22 @@ export interface PartidaGuardada {
   estado: EstadoJuego;
 }
 
+/** Formato externo versionado del autoguardado; no se expone en la UI. */
+export interface SaveEnvelope {
+  formatVersion: 1;
+  gameVersion: number;
+  schemaVersion: number;
+  saveId: string;
+  savedAt: string;
+  state: EstadoJuego;
+}
+
 export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro" | "alerta"; }
 
 export type Accion =
   | { type: "NUEVO_JUEGO"; nombre: string; gimnasio: string; logoGimnasio?: string }
   | { type: "CARGAR_PARTIDA"; id: string }
+  | { type: "RENOMBRAR_PARTIDA"; nombre: string }
   | { type: "CONTINUAR" }
   | { type: "IMPORTAR"; estado: EstadoJuego }
   | { type: "REINICIAR" }

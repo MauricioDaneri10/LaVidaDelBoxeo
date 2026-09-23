@@ -156,6 +156,9 @@ export function capacidadAlumnos(e: EstadoJuego): number {
 }
 export function capacidadAmateurs(_e: EstadoJuego): number { return 10; }
 export function capacidadProfesionales(_e: EstadoJuego): number { return 10; }
+export function capacidadPlantel(e: EstadoJuego): number {
+  return capacidadAlumnos(e) + capacidadAmateurs(e) + capacidadProfesionales(e);
+}
 export function alumnosActivos(e: EstadoJuego): Pugilista[] {
   return e.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
 }

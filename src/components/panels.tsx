@@ -500,7 +500,7 @@ export function PanelPersonal() {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        {tipos.slice(pagina * 4, pagina * 4 + 4).map(t => {
+        {tipos.slice(pagina * 2, pagina * 2 + 2).map(t => {
           const info = PERSONAL_INFO[t];
           const contratados = state.personal.filter(p => p.tipo === t);
           const limiteSucursal = info.multiple && contratados.length >= Math.max(nSuc, 1);
@@ -535,11 +535,11 @@ export function PanelPersonal() {
           );
         })}
       </div>
-      {tipos.length > 4 && (
+      {tipos.length > 2 && (
         <div className="flex items-center justify-center gap-2 font-cond text-xs text-mut">
           <Btn small variant="dark" disabled={pagina === 0} onClick={() => setPagina(p => Math.max(0, p - 1))}>Anterior</Btn>
-          <span>{pagina + 1} / {Math.ceil(tipos.length / 4)}</span>
-          <Btn small variant="gold" disabled={(pagina + 1) * 4 >= tipos.length} onClick={() => setPagina(p => p + 1)}>Más personal</Btn>
+          <span>{pagina + 1} / {Math.ceil(tipos.length / 2)}</span>
+          <Btn small variant="gold" disabled={(pagina + 1) * 2 >= tipos.length} onClick={() => setPagina(p => p + 1)}>Más personal</Btn>
         </div>
       )}
     </div>
@@ -568,7 +568,9 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
   }, [textoGrande, altoContraste, movimientoReducido]);
 
   const guardarAhora = () => {
-    const guardada = guardarEnRanura({ ...state, nombrePartida: nombrePartida.trim() || "Mi carrera" }, nombrePartida);
+    const nombre = nombrePartida.trim() || "Mi carrera";
+    dispatch({ type: "RENOMBRAR_PARTIDA", nombre });
+    const guardada = guardarEnRanura({ ...state, nombrePartida: nombre }, nombre);
     if (guardada) {
       setMensaje("Partida guardada. Podés continuarla desde el inicio.");
       dispatch({ type: "TOAST", texto: "Partida guardada correctamente.", tono: "ok" });

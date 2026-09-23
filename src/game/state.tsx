@@ -2,16 +2,44 @@ import { createContext, useContext, useEffect, useReducer } from "react";
 import type { ReactNode } from "react";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
-  aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, chance, clamp, consejoEsquina, crearEstadoBase,
+  aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, capacidadPlantel, chance, clamp, consejoEsquina, crearEstadoBase,
   elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
   normalizarListaEspera, puedePactarPelea, sucursales, uid, valoracion,
 } from "./engine";
-import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PartidaGuardada, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
+import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PartidaGuardada, PersonalId, Pugilista, ResultadoPelea, SaveEnvelope, Toast } from "./types";
 
 const CLAVE = "vida-del-boxeo-v2";
 const CLAVE_PARTIDAS = `${CLAVE}:partidas`;
+const FORMATO_GUARDADO = 1 as const;
 export const CLAVE_GUARDADO = CLAVE;
 let toastId = 1;
+
+type Registro = Record<string, unknown>;
+
+export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolean } {
+  if (!raw || typeof raw !== "object") throw new Error("Formato de guardado inválido");
+  const registro = raw as Registro;
+  const esEnvelope = registro.formatVersion === FORMATO_GUARDADO && registro.state && typeof registro.state === "object";
+  let estado = (esEnvelope ? registro.state : registro) as Registro;
+  const schemaInicial = Number(estado.schemaVersion) || 1;
+  let schema = schemaInicial;
+
+  // V1 → V2: métricas de comunidad y nombre de ranura.
+  if (schema < 2) {
+    estado = { ...estado, seguidores: estado.seguidores ?? 0, recreativos: estado.recreativos ?? 0, nombrePartida: estado.nombrePartida ?? estado.nombreGimnasio ?? "Mi carrera" };
+    schema = 2;
+  }
+  // V2 → V3: identidad estable y curso de continuidad.
+  if (schema < 3) {
+    estado = { ...estado, partidaId: typeof estado.partidaId === "string" && estado.partidaId ? estado.partidaId : `migrada-${Date.now()}`, ultimaSemanaScout: estado.ultimaSemanaScout ?? 0, ultimaSemanaEntrenada: estado.ultimaSemanaEntrenada ?? 0 };
+    schema = 3;
+  }
+  return { estado: { ...estado, schemaVersion: schema }, migrado: schemaInicial !== schema };
+}
+
+function envoltura(estado: EstadoJuego, savedAt = new Date().toISOString()): SaveEnvelope {
+  return { formatVersion: FORMATO_GUARDADO, gameVersion: estado.version, schemaVersion: estado.schemaVersion, saveId: estado.partidaId, savedAt, state: estado };
+}
 
 export function listarPartidas(): PartidaGuardada[] {
   try {
@@ -36,7 +64,7 @@ export function guardarEnRanura(estado: EstadoJuego, nombre = estado.nombreParti
     const estadoGuardado = { ...estado, nombrePartida: nombre.trim() || "Mi carrera", partidaId: id };
     const partida: PartidaGuardada = { id, nombre: estadoGuardado.nombrePartida, coach: estadoGuardado.nombreJugador, gimnasio: estadoGuardado.nombreGimnasio, semana: estadoGuardado.semana, dia: estadoGuardado.dia, dinero: estadoGuardado.dinero, guardadaEn: ahora, estado: estadoGuardado };
     guardarLista([partida, ...listarPartidas().filter(p => p.id !== id)]);
-    localStorage.setItem(CLAVE, JSON.stringify(estadoGuardado));
+    localStorage.setItem(CLAVE, JSON.stringify(envoltura(estadoGuardado, ahora)));
     localStorage.setItem(`${CLAVE}:guardadoEn`, ahora);
     return true;
   } catch { return false; }
@@ -46,9 +74,10 @@ export function guardarPartida(estado: EstadoJuego): boolean {
   try {
     const anterior = localStorage.getItem(CLAVE);
     if (anterior) localStorage.setItem(`${CLAVE}:respaldo`, anterior);
-    localStorage.setItem(CLAVE, JSON.stringify(estado));
-    localStorage.setItem(`${CLAVE}:guardadoEn`, new Date().toISOString());
-    if (estado.creado) guardarEnRanura(estado);
+    if (estado.creado) return guardarEnRanura(estado);
+    const ahora = new Date().toISOString();
+    localStorage.setItem(CLAVE, JSON.stringify(envoltura(estado, ahora)));
+    localStorage.setItem(`${CLAVE}:guardadoEn`, ahora);
     return true;
   } catch {
     return false;
@@ -60,9 +89,19 @@ function cargarInicial(): EstadoJuego {
   try {
     const raw = localStorage.getItem(CLAVE);
     if (!raw) return base;
-    return sanitizarEstado(JSON.parse(raw));
+    const migrado = migrarGuardado(JSON.parse(raw));
+    const estado = sanitizarEstado(migrado.estado);
+    return migrado.migrado ? { ...estado, toasts: [{ id: 0, texto: "Partida actualizada al formato nuevo y guardada de forma segura.", tono: "info" }] } : estado;
   } catch {
-    return base;
+    try {
+      const respaldo = localStorage.getItem(`${CLAVE}:respaldo`);
+      if (!respaldo) throw new Error("Sin respaldo");
+      const migrado = migrarGuardado(JSON.parse(respaldo));
+      const estado = sanitizarEstado(migrado.estado);
+      return { ...estado, toasts: [{ id: 0, texto: "Se recuperó la última copia segura de tu partida.", tono: "alerta" }] };
+    } catch {
+      return { ...base, toasts: [{ id: 0, texto: "No se pudo leer la partida guardada. Se inició una carrera nueva.", tono: "alerta" }] };
+    }
   }
 }
 
@@ -75,9 +114,8 @@ function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[]
 }
 
 // La capacidad del gimnasio cuenta a todo el plantel: alumnos, espera y boxeadores.
-// El margen extra evita que el scouting sature la partida con incorporaciones infinitas.
 function limitePlantel(st: EstadoJuego): number {
-  return capacidadAlumnos(st) + 4;
+  return capacidadPlantel(st);
 }
 
 // ==================== FLUJOS SEMANALES ====================
@@ -395,7 +433,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       return st;
     }
     case "SEMANA_RAPIDA": {
-      if (s.dia >= 6) return s;
+      if (s.dia >= 7) return s;
       if (s.dia === 6 && s.pendientes.length > 0) {
         return conToast(s, "Hay peleas en la cartelera del sábado: resolvelas antes de avanzar.", "alerta");
       }
@@ -619,6 +657,8 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const partida = listarPartidas().find(p => p.id === a.id);
       return partida ? conToast({ ...sanitizarEstado(partida.estado), creado: true }, `Partida cargada: ${partida.nombre}.`, "ok") : s;
     }
+    case "RENOMBRAR_PARTIDA":
+      return { ...s, nombrePartida: a.nombre.trim().slice(0, 32) || "Mi carrera" };
     case "RETIRAR_ATLETA": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p) return s;

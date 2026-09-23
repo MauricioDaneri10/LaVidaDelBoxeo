@@ -5,6 +5,7 @@ import {
   aplicarEntrenamientoSemanal,
   calcularModificadores,
   capacidadAlumnos,
+  capacidadPlantel,
   capacidadProfesionales,
   cerrarAsalto,
   crearEstadoBase,
@@ -21,7 +22,7 @@ import {
   sanitizarEstado,
   valoracion,
 } from "./engine";
-import { reductor } from "./state";
+import { migrarGuardado, reductor } from "./state";
 import { conflictosAtajos, ATAJOS_DEFAULT } from "./shortcuts";
 import { formatearMoneda, formatearNumero } from "../i18n";
 
@@ -195,7 +196,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const lleno = {
       ...base,
       creado: true,
-      plantel: Array.from({ length: capacidadAlumnos(base) + 4 }, (_, i) => genPugilista({ rol: i < 10 ? "boxeador" : "alumno" })),
+      plantel: Array.from({ length: capacidadPlantel(base) }, (_, i) => genPugilista({ rol: i < 10 ? "boxeador" : "alumno" })),
     };
     const resultado = reductor(lleno, { type: "SCOUT" });
     expect(resultado.plantel).toHaveLength(lleno.plantel.length);
@@ -293,5 +294,26 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(formatearNumero(1200, "en")).toContain("1,200");
     expect(formatearMoneda(500, "es")).toContain("500");
     expect(formatearMoneda(500, "en")).toContain("500");
+  });
+
+  it("migra una partida vieja a un envelope compatible sin perder identidad", () => {
+    const anterior = { ...crearEstadoBase(), creado: true, schemaVersion: 1, partidaId: "", nombreGimnasio: "Club Viejo" };
+    const resultado = migrarGuardado(anterior);
+    const estado = resultado.estado as typeof anterior & { schemaVersion: number; partidaId: string };
+    expect(resultado.migrado).toBe(true);
+    expect(estado.schemaVersion).toBe(3);
+    expect(estado.nombreGimnasio).toBe("Club Viejo");
+    expect(estado.partidaId).toMatch(/^migrada-/);
+  });
+
+  it("permite avanzar desde sábado sin pelea y bloquea el salto si hay cartelera pendiente", () => {
+    const base = { ...crearEstadoBase(), creado: true, dia: 6 };
+    const domingo = reductor(base, { type: "SEMANA_RAPIDA" });
+    expect(domingo.dia).toBe(7);
+    expect(domingo.resumen).not.toBeNull();
+    const pendiente = { ...base, pendientes: [{ id: "p1", miId: base.plantel[0].id, rival: genPugilista({ rol: "boxeador" }), bolsa: 100, esTitulo: 0 as const, velada: false }] };
+    const bloqueado = reductor(pendiente, { type: "SEMANA_RAPIDA" });
+    expect(bloqueado.dia).toBe(6);
+    expect(bloqueado.toasts[bloqueado.toasts.length - 1]?.tono).toBe("alerta");
   });
 });
