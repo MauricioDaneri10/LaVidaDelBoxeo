@@ -22,6 +22,27 @@ Tipos, reducer, engine, catálogos, componentes, persistencia, acciones, atajos,
 
 ## Hallazgos
 
+### P0 — compatibilidad entre actualizaciones
+
+La partida no debe depender de que el objeto guardado tenga exactamente la forma de la versión actual. Cada guardado debe incluir:
+
+- `schemaVersion`;
+- versión de reglas o migración;
+- fecha de guardado;
+- nombre de la partida;
+- datos del estado.
+
+Al cargar:
+
+1. detectar versión;
+2. migrar campos antiguos a la estructura nueva;
+3. completar valores faltantes con defaults seguros;
+4. validar IDs eliminados o modificados;
+5. guardar la versión migrada sin perder el progreso;
+6. mostrar un mensaje si una regla cambió de forma visible.
+
+Si una migración no puede garantizar la integridad, se debe crear un respaldo interno y explicar el problema. Nunca borrar silenciosamente una carrera.
+
 ### P0 — persistencia orientada a desarrollador
 
 La implementación actual expone exportar/importar JSON y guarda una sola carrera local. Eso no corresponde a la experiencia esperada.
@@ -38,6 +59,21 @@ Debe reemplazarse por:
 - Reiniciar la partida activa.
 
 El JSON puede permanecer como mecanismo interno de desarrollo únicamente si no aparece en la interfaz del jugador.
+
+### P0 — calendario e integridad temporal
+
+El estado debe poder persistir:
+
+- día actual;
+- semana, mes y año;
+- eventos por fecha;
+- próxima pelea pactada;
+- próxima sesión de guanteo;
+- recuperación y lesión;
+- fecha de última pelea;
+- fecha de próxima disponibilidad.
+
+Avanzar un día dos veces no puede duplicar entrenamientos, ingresos, guanteos, lesiones, eventos ni peleas.
 
 ### P0 — pruebas insuficientes para economía y calendario
 
@@ -60,6 +96,14 @@ Hay que probar doble clic y repetición de eventos para compras, licencias, sele
 ### P1 — migración de partidas
 
 Al cambiar el modelo de alumno, guanteo, calendario y partidas guardadas, las partidas existentes necesitarán sanitización/migración. No se debe asumir que todos los campos nuevos existen.
+
+La migración debe contemplar especialmente:
+
+- convertir `fogueo` histórico a `guanteosRealizados`;
+- asignar tres alumnos solo a partidas nuevas, nunca eliminar alumnos de una partida existente;
+- asignar calendario y próximas fechas a boxeadores actuales;
+- crear valores de lesión como “sin lesión”;
+- conservar récord, dinero, títulos, cursos y propiedades.
 
 ### P1 — consola y errores visuales
 
@@ -116,11 +160,17 @@ Los IDs internos pueden conservar nombres técnicos por compatibilidad, pero los
 4. Probar cinco tamaños de viewport.
 5. Revisar consola y elementos cortados.
 
+### Monetización preparada pero desactivada
+
+Antes de cualquier pase o tienda real, probar que el juego funciona completamente con monetización apagada. La capa futura debe ser independiente de reglas de combate, ranking, energía, récord y economía base.
+
 ## Criterios de aceptación
 
 - No existe JSON visible para el jugador.
+- El calendario se guarda y recupera sin duplicar días ni eventos.
 - Varias partidas pueden guardarse, identificarse y continuar.
 - Los datos nuevos se migran sin romper partidas anteriores.
+- Una actualización no elimina progreso ni obliga a iniciar una carrera nueva salvo incompatibilidad explicada y aprobada.
 - Toda acción importante tiene test automático o caso manual documentado.
 - No hay errores en consola durante el recorrido completo.
 - `npm run typecheck`, `npm test -- --run`, `npm run build` y `node audit_engine.js` pasan.

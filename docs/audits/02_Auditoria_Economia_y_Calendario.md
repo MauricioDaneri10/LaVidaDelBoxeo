@@ -7,6 +7,8 @@ Estado: diagnóstico previo a implementación. No se modificó código.
 
 Cuotas, bolsas, sponsors, eventos, veladas, personal, alquiler, equipamiento, cursos, propiedades, sucursales, previsión, libro contable, balance semanal y frecuencia de peleas.
 
+También se incorpora el costo de lesiones, médico, kinesiología y recuperación, siempre que se conviertan en sistemas jugables.
+
 ## Flujo económico esperado
 
 ```text
@@ -80,11 +82,37 @@ Equipamiento, cursos, licencias y propiedades son inversiones puntuales. Alquile
 
 El día sábado concentra guanteos, peleas pendientes y veladas. El modelo necesita reservar el sábado como fecha de actividad, pero no generar una pelea obligatoria cada sábado para cada boxeador.
 
+La pelea debe poder pactarse para una fecha concreta. La frecuencia recomendada funciona como una regla de recuperación y disponibilidad, no como una obligación de pelear todos los sábados.
+
 Frecuencia recomendada:
 
 - amateur: una pelea posible cada dos semanas;
 - profesional: una pelea posible cada tres o cuatro semanas;
 - título: recuperación y requisitos adicionales.
+
+### P1 — economía de lesiones
+
+Si el sistema incorpora lesiones, debe existir un circuito económico completo:
+
+```text
+daño de pelea → lesión visible → diagnóstico → descanso/tratamiento
+→ costo y tiempo → regreso al 70% o alta médica → próxima fecha
+```
+
+No se debe cobrar un costo médico sin que el jugador vea qué lesión trata, cuánto tarda y qué pasa si no paga.
+
+### P1 — monetización futura sin ventaja competitiva
+
+El diseño debe poder escalar a monetización sin romper la experiencia:
+
+- no vender victorias, récords, títulos, energía, licencias ni rivales fáciles;
+- no vender ventajas de ranking o bolsas garantizadas;
+- priorizar cosméticos, emblemas, temas de interfaz, elementos decorativos y personalización del club;
+- un pase, si existe, debe entregar objetivos extra o cosméticos y no bloquear el recorrido principal;
+- todo contenido comprable debe ser opcional y no afectar la competencia justa;
+- el jugador que no paga debe tener la misma progresión funcional.
+
+Antes de monetizar hará falta definir costos, moneda, reembolsos, privacidad, compras accidentales y límites para menores. No se implementa en esta etapa.
 
 ### P2 — transparencia de caja
 
@@ -105,4 +133,5 @@ Antes de comprar o contratar, el jugador debe ver:
 - El resultado semanal no se confunde con el histórico.
 - Las peleas respetan el período de recuperación.
 - El jugador puede entender por qué gana o pierde dinero sin abrir herramientas técnicas.
+- Los costos de tratamiento y recuperación son opcionales, transparentes y no crean una obligación de pago real.
 - Existen tests de partida nueva, personal, sponsors, veladas, sucursales, compras, pelea y semana con pérdida.

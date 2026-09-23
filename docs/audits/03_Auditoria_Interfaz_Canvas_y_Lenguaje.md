@@ -9,6 +9,19 @@ Inicio, navegación, Gimnasio, Ciudad, Plantel, Mercado, Mi Perfil, Personal, te
 
 ## Hallazgos principales
 
+### Calendario visual
+
+El juego necesita una vista de calendario persistente y legible, inspirada en la lógica de un calendario deportivo:
+
+- día actual destacado;
+- semana y mes visibles;
+- entrenamientos, guanteos, peleas pactadas, recuperación y balance colocados en sus fechas;
+- próximo evento destacado;
+- días bloqueados explicados;
+- cambio de semana con una transición clara.
+
+El calendario no debe ser una lista escondida en un texto. Puede vivir como una banda compacta en el shell y abrir una vista ampliada al pulsar.
+
 ### P0 — el canvas pierde contra la información auxiliar
 
 La navegación, “Siguiente paso”, “Primeros pasos”, previsión y teléfono compiten con el canvas. En Ciudad el mapa y el inspector ocupan el espacio principal y el Ranking Mundial queda reducido a una franja ilegible.
@@ -59,6 +72,10 @@ Nombres recomendados en la vista principal:
 - Sauna Seco y Frío → Sauna.
 - Roster → Plantel.
 - Prácticas de combate/fogueo → Guanteos, cuando corresponda.
+- Guanteo → Guanteo (sparring) en la primera explicación; luego Guanteo.
+- Entrenamiento → Preparación física cuando se refiere al trabajo semanal.
+- Pelea → Pelea pactada/oficial cuando modifica récord y bolsa.
+- Recuperación → Descanso, tratamiento o alta médica según el estado.
 
 El nombre técnico completo puede permanecer en la descripción secundaria.
 
@@ -71,6 +88,8 @@ Debe existir una vista propia para:
 - Rama de cursos.
 - Registro completo de un boxeador.
 - Libro de ingresos y gastos.
+- Calendario completo con actividades y fechas.
+- Detalle de lesión, tratamiento y regreso.
 
 ### P1 — navegación y salida
 
@@ -113,4 +132,6 @@ Cada modal necesita:
 - El ranking se puede leer completo en una vista ampliada.
 - El texto principal es entendible sin conocer términos técnicos.
 - Cada página tiene una acción primaria y una salida clara.
+- El calendario permite saber qué ocurre hoy, qué ocurrió y qué viene después.
+- Tooltips o detalles al pasar el mouse explican efectos largos sin agrandar tarjetas.
 - Se validan 1024×768, 1280×720, 1366×768, 1440×900 y 1920×1080.
