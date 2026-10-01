@@ -1,9 +1,13 @@
 name: Verificar y publicar en GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm_publish:
+        description: 'Confirmar publicación explícita del estado actual de main'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +20,7 @@ concurrency:
 
 jobs:
   verify:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirm_publish == true
     runs-on: ubuntu-latest
     steps:
       - name: Descargar código
@@ -52,6 +57,7 @@ jobs:
           path: dist
 
   deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirm_publish == true
     needs: verify
     runs-on: ubuntu-latest
     environment:
