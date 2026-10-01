@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { COMUNITARIOS, EVENTOS_CLUB_INFO, GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
+import { COMUNITARIOS, GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
 import { fmt, rankingMundial, sucursales } from "../game/engine";
 import { useGame } from "../game/state";
 import type { PropiedadId } from "../game/types";
-import { BotonBrillante, Btn, I, Iconos, Modal } from "./ui";
+import { BotonBrillante, Btn, I, Modal } from "./ui";
 
 interface CityMapProps {
   onIrAPestaña?: (pestana: string) => void;
@@ -21,7 +21,14 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
   const ranking = rankingMundial(state);
   const propActual = PROPIEDADES[propiedadSeleccionada];
   const esPropiedadMia = state.propiedades.includes(propiedadSeleccionada);
-  const puedeComprar = state.dinero >= propActual.costo && !esPropiedadMia;
+  const requisitoPropiedad = propiedadSeleccionada === "terreno" && !state.cursos.includes("clubes")
+    ? "Requiere el curso Gestión de Clubes."
+    : propiedadSeleccionada === "sucursal" && !state.propiedades.includes("terreno")
+    ? "Primero necesitás comprar un terreno."
+    : propiedadSeleccionada === "arena" && !state.cursos.includes("tv")
+    ? "Requiere el curso Televisión Estelar."
+    : null;
+  const puedeComprar = state.dinero >= propActual.costo && !esPropiedadMia && !requisitoPropiedad;
 
   const comprar = (id: PropiedadId) => {
     dispatch({ type: "COMPRAR_PROPIEDAD", id });
@@ -35,7 +42,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
     <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
       
       {/* CABECERA URBANÍSTICA */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-2">
         <div>
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-gold/10 text-gold border border-gold/40 font-mono-data">
@@ -48,20 +55,13 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           </h2>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-2xl bg-panel border border-line flex items-center gap-2.5">
-            <Iconos.moneda className="w-5 h-5 text-gold" />
-            <span className="text-xs font-bold text-sand font-cond uppercase">Presupuesto Disponible:</span>
-            <span className="text-sm font-black text-gold font-mono-data">{fmt(state.dinero)}</span>
-          </div>
-        </div>
       </div>
 
       {/* PLANO URBANÍSTICO VECTORIAL ISOMÉTRICO 1000x600 + PANEL LATERAL */}
-      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-12 gap-2 items-stretch overflow-hidden">
+      <div className="grid min-h-0 grid-cols-1 md:grid-cols-12 gap-2 items-stretch overflow-hidden">
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
-        <div className="lg:col-span-8 h-full bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2">
+        <div className="md:col-span-8 h-full min-h-0 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2">
           <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="gradRioRetro" x1="0" y1="0" x2="1" y2="1">
@@ -136,8 +136,8 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             </text>
 
             {/* PIN: SEDE CENTRAL DEL JUGADOR */}
-            <g transform="translate(180, 480)" className="cursor-pointer group">
-              <circle cx="0" cy="0" r="24" fill="#8a6516" stroke="#e8b23a" strokeWidth="2.5" className="group-hover:scale-110 transition-transform" />
+            <g transform="translate(180, 480)">
+              <circle cx="0" cy="0" r="24" fill="#8a6516" stroke="#e8b23a" strokeWidth="2.5" />
               <text x="0" y="6" fontSize="15" textAnchor="middle">🥊</text>
               <g transform="translate(0, -32)">
                 <rect x="-85" y="-12" width="170" height="24" rx="6" fill="#0c1018" stroke="#e8b23a" strokeWidth="1.5" />
@@ -152,8 +152,8 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               const posiciones = [[110, 410], [90, 260], [300, 300], [720, 420], [850, 420], [820, 125]];
               const [x, y] = posiciones[i];
               return (
-                <g key={club} transform={`translate(${x}, ${y})`} className="cursor-pointer group">
-                  <circle cx="0" cy="0" r="18" fill="#581c1c" stroke="#dc2626" strokeWidth="2" className="group-hover:scale-110 transition-transform" />
+                <g key={club} transform={`translate(${x}, ${y})`}>
+                  <circle cx="0" cy="0" r="18" fill="#581c1c" stroke="#dc2626" strokeWidth="2" />
                   <text x="0" y="5" fontSize="12" textAnchor="middle">⚔️</text>
                   <g transform="translate(0, -26)">
                     <rect x="-65" y="-10" width="130" height="20" rx="4" fill="#0c1018" stroke="#dc2626" strokeWidth="1" />
@@ -178,7 +178,17 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                   key={id}
                   transform={`translate(${coords.x}, ${coords.y})`}
                   onClick={() => setPropiedadSeleccionada(id)}
-                  className="cursor-pointer group"
+                  onKeyDown={event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setPropiedadSeleccionada(id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${data.nombre}, ${esMio ? "propiedad del club" : `disponible por ${fmt(data.costo)}`}`}
+                  aria-pressed={esSeleccionado}
+                  className="cursor-pointer group outline-none"
                 >
                   {/* Halo animado de selección */}
                   {esSeleccionado && (
@@ -193,7 +203,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                     fill={esMio ? "#047857" : esSeleccionado ? "#b45309" : "#1e2433"}
                     stroke={esMio ? "#10b981" : esSeleccionado ? "#e8b23a" : "#475569"}
                     strokeWidth={esSeleccionado ? "3" : "2"}
-                    className="transition-all group-hover:scale-110"
+                    className="transition-all group-hover:scale-110 group-focus-visible:stroke-cream group-focus-visible:stroke-[4]"
                   />
 
                   {/* Emoji del Inmueble */}
@@ -240,10 +250,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* COLUMNA DERECHA: INSPECTOR DE PROPIEDAD SELECCIONADA (4 COLS) */}
-        <div className="lg:col-span-4 h-full bg-panel border border-line rounded-3xl p-2.5 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
+        <div className="md:col-span-4 h-full min-h-0 bg-panel border border-line rounded-3xl p-2.5 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
           {propActual ? (
             <>
-              <div className="min-h-0 space-y-1 text-[11px]">
+              <div className="city-inspector-copy shrink-0 space-y-1 text-[11px]">
                 <div className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-line pb-1">
                   <span className="max-w-[70%] break-words text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2 py-1 rounded border border-gold/40">
                     {propActual.distrito || "Distrito Metropolitano"}
@@ -260,6 +270,11 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                   <p className="text-[10px] text-sand font-cond leading-tight">
                     {propActual.desc}
                   </p>
+                  {requisitoPropiedad && !esPropiedadMia && (
+                    <p className="text-[10px] font-cond font-bold text-gold" role="status">
+                      {requisitoPropiedad}
+                    </p>
+                  )}
                 </div>
 
                 <div className="hidden p-1.5 rounded-xl bg-panel2 border border-line space-y-0.5 text-[10px]">
@@ -299,6 +314,8 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                 >
                   {esPropiedadMia
                     ? "✓ Inmueble en Posesión"
+                    : requisitoPropiedad
+                    ? "Requisito pendiente"
                     : puedeComprar
                     ? `Comprar por ${fmt(propActual.costo)}`
                     : "Fondos Insuficientes"}
@@ -392,12 +409,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
             {(["bingo", "naipes", "festival", "claseAbierta"] as const).map(k => {
               const c = COMUNITARIOS[k];
-              const evInfo = k === "bingo" ? EVENTOS_CLUB_INFO.bingoFamiliar : k === "naipes" ? EVENTOS_CLUB_INFO.torneoJuegosMesa : k === "festival" ? EVENTOS_CLUB_INFO.festivalBoxeo : { emoji: "🏫" };
-              const emoji = evInfo?.emoji || "🎟️";
               return (
                 <div key={k} className="p-1.5 rounded-xl bg-panel2 border border-line text-[10px] font-cond space-y-0.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-base">{emoji}</span>
+                    <span className="text-base">{c.emoji}</span>
                     <span className="font-mono-data text-gold font-bold">Inv. {fmt(c.inversion)}</span>
                   </div>
                   <div className="truncate font-display text-xs text-cream">{c.nombre}</div>

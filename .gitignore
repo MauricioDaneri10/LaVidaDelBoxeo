@@ -3,3 +3,17 @@ node_modules/
 dist/
 build/
 *.log
+
+# Local credentials and interpreter caches never belong in a publication.
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# One-off local source rewrite helpers; preserve on disk, not replayable tests.
+/scratch/apply_plantel_layout.py
+/scratch/compact_plantel.py
+/scratch/update_game_tests.py

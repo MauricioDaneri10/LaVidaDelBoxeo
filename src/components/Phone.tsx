@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { alumnosActivos, fmt, puedeHabilitar } from "../game/engine";
 import { notificacion } from "../game/audio";
 import { useGame } from "../game/state";
 import type { EventoJuego } from "../game/types";
 import { I } from "./ui";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
 
 export type PestanaDock = "mensajes" | "patrocinios" | "prensa" | "consejos";
 
@@ -18,13 +19,14 @@ const ICONO_TIPO: Record<string, string> = {
 
 function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }) {
   const { dispatch } = useGame();
+  const plazo = ev.venceEn === 1 ? "1 día" : `${ev.venceEn} días`;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border border-line bg-panel ${compacto ? "p-2.5" : "p-3"} shadow-sm`}>
+      className={`club-event-card rounded-xl border border-line bg-panel ${compacto ? "p-2.5" : "p-3"} shadow-sm`}>
       <div className="flex items-center gap-2">
         <I n={ICONO_TIPO[ev.tipo] ?? "phone"} className="h-4 w-4 text-gold" />
         <span className="font-display text-base leading-tight tracking-wide text-cream">{ev.titulo}</span>
-        <span className="ml-auto font-cond text-[10px] uppercase text-mut">{ev.venceEn}d</span>
+        <span className="ml-auto font-cond text-[10px] uppercase text-mut" title={`Vence en ${plazo}`} aria-label={`Vence en ${plazo}`}>{ev.venceEn}d</span>
       </div>
       <div className="mt-0.5 font-cond text-[11px] uppercase tracking-wide text-gold">{ev.de}</div>
       <p className="mt-1 font-cond text-sm leading-snug text-sand">{ev.texto}</p>
@@ -32,10 +34,11 @@ function TarjetaEvento({ ev, compacto }: { ev: EventoJuego; compacto?: boolean }
         {ev.opciones.map((op, i) => (
           <button key={i}
             onClick={() => { dispatch({ type: "EVENTO", id: ev.id, opcion: i }); }}
-            className={`btn-poster min-w-[92px] px-3 py-1 text-sm cursor-pointer ${i === 0
+            aria-label={op.texto}
+            className={`btn-poster max-w-full whitespace-normal px-3 py-1 text-sm leading-tight cursor-pointer ${i === 0
               ? "border border-[#ffe0a0]/50 bg-gold text-ink"
               : "border border-line bg-panel2 text-sand hover:border-line2"}`}>
-             <span>{i === 0 ? "Aceptar" : "No aceptar"}</span>
+             <span>{op.texto}</span>
           </button>
         ))}
       </div>
@@ -61,33 +64,36 @@ export default function DockLateral({
   const { state, dispatch } = useGame();
   const mensajes = state.eventos.filter(e => e.tipo !== "patrocinio");
   const patrocinios = state.eventos.filter(e => e.tipo === "patrocinio");
-  const consejosListos = state.consejos.filter(c => c.cumplido && !c.reclamado);
-  const hayNovedad = mensajes.length > 0 || patrocinios.length > 0 || consejosListos.length > 0;
+  const consejosActivos = state.consejos.filter(c => !c.reclamado);
+  const consejosListos = consejosActivos.filter(c => c.cumplido);
   const esEscritorio = lado === "escritorio";
+  const panelAmplio = useResponsiveCapacity("(min-width: 1280px) and (min-height: 720px)");
   const [movilAbierto, setMovilAbierto] = useState(false);
   const [paginaConsejos, setPaginaConsejos] = useState(0);
-  const consejosPorPagina = 2;
-  const consejosVisibles = state.consejos.slice(paginaConsejos * consejosPorPagina, paginaConsejos * consejosPorPagina + consejosPorPagina);
+  const consejosPorPagina = esEscritorio && panelAmplio ? 4 : 2;
+  useEffect(() => setPaginaConsejos(p => Math.min(p, Math.max(0, Math.ceil(consejosActivos.length / consejosPorPagina) - 1))), [consejosActivos.length, consejosPorPagina]);
+  const consejosVisibles = consejosActivos.slice(paginaConsejos * consejosPorPagina, paginaConsejos * consejosPorPagina + consejosPorPagina);
 
   // Inteligencia Contextual: Detección proactiva del estado del plantel
   const alumnoListoParaFederar = alumnosActivos(state).find(b => puedeHabilitar(b, state));
   const saldoCritico = state.dinero < 300;
+  const hayPendientes = mensajes.length > 0 || patrocinios.length > 0 || consejosListos.length > 0 || !!alumnoListoParaFederar;
 
-  const tabs: { id: PestanaDock; nombre: string; icono: string; badge: number; pulso: boolean }[] = [
-    { id: "mensajes", nombre: "Mensajes", icono: "phone", badge: mensajes.length, pulso: mensajes.length > 0 },
-    { id: "patrocinios", nombre: "Patrocinios", icono: "case", badge: patrocinios.length, pulso: patrocinios.length > 0 },
-    { id: "prensa", nombre: "Prensa", icono: "mic", badge: 0, pulso: false },
-    { id: "consejos", nombre: "Don Anselmo", icono: "cap", badge: consejosListos.length + (alumnoListoParaFederar ? 1 : 0), pulso: consejosListos.length > 0 || !!alumnoListoParaFederar },
+  const tabs: { id: PestanaDock; nombre: string; icono: string; badge: number }[] = [
+    { id: "mensajes", nombre: "Mensajes", icono: "phone", badge: mensajes.length },
+    { id: "patrocinios", nombre: "Patrocinios", icono: "case", badge: patrocinios.length },
+    { id: "prensa", nombre: "Prensa", icono: "mic", badge: 0 },
+    { id: "consejos", nombre: "Don Anselmo", icono: "cap", badge: consejosListos.length + (alumnoListoParaFederar ? 1 : 0) },
   ];
 
   const contenido = (
-    <div className="h-full space-y-2 overflow-hidden p-2.5 select-none">
+    <div className="h-full min-h-0 space-y-2 overflow-y-auto scroll-fino p-2.5 select-none">
       {/* PESTAÑA: MENSAJES Y DESAFÍOS */}
       {pestana === "mensajes" && (
         <>
           {mensajes.length === 0 && (
             <p className="px-1 py-6 text-center font-cond text-sm italic text-mut">
-              Sin mensajes nuevos. Los desafíos y oportunidades llegan cada lunes.
+              No hay asuntos pendientes. Los desafíos y oportunidades llegan durante la semana.
             </p>
           )}
           {mensajes.map(ev => <TarjetaEvento key={ev.id} ev={ev} compacto={esEscritorio} />)}
@@ -200,11 +206,11 @@ export default function DockLateral({
               </div>
             </div>
           ))}
-          {state.consejos.length > consejosPorPagina && (
+          {consejosActivos.length > consejosPorPagina && (
             <div className="flex items-center justify-center gap-2 pt-1 font-cond text-xs text-mut">
               <button className="btn-poster border border-line px-2 py-1 disabled:opacity-40" disabled={paginaConsejos === 0} onClick={() => setPaginaConsejos(p => Math.max(0, p - 1))}>Anterior</button>
-              <span>{paginaConsejos + 1} / {Math.ceil(state.consejos.length / consejosPorPagina)}</span>
-              <button className="btn-poster border border-gold2/50 px-2 py-1 text-gold disabled:opacity-40" disabled={(paginaConsejos + 1) * consejosPorPagina >= state.consejos.length} onClick={() => setPaginaConsejos(p => p + 1)}>Más consejos</button>
+              <span>{paginaConsejos + 1} / {Math.ceil(consejosActivos.length / consejosPorPagina)}</span>
+              <button className="btn-poster border border-gold2/50 px-2 py-1 text-gold disabled:opacity-40" disabled={(paginaConsejos + 1) * consejosPorPagina >= consejosActivos.length} onClick={() => setPaginaConsejos(p => p + 1)}>Más consejos</button>
             </div>
           )}
         </>
@@ -214,19 +220,21 @@ export default function DockLateral({
 
   if (esEscritorio) {
     return (
-      <aside className="anim-dock flex h-[calc(100vh-140px)] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-gold2/20 bg-panel/75 select-none"
+      <aside className="club-panel anim-dock flex h-full min-h-0 w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl select-none"
         style={{ boxShadow: "-8px 0 24px rgba(0,0,0,0.3)" }}>
         <div className="flex items-center gap-2 border-b border-line bg-panel2/70 px-3 py-2">
-          <span className={`grid h-7 w-7 place-items-center border ${hayNovedad ? "border-gold text-gold anim-latido" : "border-line2 text-sand"}`}>
-            <I n="phone" className="h-4 w-4" />
-          </span>
-          <span className="font-display text-lg tracking-wide text-cream">Panel del Club</span>
-          {hayNovedad && <span className="ml-auto h-2 w-2 rounded-full bg-blood anim-latido" />}
+            <span className={`grid h-7 w-7 place-items-center border ${hayPendientes ? "border-gold text-gold" : "border-line2 text-sand"}`} title={hayPendientes ? "Hay decisiones o consejos pendientes" : "No hay decisiones pendientes"}>
+              <I n="phone" className="h-4 w-4" />
+            </span>
+            <span className="font-display text-lg tracking-wide text-cream">Panel del Club</span>
+          {hayPendientes && <span className="ml-auto h-2 w-2 rounded-full bg-blood" title="Hay asuntos pendientes" />}
         </div>
         <div className="grid grid-cols-4 border-b border-line">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setPestana(t.id)}
-            className={`relative flex flex-col items-center gap-0.5 rounded-t-lg border-b-2 px-1 py-2 transition-colors cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"} ${t.pulso && pestana !== t.id ? "guia-luminica" : ""}`}>
+            aria-label={`${t.nombre}${t.badge > 0 ? `, ${t.badge} ${t.badge === 1 ? "pendiente" : "pendientes"}` : ""}`}
+            title={t.badge > 0 ? `${t.badge} ${t.badge === 1 ? "asunto pendiente" : "asuntos pendientes"}` : t.nombre}
+            className={`relative flex flex-col items-center gap-0.5 rounded-t-lg border-b-2 px-1 py-2 transition-colors cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"}`}>
               <I n={t.icono} className="h-4 w-4" />
               <span className="font-cond text-[10px] uppercase tracking-wide">{t.nombre}</span>
               {t.badge > 0 && <span className="absolute right-1.5 top-1 grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}
@@ -243,8 +251,14 @@ export default function DockLateral({
     <div className="rounded-t-2xl border-t border-line bg-panel/95 select-none shadow-[0_-12px_28px_rgba(0,0,0,.25)]">
       <div className="grid grid-cols-4">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => { setPestana(pestana === t.id ? "mensajes" : t.id); setMovilAbierto(true); }}
-            className={`relative flex items-center justify-center gap-1.5 border-t-2 px-2 py-2 cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut"} ${t.pulso ? "guia-luminica" : ""}`}>
+          <button key={t.id} onClick={() => {
+            if (movilAbierto && pestana === t.id) setMovilAbierto(false);
+            else { setPestana(t.id); setMovilAbierto(true); }
+          }}
+            aria-label={`${t.nombre}${t.badge > 0 ? `, ${t.badge} ${t.badge === 1 ? "pendiente" : "pendientes"}` : ""}`}
+            aria-expanded={movilAbierto && pestana === t.id}
+            title={t.badge > 0 ? `${t.badge} ${t.badge === 1 ? "asunto pendiente" : "asuntos pendientes"}` : t.nombre}
+            className={`relative flex items-center justify-center gap-1.5 border-t-2 px-2 py-2 cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut"}`}>
             <I n={t.icono} className="h-4 w-4" />
             <span className="font-cond text-[11px] uppercase">{t.nombre}</span>
             {t.badge > 0 && <span className="grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}

@@ -1,5 +1,5 @@
 import { DIAS, LOGOS_DISPONIBLES, MESES } from "../game/data";
-import { fmt } from "../game/engine";
+import { fechaDelJuego, fmt } from "../game/engine";
 import { useGame } from "../game/state";
 import { Btn, I } from "./ui";
 
@@ -11,7 +11,7 @@ interface TopBarProps {
 export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps) {
   const { state, dispatch } = useGame();
   const finDeSemana = state.dia >= 6;
-  const fechaActual = new Date(2026, 0, 1 + ((state.semana - 1) * 7) + (state.dia - 1));
+  const fechaActual = fechaDelJuego(state.semana, state.dia);
 
   const avanzar = () => dispatch({ type: "AVANZAR_DIA" });
   const semanaRapida = () => dispatch({ type: "SEMANA_RAPIDA" });
@@ -122,10 +122,12 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
           )}
         </div>
       </div>
-      <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-2 border-t border-line/70 bg-gradient-to-r from-transparent via-gold/5 to-transparent px-4 py-1.5">
-        <span className="font-cond text-[11px] font-bold uppercase tracking-wider text-mut">Mejoras activas</span>
-        {mejoras.length ? mejoras.map(m => <span key={m} className="rounded-full border border-gold2/50 bg-gold/10 px-2.5 py-0.5 font-cond text-xs text-gold">{m}</span>) : <span className="font-cond text-xs text-mut">Todavía no hay mejoras instaladas</span>}
-      </div>
+      {mejoras.length > 0 && (
+        <div className="topbar-improvements mx-auto flex max-w-[1560px] flex-wrap items-center gap-2 border-t border-line/70 bg-gradient-to-r from-transparent via-gold/5 to-transparent px-4 py-1.5">
+          <span className="font-cond text-[11px] font-bold uppercase tracking-wider text-mut">Mejoras activas</span>
+          {mejoras.map(m => <span key={m} className="rounded-full border border-gold2/50 bg-gold/10 px-2.5 py-0.5 font-cond text-xs text-gold">{m}</span>)}
+        </div>
+      )}
       <div className="mx-auto grid max-w-[1560px] grid-cols-7 gap-1 border-t border-line/60 bg-ink/40 px-4 py-1.5">
         {DIAS.map((dia, i) => {
           const numero = i + 1;
@@ -133,7 +135,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
           const etiqueta = numero <= 5 ? "Entreno" : numero === 6 ? (pelea ? "Pelea" : "Guanteo") : "Balance";
           return (
             <div key={dia} className={`min-w-0 rounded-md border px-1.5 py-0.5 text-center ${state.dia === numero ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-mut"}`}>
-              <div className="font-display text-[10px] uppercase tracking-wide">{dia.slice(0, 3)} {new Date(2026, 0, 1 + ((state.semana - 1) * 7) + numero - 1).getDate()}</div>
+              <div className="font-display text-[10px] uppercase tracking-wide">{dia.slice(0, 3)} {fechaDelJuego(state.semana, numero).getDate()}</div>
               <div className={`truncate font-cond text-[9px] ${pelea ? "text-blood" : ""}`}>{numero <= 5 ? "Preparación" : etiqueta}</div>
             </div>
           );

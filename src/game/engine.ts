@@ -9,6 +9,7 @@ import type {
   OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
 } from "./types";
 import { numeroAleatorio } from "./random";
+import { ATRIBUTOS_BASE, SCHEMA_ACTUAL, validarEstado } from "./saveValidation";
 
 // ==================== UTILIDADES ====================
 export const uid = () => numeroAleatorio().toString(36).slice(2, 10) + numeroAleatorio().toString(36).slice(2, 6);
@@ -17,6 +18,13 @@ export const clamp = (v: number, min: number, max: number) => Math.max(min, Math
 export const azar = (min: number, max: number) => Math.floor(numeroAleatorio() * (max - min + 1)) + min;
 export const elegir = <T,>(arr: T[]): T => arr[Math.floor(numeroAleatorio() * arr.length)];
 export const chance = (p: number) => numeroAleatorio() < p;
+
+/** Week one begins on Monday 5 January 2026, aligned to the game's Monday–Sunday cycle. */
+export function fechaDelJuego(semana: number, dia: number): Date {
+  const semanaSegura = Math.max(1, Math.floor(semana));
+  const diaSeguro = Math.min(7, Math.max(1, Math.floor(dia)));
+  return new Date(2026, 0, 5 + (semanaSegura - 1) * 7 + diaSeguro - 1);
+}
 
 export interface ModificadoresClub {
   recuperacionEnergia: number;
@@ -70,11 +78,6 @@ export function valoracion(a: Atributos): number {
     a.inteligencia * 0.05 + a.mentalidad * 0.05 + a.talento * 0.04
   );
 }
-
-const ATRIBUTOS_BASE: Atributos = {
-  fuerza: 40, velocidad: 40, potencia: 40, resistencia: 40, ataque: 40, defensa: 40,
-  tecnica: 40, eficacia: 40, inteligencia: 40, mentalidad: 40, talento: 50,
-};
 
 // ==================== GENERACIÓN DE PUGILISTAS ====================
 export function nombreAleatorio(genero: "M" | "F"): string {
@@ -169,6 +172,15 @@ export function alumnosEnEspera(e: EstadoJuego): Pugilista[] {
 export function puedeHabilitar(p: Pugilista, e: EstadoJuego): boolean {
   return p.rol === "alumno" && !p.licenciaFederativa && !p.enEspera && p.fogueo >= p.fogueoMeta && e.cursos.includes("dt");
 }
+export type MotivoProfesionalizacion = "rol" | "circuito" | "trayectoria" | "cartelera" | "cupo";
+export function puedeProfesionalizar(p: Pugilista, e: EstadoJuego): { ok: boolean; motivo?: MotivoProfesionalizacion } {
+  if (p.rol !== "boxeador") return { ok: false, motivo: "rol" };
+  if (p.circuito !== "amateur") return { ok: false, motivo: "circuito" };
+  if (p.peleasAmateur < 50) return { ok: false, motivo: "trayectoria" };
+  if (e.pendientes.some(pelea => pelea.miId === p.id)) return { ok: false, motivo: "cartelera" };
+  if (e.plantel.filter(boxeador => boxeador.rol === "boxeador" && boxeador.circuito === "pro").length >= capacidadProfesionales(e)) return { ok: false, motivo: "cupo" };
+  return { ok: true };
+}
 export function totalPeleas(p: Pugilista): number {
   return Math.max(0, p.record.v + p.record.d + (p.record.e ?? 0));
 }
@@ -223,11 +235,16 @@ export function proyeccionSemanal(e: EstadoJuego): { ingresos: LineaLibro[]; gas
   if (!e.propiedades.includes("local")) gastos.push({ concepto: "Alquiler del local", monto: 150 });
   const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
   if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
-  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: Math.max(10, Math.ceil(Math.abs(e.dinero) * 0.03)) });
+  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: clamp(Math.ceil(Math.abs(e.dinero) * 0.03), 10, 50) });
   if (e.prestamo && e.prestamo.saldo > 0) gastos.push({ concepto: `Cuota del préstamo (${e.prestamo.semanasRestantes} restantes)`, monto: Math.min(e.prestamo.cuota, e.prestamo.saldo) });
   const totalIngresos = ingresos.reduce((total, l) => total + l.monto, 0);
   const totalGastos = gastos.reduce((total, l) => total + l.monto, 0);
   return { ingresos, gastos, total: totalIngresos - totalGastos };
+}
+
+/** Flujo recurrente sostenible: excluye ayudas, eventos sociales y patrocinios temporales. */
+export function proyeccionSemanalRecurrente(e: EstadoJuego): { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number } {
+  return proyeccionSemanal({ ...e, semana: Math.max(2, e.semana), comunitarios: [], patrocinio: null });
 }
 export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
   const activos = e.plantel.filter(p => p.rol !== "alumno" || !p.enEspera);
@@ -367,9 +384,10 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
       etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking.",
     },
   ];
-  // La primera etapa debe sentirse competitiva: el rival generado queda a
-  // no más de tres peleas del historial del pugil, nunca diez de golpe.
-  const experiencia = totalPeleas(p);
+  // Comparar trayectorias dentro del circuito actual. El récord general es
+  // histórico y conserva las peleas amateur al pasar a profesional; usarlo
+  // aquí emparejaría a un debutante pro con rivales de décadas de carrera.
+  const experiencia = Math.max(0, p.circuito === "pro" ? p.peleasProfesionales : p.peleasAmateur);
   const ajustarExperiencia = (rival: Pugilista) => {
     const peleas = clamp(experiencia + azar(-3, 3), 0, experiencia + 3);
     const victorias = Math.floor(peleas * (0.45 + azar(0, 20) / 100));
@@ -646,8 +664,8 @@ export function generarEventos(e: EstadoJuego): EventoJuego[] {
   if (chance(0.55)) {
     const tipo = elegir(["reparacion", "entrevista", "colecta"] as const);
     const info = {
-      reparacion: { titulo: "Se rompió el saco del gimnasio", texto: "La comisión avisa que una herramienta importante quedó inutilizada. Podés repararla ahora o esperar.", tipoEvento: "mantenimiento" as const, opciones: [{ texto: "Reparar por $120", accion: { tipo: "mantenimiento" as const, costo: 120, monto: 1 } }, { texto: "Dejarlo para después", accion: { tipo: "nada" as const } }] },
-      entrevista: { titulo: "Entrevista en Radio Guante", texto: "La prensa quiere conocer tu proyecto. Una respuesta clara puede atraer seguidores; una mala declaración puede enfriar al barrio.", tipoEvento: "entrevista" as const, opciones: [{ texto: "Hablar del proyecto", accion: { tipo: "entrevista" as const, fama: 2, monto: 80 } }, { texto: "Declinar la entrevista", accion: { tipo: "nada" as const } }] },
+      reparacion: { titulo: "Revisión del saco de entrenamiento", texto: "La comisión detectó desgaste y propone una reparación preventiva. Podés asumir el costo ahora o posponerlo; esperar no cambia el entrenamiento.", tipoEvento: "mantenimiento" as const, opciones: [{ texto: "Reparar por $120", accion: { tipo: "mantenimiento" as const, costo: 120 } }, { texto: "Posponer el gasto", accion: { tipo: "nada" as const } }] },
+      entrevista: { titulo: "Entrevista en Radio Guante", texto: "La prensa quiere conocer tu proyecto. Elegí cómo responder: una declaración puede mejorar o perjudicar la imagen del club.", tipoEvento: "entrevista" as const, opciones: [{ texto: "Hablar del proyecto · +2 fama, +80 seguidores", accion: { tipo: "entrevista" as const, fama: 2, monto: 80 } }, { texto: "Provocar al rival · −2 fama, −40 seguidores", accion: { tipo: "entrevista" as const, fama: -2, monto: -40 } }, { texto: "Declinar la entrevista", accion: { tipo: "nada" as const } }] },
       colecta: { titulo: "Colecta solidaria del barrio", texto: "La comisión propone una colecta puntual para sostener el gimnasio. No es un bingo ni una actividad social: vence en pocos días.", tipoEvento: "recaudacion" as const, opciones: [{ texto: "Aportar $80 y organizarla", accion: { tipo: "recaudacion" as const, costo: 80, monto: 180 } }, { texto: "No organizarla", accion: { tipo: "nada" as const } }] },
     }[tipo];
     eventos.push({
@@ -697,19 +715,19 @@ export function generarEventos(e: EstadoJuego): EventoJuego[] {
 }
 
 // ==================== ESTADO BASE Y PERSISTENCIA ====================
-export function crearEstadoBase(): EstadoJuego {
-  const alumnos = [genPugilista({ rol: "alumno", joven: true }), genPugilista({ rol: "alumno", joven: true }), genPugilista({ rol: "alumno" })];
+export function crearEstadoBase(opciones: { sinPoblacion?: boolean } = {}): EstadoJuego {
+  const alumnos = opciones.sinPoblacion ? [] : [genPugilista({ rol: "alumno", joven: true }), genPugilista({ rol: "alumno", joven: true }), genPugilista({ rol: "alumno" })];
   alumnos.forEach(a => { a.fogueo = azar(0, 2); });
   return {
     version: 2,
-    schemaVersion: 3,
+    schemaVersion: SCHEMA_ACTUAL,
     creado: false,
     nombreJugador: "", nombreGimnasio: "",
     dinero: 900, fama: 4, seguidores: 480, recreativos: 0,
     dia: 1, semana: 1, mes: 1, anio: 2026,
     ultimaSemanaScout: 0,
     plantel: alumnos,
-    rivales: GIMNASIOS_RIVALES.flatMap((club, i) => [0, 1].map(j => {
+    rivales: opciones.sinPoblacion ? [] : GIMNASIOS_RIVALES.flatMap((club, i) => [0, 1].map(j => {
       const rival = genRivalPorVG(56 + i * 4 + j * 3, DIVISIONES[(i + j) % DIVISIONES.length], 70 + j * 5, undefined, "pro");
       rival.club = club;
       rival.peleasProfesionales = 12 + i * 3 + j * 4;
@@ -736,9 +754,11 @@ export function crearEstadoBase(): EstadoJuego {
     prensa: [],
     cinturones: [],
     salonFama: [],
+    archivoCarreras: [],
     veladaProgramada: false,
     libroIngresos: [],
     libroGastos: [],
+    semanaLibro: 1,
     resumen: null,
     legados: 0,
     stats: { peleas: 0, victorias: 0, kos: 0, veladas: 0, dineroGanado: 0, resultadoNeto: 0, titulos: 0 },
@@ -750,126 +770,7 @@ export function crearEstadoBase(): EstadoJuego {
   };
 }
 
-function sanitizarPugilista(raw: Partial<Pugilista>): Pugilista {
-  const base = genPugilista({ rol: "alumno" });
-  const p: Pugilista = { ...base, ...raw, atrib: { ...ATRIBUTOS_BASE, ...(raw?.atrib ?? {}) } };
-  const claves: ClaveAtributo[] = ["fuerza", "velocidad", "potencia", "resistencia", "ataque", "defensa", "tecnica", "eficacia", "inteligencia", "mentalidad", "talento"];
-  for (const clave of claves) p.atrib[clave] = clamp(Number(p.atrib[clave]) || 0, 0, 99);
-  p.id = typeof raw.id === "string" && raw.id ? raw.id : base.id;
-  p.nombre = typeof raw.nombre === "string" && raw.nombre ? raw.nombre : base.nombre;
-  p.genero = raw.genero === "F" ? "F" : "M";
-  p.rol = raw.rol === "boxeador" ? "boxeador" : "alumno";
-  p.licenciaFederativa = p.rol === "boxeador" || raw.licenciaFederativa === true;
-  p.enEspera = p.rol === "alumno" && !!raw.enEspera;
-  p.circuito = raw.circuito === "pro" ? "pro" : "amateur";
-  p.edad = clamp(Number(raw.edad) || base.edad, 12, 80);
-  p.record = { v: 0, d: 0, e: 0, ko: 0, ...(raw?.record ?? {}) };
-  p.record.v = Math.max(0, Number(p.record.v) || 0);
-  p.record.d = Math.max(0, Number(p.record.d) || 0);
-  p.record.e = Math.max(0, Number(p.record.e) || 0);
-  p.record.ko = clamp(Number(p.record.ko) || 0, 0, p.record.v);
-  p.peleasAmateur = Math.max(0, Number(raw.peleasAmateur) || (p.circuito === "amateur" ? p.record.v + p.record.d + p.record.e : 0));
-  p.peleasProfesionales = Math.max(0, Number(raw.peleasProfesionales) || (p.circuito === "pro" ? p.record.v + p.record.d + p.record.e : 0));
-  p.victoriasProfesionales = Math.max(0, Number(raw.victoriasProfesionales) || (p.circuito === "pro" ? p.record.v : 0));
-  p.derrotasProfesionales = Math.max(0, Number(raw.derrotasProfesionales) || (p.circuito === "pro" ? p.record.d : 0));
-  p.empatesProfesionales = Math.max(0, Number(raw.empatesProfesionales) || (p.circuito === "pro" ? p.record.e : 0));
-  p.kosProfesionales = clamp(Number(raw.kosProfesionales) || (p.circuito === "pro" ? p.record.ko : 0), 0, p.victoriasProfesionales);
-  p.energia = clamp(Number(p.energia) || 100, 0, 100);
-  p.fogueo = Math.max(0, Number(p.fogueo) || 0);
-  p.fogueoMeta = 10;
-  p.guanteosRealizados = Math.max(Number(raw.guanteosRealizados) || p.fogueo, p.fogueo);
-  p.lesion = raw.lesion && typeof raw.lesion === "object" ? raw.lesion as Pugilista["lesion"] : null;
-  p.proximaPeleaSemana = raw.proximaPeleaSemana == null ? null : Math.max(1, Number(raw.proximaPeleaSemana) || 1);
-  p.ultimaPeleaSemana = raw.ultimaPeleaSemana == null ? null : Math.max(1, Number(raw.ultimaPeleaSemana) || 1);
-  p.titulo = clamp(Number(p.titulo) || 0, 0, 4) as 0 | 1 | 2 | 3 | 4;
-  return p;
-}
-
-function sanitizarPelea(raw: unknown): Pelea | null {
-  if (!raw || typeof raw !== "object") return null;
-  const x = raw as Partial<Pelea>;
-  if (typeof x.miId !== "string" || !x.rival || typeof x.rival !== "object") return null;
-  return {
-    id: typeof x.id === "string" && x.id ? x.id : uid(),
-    miId: x.miId,
-    rival: sanitizarPugilista(x.rival as Partial<Pugilista>),
-    bolsa: Math.max(0, Number(x.bolsa) || 0),
-    esTitulo: clamp(Number(x.esTitulo) || 0, 0, 4) as Pelea["esTitulo"],
-    velada: !!x.velada,
-    semanaProgramada: Math.max(1, Number(x.semanaProgramada) || 1),
-    diaProgramado: clamp(Number(x.diaProgramado) || 6, 1, 7),
-  };
-}
-
-/** Compatibilidad segura de partidas guardadas en localStorage. */
+/** Compatibility facade. Load validation never executes gameplay rules. */
 export function sanitizarEstado(raw: unknown): EstadoJuego {
-  const base = crearEstadoBase();
-  if (!raw || typeof raw !== "object") return base;
-  const r = raw as Partial<EstadoJuego>;
-  const s: EstadoJuego = { ...base, ...r, version: 2, schemaVersion: 3 };
-  s.plantel = Array.isArray(r.plantel) ? r.plantel.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : base.plantel;
-  s.rivales = Array.isArray(r.rivales) ? r.rivales.map(x => sanitizarPugilista(x as Partial<Pugilista>)) : [];
-  s.rivales = s.rivales.map((rival, i) => ({ ...rival, club: rival.club || GIMNASIOS_RIVALES[i % GIMNASIOS_RIVALES.length] }));
-  for (let i = s.rivales.length; i < 20; i++) {
-    const rival = genRivalPorVG(56 + (i % 10) * 4 + (i % 2) * 3, DIVISIONES[i % DIVISIONES.length], 70 + (i % 2) * 5, undefined, "pro");
-    rival.club = GIMNASIOS_RIVALES[i % GIMNASIOS_RIVALES.length];
-    rival.peleasProfesionales = 12 + (i % 10) * 3 + (i % 2) * 4;
-    rival.victoriasProfesionales = rival.record.v;
-    rival.derrotasProfesionales = rival.record.d;
-    rival.kosProfesionales = rival.record.ko;
-    s.rivales.push(rival);
-  }
-  s.ofertas = Array.isArray(r.ofertas) ? (r.ofertas as unknown[]).flatMap(raw => {
-    if (!raw || typeof raw !== "object") return [];
-    const x = raw as Partial<OfertaRival>;
-    if (typeof x.id !== "string" || !x.rival || typeof x.rival !== "object") return [];
-    return [{ ...x, rival: sanitizarPugilista(x.rival as Partial<Pugilista>), bolsa: Math.max(0, Number(x.bolsa) || 0) } as OfertaRival];
-  }) : [];
-  s.pendientes = Array.isArray(r.pendientes) ? (r.pendientes as unknown[]).flatMap(raw => {
-    const pelea = sanitizarPelea(raw);
-    return pelea ? [pelea] : [];
-  }) : [];
-  s.historial = Array.isArray(r.historial) ? (r.historial as ResultadoPelea[]) : [];
-  const equiposValidos = ["vendasGel", "sacosCuero", "perasDoble", "manoplasPro", "soga", "pisoGoma", "cuerdaVelocidad", "plataformaReaccion", "ringReglamentario", "zonaElite", "bucal", "cabezal", "botas", "batas", "botiquin", "vestuarios", "barraProteinas", "sauna", "carteles", "sonido", "marquesina", "vitrina", "estudioMarca"];
-  s.equipamiento = Array.isArray(r.equipamiento) ? (r.equipamiento as GearId[]).filter(g => equiposValidos.includes(g)) : [];
-  s.cursos = Array.isArray(r.cursos) ? (r.cursos as EstadoJuego["cursos"]) : [];
-  const personalValidos = ["directorTecnico", "representante", "preparador", "asistente", "difusion", "gerente", "entrenadorLocal", "coordinadorSucursal", "ojeador"];
-  s.personal = Array.isArray(r.personal) ? (r.personal as EstadoJuego["personal"]).filter(p => p && personalValidos.includes(p.tipo)) : [];
-  const propiedadesValidas = ["local", "terreno", "sucursal", "apartamento", "mansion", "arena"];
-  s.propiedades = Array.isArray(r.propiedades) ? (r.propiedades as EstadoJuego["propiedades"]).filter(p => propiedadesValidas.includes(p)) : [];
-  s.eventos = Array.isArray(r.eventos) ? (r.eventos as EventoJuego[]) : [];
-  s.comunitarios = Array.isArray(r.comunitarios) ? (r.comunitarios as EstadoJuego["comunitarios"]) : [];
-  s.prensa = Array.isArray(r.prensa) ? (r.prensa as EstadoJuego["prensa"]) : [];
-  s.cinturones = Array.isArray(r.cinturones) ? (r.cinturones as EstadoJuego["cinturones"]) : [];
-  s.salonFama = Array.isArray(r.salonFama) ? (r.salonFama as EstadoJuego["salonFama"]).slice(0, 50) : [];
-  s.consejos = Array.isArray(r.consejos)
-    ? (r.consejos as EstadoJuego["consejos"]).map(c => ({ ...c, fama: Math.max(0, Number(c.fama) || 0), dinero: Math.max(0, Number(c.dinero) || 0), cumplido: !!c.cumplido, reclamado: !!c.reclamado }))
-    : base.consejos;
-  s.libroIngresos = Array.isArray(r.libroIngresos) ? (r.libroIngresos as EstadoJuego["libroIngresos"]) : [];
-  s.libroGastos = Array.isArray(r.libroGastos) ? (r.libroGastos as EstadoJuego["libroGastos"]) : [];
-  s.stats = { ...base.stats, ...(r.stats ?? {}) };
-  s.logoGimnasio = typeof r.logoGimnasio === "string" ? r.logoGimnasio : base.logoGimnasio;
-  s.ultimaSemanaEntrenada = Math.max(0, Number(r.ultimaSemanaEntrenada) || 0);
-  s.nombrePartida = typeof r.nombrePartida === "string" && r.nombrePartida ? r.nombrePartida : (s.nombreGimnasio || "Mi carrera");
-  s.partidaId = typeof r.partidaId === "string" && r.partidaId ? r.partidaId : uid();
-  s.dinero = Number.isFinite(Number(r.dinero)) ? Number(r.dinero) : 0;
-  s.fama = clamp(Number(r.fama) || 0, 0, 100);
-  s.seguidores = Math.max(0, Number(r.seguidores) || Math.round(200 + s.fama * 60));
-  s.recreativos = clamp(Number(r.recreativos) || 0, 0, 999);
-  s.dia = clamp(Number(r.dia) || 1, 1, 7);
-  s.semana = Math.max(1, Number(r.semana) || 1);
-  s.ultimaSemanaScout = Math.max(0, Number(r.ultimaSemanaScout) || 0);
-  s.toasts = [];
-  s.resumen = null;
-  s.patrocinio = r.patrocinio && typeof r.patrocinio === "object" && typeof r.patrocinio.nombre === "string"
-    ? { nombre: r.patrocinio.nombre, semanal: Math.max(0, Number(r.patrocinio.semanal) || 0), semanas: Math.max(0, Number(r.patrocinio.semanas) || 0) }
-    : null;
-  s.prestamo = r.prestamo && typeof r.prestamo === "object"
-    ? { saldo: Math.max(0, Number(r.prestamo.saldo) || 0), cuota: Math.max(0, Number(r.prestamo.cuota) || 0), semanasRestantes: Math.max(0, Number(r.prestamo.semanasRestantes) || 0) }
-    : null;
-  s.marcaRopa = typeof r.marcaRopa === "string" ? r.marcaRopa : "";
-  s.nombreJugador = typeof r.nombreJugador === "string" ? r.nombreJugador : "";
-  s.nombreGimnasio = typeof r.nombreGimnasio === "string" ? r.nombreGimnasio : "Puños de Oro";
-  s.creado = !!r.creado && s.nombreJugador !== "";
-  return normalizarListaEspera(s);
+  return validarEstado(raw, crearEstadoBase({ sinPoblacion: true })).estado;
 }

@@ -89,6 +89,111 @@ html, body, #root {
 }
 .hard-shadow { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
 
+/* Marco visual del Panel del Club: una bandeja holográfica cerrada, sin sumar ruido. */
+.club-panel {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(38, 32, 25, .96), rgba(20, 16, 12, .98)),
+    radial-gradient(circle at 50% 0%, rgba(56, 224, 207, .08), transparent 48%);
+  border: 1px solid rgba(56, 224, 207, .24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px rgba(232,178,58,.06), -10px 0 28px rgba(0,0,0,.24), 0 14px 34px rgba(0,0,0,.28);
+}
+.club-panel::before,
+.club-panel::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+.club-panel::before {
+  inset: 0;
+  background: linear-gradient(135deg, rgba(56,224,207,.08), transparent 24%, transparent 72%, rgba(232,178,58,.06));
+}
+.club-panel::after {
+  left: 10%;
+  right: 10%;
+  bottom: 5px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56,224,207,.65), transparent);
+  box-shadow: 0 0 12px rgba(56,224,207,.2);
+}
+.club-panel > * { position: relative; z-index: 1; }
+
+.app-footer { background: rgba(20,16,12,.72); }
+.fight-screen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  height: 100dvh;
+  min-height: 0;
+  background-color: var(--color-ink);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold2) var(--color-panel);
+}
+.fight-screen-content { min-height: 100%; }
+.fight-plan-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fight-plan-option { min-height: 2.6rem; }
+.fight-round-button { min-height: 2.4rem; }
+@media (max-height: 680px) {
+  .fight-screen-overlay { padding: .35rem !important; }
+  .fight-screen-content { gap: .35rem !important; }
+  .fight-heading > div:first-child { font-size: .58rem; letter-spacing: .22em; }
+  .fight-heading h1 { font-size: 1.45rem; line-height: 1.05; }
+  .fight-status-card { padding: .4rem !important; border-radius: .75rem; }
+  .fight-status-card .font-display { font-size: 1.05rem; }
+  .fight-status-card .font-cond { font-size: .58rem; }
+  .fight-status-card .stat-bar { height: .4rem; }
+  .fight-ring { height: clamp(120px, 23vh, 180px) !important; border-radius: 1rem; }
+  .fight-ring > div:first-child { height: 2.5rem; }
+  .fight-ring > div:first-child .anim-bob { width: .75rem; height: .75rem; }
+  .fight-details { gap: .35rem !important; }
+  .fight-stats-panel, .fight-controls-panel { padding: .45rem !important; border-radius: .75rem; }
+  .fight-stats-panel { gap: .25rem !important; }
+  .fight-stats-panel table { font-size: .68rem; }
+  .fight-stats-panel th { font-size: .53rem; }
+  .fight-stats-panel td { padding-top: .15rem; padding-bottom: .15rem; }
+  .fight-controls-panel { justify-content: flex-start; }
+  .fight-corner-content { display: flex; flex-direction: column; gap: .3rem !important; }
+  .fight-corner-content > div:first-child { font-size: .76rem; padding-bottom: .2rem; }
+  .fight-plan-list { gap: .2rem !important; }
+  .fight-plan-option { min-height: 2rem; padding: .25rem .35rem !important; gap: .35rem; }
+  .fight-plan-option svg { width: .75rem; height: .75rem; }
+  .fight-plan-option .font-display { font-size: .64rem; }
+  .fight-plan-option .font-cond { font-size: .52rem; }
+  .fight-round-button { min-height: 1.8rem; margin-top: .1rem !important; padding-top: .25rem; padding-bottom: .25rem; font-size: .7rem; }
+}
+@media (max-width: 640px) {
+  .fight-details { grid-template-columns: minmax(0, 1fr); }
+  .fight-plan-list { grid-template-columns: minmax(0, 1fr); }
+  .fight-ring { min-height: 145px; }
+}
+.plantel-grid > .panel { min-height: 126px; }
+.roster-cards > .roster-card { min-height: 126px; }
+.roster-cards { flex: 1 0 auto; grid-auto-rows: minmax(126px, auto); }
+.roster-avatar { transition: width .18s ease, height .18s ease; }
+.staff-grid > .staff-card { min-height: 0; }
+.app-main > .staff-screen { gap: .4rem; }
+.staff-screen > * + * { margin-top: 0 !important; }
+.calendar-grid > div { min-height: 0; }
+.calendar-screen > * + * { margin-top: 0 !important; }
+.calendar-day-cell { padding: .45rem !important; }
+.calendar-day-cell > :nth-child(2) { margin-bottom: .35rem !important; }
+.calendar-summary { gap: .35rem !important; padding: .5rem !important; }
+.calendar-summary > div { padding: .4rem !important; line-height: 1.15; }
+.calendar-agenda { padding: .55rem !important; }
+.calendar-agenda-list { gap: .35rem !important; }
+.calendar-agenda-list article { min-width: 0; }
+.calendar-agenda-list article > p { line-height: 1.2; }
+.profile-branch-panel { min-height: 5rem; place-items: center; }
+.profile-branch-panel > .profile-branch-card { min-width: 0; }
+.profile-branch-card { align-self: center; }
+.profile-property-grid { align-content: center; }
+.profile-course-card > .btn-poster { width: 100%; min-height: 1.8rem; padding: .25rem .4rem; font-size: .68rem; line-height: 1.1; }
+.profile-property-card > div:first-child { min-height: 2rem; }
+.profile-property-card .font-display { font-size: .82rem; line-height: 1.15; }
+.city-inspector-copy { flex-shrink: 0; }
+
 .btn-poster {
   font-family: var(--font-display);
   letter-spacing: 0.08em;
@@ -231,8 +336,64 @@ html.movimiento-reducido *::after {
   .fondo-app::after { background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.2)); }
 }
 
-/* Las ventanas normales de escritorio tienen menos altura que la pantalla completa. */
 @media (max-height: 800px) and (min-width: 701px) {
+  .calendar-screen > .panel:first-child { padding: .35rem .55rem !important; }
+  .calendar-screen > .panel:first-child h2 { font-size: 1rem; line-height: 1.1; }
+  .calendar-grid { flex: 0 0 4.5rem !important; }
+  .calendar-day-cell { padding: .3rem !important; }
+  .calendar-summary > div { padding: .25rem .35rem !important; font-size: .62rem !important; }
+  .calendar-agenda > div:first-child { margin-bottom: .3rem !important; }
+  .calendar-agenda-list article { padding: .35rem !important; }
+  .calendar-agenda-list article > p { margin-top: .15rem !important; font-size: .62rem !important; }
+  .calendar-agenda-list article > div:last-child { margin-top: .25rem !important; }
+  .profile-summary { gap: .15rem !important; padding: .1rem !important; }
+  .profile-summary h2 { font-size: .95rem !important; line-height: 1.05 !important; }
+  .profile-summary p { font-size: .62rem !important; line-height: 1.1 !important; }
+  .profile-summary .mt-2 { margin-top: .2rem !important; }
+  .profile-summary .grid > div { padding: .1rem .2rem !important; }
+  .profile-summary .grid > div > div:first-child { font-size: .88rem !important; line-height: 1 !important; }
+  .profile-summary .grid > div > div:last-child { font-size: .52rem !important; line-height: 1 !important; }
+  .profile-summary > div:last-child { gap: .15rem !important; padding-top: .1rem !important; }
+  .profile-summary > div:last-child > span { font-size: .58rem !important; line-height: 1.1 !important; }
+  .profile-subnav { gap: .25rem !important; }
+  .profile-subnav > div { padding: .15rem !important; }
+  .profile-subnav > div button { min-height: 1.1rem !important; padding: .1rem .35rem !important; font-size: .58rem !important; line-height: 1 !important; }
+  .profile-subnav > .btn-poster { min-height: 1.1rem !important; padding: .05rem .25rem !important; font-size: .5rem !important; }
+  .profile-courses { gap: 0 !important; }
+  .profile-courses > h3, .profile-properties > h3 { margin-bottom: .1rem !important; font-size: .72rem !important; line-height: 1 !important; }
+  .profile-courses .mb-2 { margin-bottom: .15rem !important; }
+  .profile-courses .profile-branch-tab { min-height: 1.4rem !important; padding: .1rem .4rem !important; font-size: .58rem !important; line-height: 1 !important; }
+  .profile-courses .profile-branch-tab svg { height: .7rem !important; width: .7rem !important; }
+  .profile-branch-card { padding: .2rem !important; }
+  .profile-branch-title { margin: 0 0 .1rem !important; font-size: .62rem !important; line-height: 1 !important; }
+  .profile-course-grid { gap: .25rem !important; }
+  .profile-course-card { gap: .15rem !important; padding: .25rem !important; }
+  .profile-course-card > div > div:first-child { font-size: .62rem !important; line-height: 1 !important; }
+  .profile-course-card > div > p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 1; margin-top: .1rem !important; font-size: .53rem !important; line-height: 1.05 !important; }
+  .profile-course-card > .btn-poster { min-height: 1.15rem !important; padding: .1rem .2rem !important; font-size: .5rem !important; }
+  .profile-properties { gap: 0 !important; }
+  .profile-property-grid { grid-auto-rows: max-content; }
+  .profile-property-card { padding: .25rem !important; }
+  .profile-property-card > div:first-child { min-height: 0 !important; }
+  .profile-property-card .font-display { overflow: hidden; font-size: .56rem !important; line-height: 1 !important; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-property-card .font-cond { overflow: hidden; font-size: .48rem !important; line-height: 1 !important; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-height: 800px) and (min-width: 701px) {
+  .profile-courses > h3, .profile-properties > h3, .profile-branch-title { display: none !important; }
+  .profile-courses .profile-branch-tab { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > div button { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > .btn-poster { min-height: 1rem !important; padding: .025rem .2rem !important; }
+  .profile-branch-card { padding: .1rem !important; }
+  .profile-course-card { gap: .05rem !important; padding: .08rem !important; }
+  .profile-property-card { padding: .15rem !important; }
+  .profile-property-card .font-cond { font-size: .42rem !important; }
+  .profile-property-card .font-display { font-size: .5rem !important; }
+  .game-screen .profile-properties .profile-property-card { padding: .08rem !important; }
+}
+
+/* Las ventanas normales de escritorio tienen menos altura que la pantalla completa. */
+@media (max-height: 950px) and (min-width: 701px) {
   .fondo-app > .flex-1 { gap: .5rem; padding-top: .5rem; padding-bottom: .5rem; }
   .app-nav { margin-bottom: .4rem !important; padding: .25rem !important; gap: .25rem !important; }
   .app-nav button { padding: .35rem .6rem !important; font-size: .78rem !important; }
@@ -249,7 +410,31 @@ html.movimiento-reducido *::after {
   .staff-card > div:first-child > div:first-child > div:first-child { font-size: .9rem !important; line-height: 1.05 !important; }
   .staff-card > p { margin-top: .25rem !important; min-height: 28px !important; font-size: .65rem !important; line-height: 1.15 !important; }
   .staff-card .mt-3 { margin-top: .35rem !important; }
-  .profile-branch-panel { display: none !important; }
+  .staff-header { gap: .35rem .8rem !important; padding: .4rem .6rem !important; }
+  .staff-header h2 { font-size: 1.1rem !important; line-height: 1.1 !important; }
+  .staff-header > span { font-size: .68rem !important; }
+  .staff-card > .staff-desc { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-height: 25px !important; font-size: .61rem !important; line-height: 1.1 !important; }
+  .staff-pagination .btn-poster { min-height: 1.5rem !important; padding: .1rem .5rem !important; font-size: .68rem !important; line-height: 1 !important; }
+  .plantel-grid > .panel { min-height: 112px !important; }
+  .roster-cards { grid-auto-rows: minmax(112px, auto); }
+  .profile-branch-panel { display: grid !important; min-height: 0 !important; }
+  .profile-courses { gap: .15rem !important; }
+  .profile-courses > .mb-2 { margin-bottom: .2rem !important; }
+  .profile-courses > h3 { margin-bottom: .25rem !important; font-size: .95rem !important; }
+  .profile-branch-card { padding: .35rem !important; }
+  .profile-branch-title { margin-bottom: 0 !important; font-size: .82rem !important; }
+  .profile-course-grid { gap: .35rem !important; }
+  .profile-course-card { gap: .25rem !important; padding: .4rem !important; }
+  .profile-course-card > div > div:first-child { gap: .25rem !important; font-size: .72rem !important; }
+  .profile-course-card > div > p { margin-top: .2rem !important; font-size: .62rem !important; line-height: 1.15 !important; }
+  .profile-course-card > .btn-poster { min-height: 1.45rem !important; padding: .15rem .25rem !important; font-size: .58rem !important; }
+  .profile-properties { gap: .15rem !important; }
+  .profile-properties > h3 { margin-bottom: .25rem !important; font-size: .95rem !important; }
+  .profile-property-card { padding: .4rem !important; }
+  .profile-property-card > div:first-child { min-height: 0; gap: .25rem !important; }
+  .profile-property-card .font-display { font-size: .68rem !important; }
+  .profile-property-card p { font-size: .6rem !important; line-height: 1.12 !important; }
+  .roster-avatar { width: 2.75rem !important; height: 2.75rem !important; }
   .boxer-sheet-content { font-size: .88em !important; }
   .boxer-sheet-main { gap: .45rem !important; }
   .boxer-sheet-right, .boxer-sheet-left { gap: .4rem !important; }
@@ -257,4 +442,22 @@ html.movimiento-reducido *::after {
   .boxer-sheet-right .min-h-\[56px\] { min-height: 46px !important; }
   .boxer-sheet-right .p-2\.5 { padding: .45rem !important; }
   .boxer-sheet-left > div:first-child { height: 5.5rem !important; }
+}
+
+@media (min-width: 1440px) and (min-height: 850px) {
+  .roster-avatar { width: 3.5rem; height: 3.5rem; }
+}
+
+/* La regla de altura corta debe ganar sobre los ajustes genéricos de escritorio. */
+@media (max-height: 800px) and (min-width: 701px) {
+  .profile-courses > h3, .profile-properties > h3, .profile-branch-title { display: none !important; }
+  .profile-courses .profile-branch-tab { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > div button { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > .btn-poster { min-height: 1rem !important; padding: .025rem .2rem !important; }
+  .profile-branch-card { padding: .1rem !important; }
+  .profile-course-card { gap: .05rem !important; padding: .08rem !important; }
+  .profile-property-grid { grid-auto-rows: max-content; }
+  .profile-property-card { padding: .15rem !important; }
+  .profile-property-card .font-cond { font-size: .42rem !important; }
+  .profile-property-card .font-display { font-size: .5rem !important; }
 }

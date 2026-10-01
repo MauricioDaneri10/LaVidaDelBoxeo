@@ -146,6 +146,12 @@ Gastos:
 
 Todo movimiento debe registrarse y aparecer en el balance. El jugador debe poder detectar si está a favor o en pérdida y por qué.
 
+**Parámetros económicos provisionales calibrados (2026-09-23):** bingo ($200 de inversión, retorno $250–$420), juegos de mesa ($100, $130–$220), festival/exhibición ($500, $580–$850 y +3 fama) y clase abierta ($60, $80–$140; puede aportar un recreativo temporal, con tope global 12). Son parámetros del candidato, no garantía de balance final; la clase temporal cobra una cuota de una semana. El detalle reproducible está en `docs/audits/27_Calibracion_Economica_Escenarios_2026-09-23.md`. El costo por caja negativa tiene un tope de $50/semana; la nómina todavía puede hundir una carrera (`docs/audits/28_Gate_Insolvencia_Nomina_y_Recuperacion_2026-09-23.md`). La salida aprobada para la insolvencia severa está en el apartado siguiente. Los eventos continúan con retorno mínimo superior a la inversión; el riesgo de los eventos también queda pendiente antes del playtest final.
+
+### Política aprobada de insolvencia severa — Gate 30
+
+El dueño aprobó la opción E y confirmó que, al reconstruir una carrera insolvente, deben sobrevivir únicamente el récord del entrenador y los hitos históricos (incluidas las entradas del Salón de la Fama). La caja, deuda, plantel, empleados, cursos, equipamiento, propiedades, patrocinio, fama, seguidores y bonificaciones de legado se reinician. El cierre es voluntario, destructivo, requiere caja ≤ −$1.500 y confirmación explícita; conserva el identificador del guardado para actualizar esa partida en el próximo autosave. No se presenta como “recuperación” de la carrera: es una reconstrucción sin activos heredados. Antes de contratar personal cuyo costo deje negativo el flujo semanal recurrente, se muestra el impacto estimado y se requiere confirmar que se asume el riesgo. El cálculo excluye ayudas iniciales, actividades puntuales y patrocinio temporal. Evidencia/alcance: `docs/audits/30_Gate_Politica_Insolvencia_y_Cierre_2026-09-23.md`.
+
 ## 9. Pestañas canónicas
 
 - **Gimnasio:** diorama, estaciones, mejoras activas y acceso al plantel.

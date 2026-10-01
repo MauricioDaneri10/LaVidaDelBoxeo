@@ -27,7 +27,7 @@ export default function Intro() {
   const cargarPartida = (id: string) => dispatch({ type: "CARGAR_PARTIDA", id });
   const eliminarPartida = (id: string) => {
     if (!window.confirm("¿Borrar esta partida guardada? No se puede deshacer.")) return;
-    borrarPartida(id);
+    if (!borrarPartida(id)) { window.alert("No se pudo borrar la ranura. Sus datos anteriores siguen protegidos."); return; }
     setPartidas(listarPartidas());
   };
 
@@ -165,6 +165,9 @@ export default function Intro() {
       <div className="mt-3 flex shrink-0 flex-wrap items-center justify-center gap-x-4 gap-y-1 font-cond text-[11px] uppercase tracking-[0.2em] text-mut">
         <span>11 capacidades + Eficacia</span><span className="text-blood">●</span><span>Sistema de 10 puntos</span><span className="text-blood">●</span><span>4 distritos</span><span className="text-blood">●</span><span>Legado infinito</span>
       </div>
+      <footer className="app-footer mt-auto shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-[10px] uppercase tracking-[0.28em] text-mut">
+        MadArt Studios
+      </footer>
     </div>
   );
 }

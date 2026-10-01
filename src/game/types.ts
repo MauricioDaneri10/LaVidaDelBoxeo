@@ -62,6 +62,8 @@ export interface Pugilista {
   bonusDebut: boolean;
   /** Si es alumno y el gimnasio no tiene cupo, espera hasta que se libere un lugar. */
   enEspera?: boolean;
+  /** Semana en que se incorporó al club, para destacar el alta reciente en la interfaz. */
+  semanaIngreso?: number;
 }
 
 export interface Lesion {
@@ -170,6 +172,15 @@ export interface EntradaSalonFama {
   motivo: string;
 }
 export interface LineaLibro { concepto: string; monto: number; }
+/** Every competitive departure; separate from the selected Hall of Fame. */
+export interface CarreraArchivada {
+  id: string;
+  pugilista: Pugilista;
+  club: string;
+  semanaSalida: number;
+  motivo: string;
+  historial: ResultadoPelea[];
+}
 export interface ResumenSemanal { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number; }
 
 export type PropiedadId = "local" | "terreno" | "sucursal" | "apartamento" | "mansion" | "arena";
@@ -209,9 +220,12 @@ export interface EstadoJuego {
   prensa: NotaPrensa[];
   cinturones: Cinturon[];
   salonFama: EntradaSalonFama[];
+  archivoCarreras: CarreraArchivada[];
   veladaProgramada: boolean;
   libroIngresos: LineaLibro[];
   libroGastos: LineaLibro[];
+  /** Semana a la que pertenecen los movimientos acumulados en el libro activo. */
+  semanaLibro: number;
   resumen: ResumenSemanal | null;
   legados: number;
   stats: { peleas: number; victorias: number; kos: number; veladas: number; dineroGanado: number; resultadoNeto: number; titulos: number };
@@ -241,6 +255,7 @@ export interface SaveEnvelope {
   schemaVersion: number;
   saveId: string;
   savedAt: string;
+  checksum?: string;
   state: EstadoJuego;
 }
 
@@ -258,6 +273,7 @@ export type Accion =
   | { type: "CERRAR_DOMINGO" }
   | { type: "CAMBIAR_COMBO"; id: string; combo: ComboId }
   | { type: "LICENCIAR"; id: string }
+  | { type: "PROMOVER_PRO"; id: string }
   | { type: "ALTERNAR_ELITE"; id: string }
   | { type: "BUSCAR_RIVAL"; id: string }
   | { type: "ELEGIR_OFERTA"; ofertaId: string }
@@ -267,12 +283,13 @@ export type Accion =
   | { type: "CREAR_MARCA"; nombre: string }
   | { type: "COMPRAR_CURSO"; id: CursoId }
   | { type: "COMPRAR_PROPIEDAD"; id: PropiedadId }
-  | { type: "CONTRATAR"; tipo: PersonalId }
+  | { type: "CONTRATAR"; tipo: PersonalId; confirmado?: boolean }
   | { type: "DESPEDIR"; id: string }
   | { type: "RETIRAR_ATLETA"; id: string }
   | { type: "ALTERNAR_VELADA" }
   | { type: "PROGRAMAR_SOCIAL"; actividad: TipoComunitario }
   | { type: "PEDIR_PRESTAMO" }
+  | { type: "CERRAR_CLUB"; confirmado?: boolean }
   | { type: "EVENTO"; id: string; opcion: number }
   | { type: "RECLAMAR_CONSEJO"; id: string }
   | { type: "TOAST"; texto: string; tono?: Toast["tono"] }

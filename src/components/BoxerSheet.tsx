@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { COMBOS, TITULOS } from "../game/data";
-import { consejoEsquina, estadoRecord, fmt, puedeHabilitar, rasgoInfo, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
+import { consejoEsquina, estadoRecord, fmt, puedeHabilitar, puedeProfesionalizar, rasgoInfo, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { ComboId, Pugilista } from "../game/types";
 import { Figura } from "./GymView";
@@ -85,6 +85,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
   const consejo = consejoEsquina(p, rivalSabado);
   const aspirable = tituloAspirable(p);
   const puedeLicenciar = puedeHabilitar(p, state);
+  const paseProfesional = puedeProfesionalizar(p, state);
   const tieneDT = state.personal.some(x => x.tipo === "directorTecnico");
   const categoriaRecord = estadoRecord(p);
 
@@ -211,7 +212,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                   <div className={`mt-1 font-bold ${categoriaRecord.tono === "alerta" ? "text-blood" : categoriaRecord.tono === "oro" ? "text-gold" : categoriaRecord.tono === "ok" ? "text-emerald-300" : "text-mut"}`}>{categoriaRecord.etiqueta}</div>
                   <div className="text-[11px] text-mut">Amateur: {p.peleasAmateur} · Profesional: {p.peleasProfesionales} ({p.victoriasProfesionales}-{p.derrotasProfesionales}-{p.empatesProfesionales}, {p.kosProfesionales} KO)</div>
                   {p.circuito === "amateur"
-                    ? <div className="text-[11px] text-gold">Camino profesional: {Math.max(0, 50 - p.peleasAmateur)} peleas amateurs restantes.</div>
+                    ? <div className="text-[11px] text-gold">{p.peleasAmateur >= 50 ? "Trayectoria amateur completa: el pase profesional queda a decisión del jugador." : `Camino profesional: ${50 - p.peleasAmateur} peleas amateurs restantes.`}</div>
                     : <div className="text-[11px] text-gold">Títulos: Nacional desde 10 peleas pro · Regional/Mundial desde 25.</div>}
                 </div>
               )}
@@ -371,6 +372,16 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {p.rol === "boxeador" && p.circuito === "amateur" && p.peleasAmateur >= 50 && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gold2/40 bg-gold/5 px-2 py-1">
+                        <span className="font-cond text-xs text-sand" title="La decisión no cambia ni borra su récord amateur.">
+                          {paseProfesional.ok ? "Puede aceptar el pase; conserva su récord amateur." : paseProfesional.motivo === "cupo" ? "Cupo profesional completo: seguirá amateur hasta que liberes una plaza." : "Resuelve la pelea agendada antes de cambiar de circuito."}
+                        </span>
+                        <Btn small variant="gold" disabled={!paseProfesional.ok} onClick={() => dispatch({ type: "PROMOVER_PRO", id: p.id })}>
+                          Aceptar pase profesional
+                        </Btn>
+                      </div>
+                    )}
                     <Btn
                       small
                       variant={p.elite ? "gold" : "ghost"}

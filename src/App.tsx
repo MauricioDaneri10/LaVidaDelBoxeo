@@ -284,6 +284,10 @@ function PantallaPrincipal() {
         <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
       </div>
 
+      <footer className="app-footer shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-[10px] uppercase tracking-[0.28em] text-mut">
+        MadArt Studios
+      </footer>
+
       {/* PANTALLA DE COMBATE EN VIVO */}
       {enCartelera && peleaActual && (
         <FightScreen
@@ -483,8 +487,14 @@ function PantallaPrincipal() {
 }
 
 function Raiz() {
-  const { state } = useGame();
-  return state.creado ? <PantallaPrincipal /> : <Intro />;
+  const { state, guardado, reintentarGuardado } = useGame();
+  return <>
+    {state.creado ? <PantallaPrincipal /> : <Intro />}
+    {!guardado.ok && <div role="alert" data-testid="save-error" className="pointer-events-none fixed inset-x-3 top-2 z-[100] mx-auto max-w-2xl rounded-xl border border-blood bg-ink p-3 text-cream shadow-xl">
+      <p className="font-cond text-sm">{guardado.mensaje}</p>
+      <Btn small className="pointer-events-auto mt-2" onClick={reintentarGuardado}>Reintentar guardado</Btn>
+    </div>}
+  </>;
 }
 
 export default function App() {

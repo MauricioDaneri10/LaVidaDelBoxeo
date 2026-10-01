@@ -164,3 +164,13 @@ Cuando una conversación futura pida mejorar el juego, se debe:
 5. actualizar los documentos si cambia una regla.
 
 No se debe pedir al usuario que repita esta metodología.
+
+## 11. Plan vigente para el candidato de playtest
+
+La secuencia detallada de cierre del prototipo, incluyendo gates de UI/UX, loop, economía, localización, persistencia, simulaciones largas y su auditoría de cobertura, está en:
+
+`docs/plans/Plan_Implementacion_Pulido_y_Playtest_Candidato.md`
+
+Antes de crear un plan nuevo o reiniciar una ronda general de auditorías, revisar su sección “Decisión sobre auditorías previas” y actualizar su estado/evidencia. La fase vigente comienza por baseline y reconciliación; no implica que ya se haya aprobado el playtest del propietario.
+
+**Estado del candidato (2026-09-23, Gate 30):** opción E aprobada e implementada: advertencia informada antes de añadir una nómina recurrentemente deficitaria y cierre/reconstrucción voluntaria a caja ≤ −$1.500, preservando solo récord e hitos históricos. `npm run verify` PASS con 53/53 tests, TypeScript, build, presupuesto y auditoría estructural 0/0. Evidencia: `docs/audits/30_Gate_Politica_Insolvencia_y_Cierre_2026-09-23.md`. Esto resuelve el comportamiento de cierre, no garantiza sostenibilidad de todos los modelos económicos: continúan pendientes el riesgo/balance de recaudaciones y los gates visuales multi-viewport, funcionales, accesibilidad/localización y E2E. No habilitar todavía el playtest final del propietario.

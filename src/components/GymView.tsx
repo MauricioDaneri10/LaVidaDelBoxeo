@@ -371,25 +371,28 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
 
       {/* PLANTEL LATERAL RÁPIDO (PANEL DESPLEGABLE) */}
       {drawerAbierto && (
-        <div className="absolute inset-y-0 right-0 z-30 w-72 bg-ink/95 border-l border-line p-4 shadow-2xl flex flex-col justify-between backdrop-blur-md">
+        <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-72 min-w-0 flex-col overflow-hidden border-l border-line bg-ink/95 p-4 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-line pb-2">
             <span className="font-display text-base text-cream uppercase tracking-wider">
               Plantel del gimnasio ({todos.length})
             </span>
             <button
               onClick={() => setDrawerAbierto(false)}
+              aria-label="Cerrar panel del plantel"
               className="p-1 rounded text-mut hover:text-white cursor-pointer"
             >
               <I n="x" className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-hidden space-y-2 py-3 pr-1">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scroll-fino py-3 pr-1">
             {todos.map(b => (
-              <div
+              <button
+                type="button"
                 key={b.id}
                 onClick={() => { seleccionarAtleta(b.id); setDrawerAbierto(false); }}
-                className="p-2.5 rounded-xl bg-panel hover:bg-panel2 border border-line cursor-pointer flex items-center gap-3 transition-colors group"
+                aria-label={`Ver ficha de ${b.nombre}, ${b.division}, energía ${Math.round(b.energia)}`}
+                className="w-full p-2.5 text-left rounded-xl bg-panel hover:bg-panel2 border border-line cursor-pointer flex items-center gap-3 transition-colors group"
               >
                 <RostroBoxeador atleta={b} className="w-10 h-10 shrink-0 rounded-lg" />
                 <div className="flex-1 min-w-0">
@@ -403,13 +406,14 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
                 <div className="font-mono-data text-xs font-black text-gold">
                   {valoracion(b.atrib)}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
           <div className="pt-2 border-t border-line text-center">
             <button
               onClick={() => setDrawerAbierto(false)}
+              aria-label="Cerrar panel del plantel"
               className="w-full py-1.5 rounded-lg bg-panel2 text-xs font-cond uppercase text-sand hover:text-white"
             >
               Cerrar Panel

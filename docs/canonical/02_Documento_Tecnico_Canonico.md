@@ -30,6 +30,10 @@ Persistence + migrations
 
 La UI no debe implementar reglas de negocio. El motor no debe conocer clases CSS. Los datos de contenido no deben depender de textos traducidos.
 
+### Regla de transición de circuito
+
+La elegibilidad para el profesionalismo se deriva del pugilista y del estado del club: debe ser federado amateur con 50 peleas amateurs, sin combate pendiente y con plaza profesional disponible. Llegar al umbral no modifica el circuito por sí solo; la UI despacha el comando `PROMOVER_PRO`, y el reducer vuelve a validar todos los requisitos. El cambio conserva contadores y récord históricos; las validaciones de UI nunca sustituyen las del dominio.
+
 ## 3. Estructura recomendada
 
 ```text
@@ -126,6 +130,10 @@ type LedgerEntry = {
 ```
 
 El saldo se deriva del saldo inicial más el libro o, si se mantiene materializado, se verifica contra el libro en cada cierre.
+
+**Implementación vigente (2026-09-23, gate de prototipo):** el reducer mantiene libros semanales de ingresos/gastos en `EstadoJuego`, registra automáticamente deltas de caja de las acciones, incluye los movimientos previos al cierre y aplica el domingo solo la liquidación nueva. El balance concilia contra el cambio de saldo del período y el libro se reinicia al comenzar la semana siguiente. `schemaVersion` 4 limpia las líneas históricas ambiguas en la migración, conservando saldo y progreso. Esto es una base transicional; antes de añadir multi-sede/contabilidad detallada se debe extraer al servicio transaccional tipado indicado arriba (IDs estables, categoría, día/semana y origen), manteniendo la invariante y migración.
+
+Las actividades sociales toman inversión, rango de retorno, nombre y emoji desde `COMUNITARIOS` (fuente única; no mantener tablas paralelas de valores). `claseAbierta` añade un recreativo temporal sujeto al tope 12 y genera su cuota semanal. Los valores vigentes y pruebas seed 260923 para horizontes 12/52 semanas están documentados en el gate 27. El costo de caja negativa se calcula como `clamp(ceil(3% de deuda), $10, $50)` tanto en el cierre real como en la proyección. Reduce el crecimiento compuesto sin límite, pero la carrera aún puede quedar bloqueada por una deuda severa; consultar Gate 28. No agregar rescates/re-préstamos antes de acordar topes, frecuencia y penalizaciones, y probarlos por varios horizontes.
 
 ## 7. Tiempo y calendario
 
@@ -236,3 +244,18 @@ Una feature no se acepta si solo tiene una prueba manual.
 ## 15. Integración futura
 
 Google Login, sincronización online, monetización y backend deben ser adaptadores. No se permite introducir SDK, autenticación o red directamente en el dominio del juego.
+
+## Contrato operacional R1 — 2026-10-01
+
+Schema actual 5. `saveValidation.ts` contiene migraciones explícitas 1→2→3→4→5 y validación recursiva con diagnósticos; `saveRepository.ts` gobierna lectura/escritura mediante adaptador inyectable. Cargar no genera población, consume RNG ni aplica progresión. Todo dato válido actual se conserva exactamente en guardar→cargar: ceros, falsos, orden, arrays vacíos, resumen y libros.
+
+Reparación/migración exige proteger y verificar bytes originales antes de reemplazar. Se conserva la transición histórica 3→4 del libro ambiguo, sin aplicarla a partidas actuales. Schema futuro, envelope contradictorio e identidad conflictiva bloquean escritura. No se infiere récord profesional desde el agregado. Memoria fallback no es persistencia durable.
+
+Solo hay éxito después de readback exacto y cierre de journal before/after. Journal corrupto bloquea recuperación automática. Cinco ranuras sin expulsión silenciosa; sexta exige eliminación explícita. Error operacional visible/reintentable, no serializado como progreso.
+
+`archivoCarreras` conserva snapshots de toda baja competitiva separado del Salón y sin ventajas de juego; datos ya perdidos no se inventan. Garantía de journal limitada a un escritor; multi-tab requiere diseño aprobado. Evidencia: `docs/audits/45_Gate_R1_Partidas_Carrera_2026-10-01.md`.
+# Gate 30 — guardas de nómina y reconstrucción de carrera
+
+`proyeccionSemanalRecurrente(estado)` reutiliza la proyección del motor con semana mínima 2 y vacía actividades comunitarias y patrocinio temporal, para no presentar ingresos no recurrentes como sostenibilidad. `CONTRATAR` vuelve a calcular después de aplicar el salario propuesto: si el total recurrente es negativo y `confirmado` no es true, no muta el estado y devuelve advertencia. La interfaz presenta el mismo cálculo y solicita una acción afirmativa; el reducer es la autoridad final.
+
+`CERRAR_CLUB` es una acción separada, nunca automática: el reducer exige `dinero <= -1500` y `confirmado: true`. Se construye el estado de inicio nuevo manteniendo `partidaId`, el nombre del entrenador, récord acumulado (`peleas`, `victorias`, `kos`, `veladas`, `titulos`) y `salonFama`. Todo lo demás procede de `crearEstadoBase`, incluido `legados = 0`, para impedir transferencia de beneficios o bucles de cierre. La interfaz explica expresamente las pérdidas y el saldo inicial de $900. El autosave del estado reconstruido sustituye la carrera anterior con el mismo id tras la confirmación. Tests y límites: `docs/audits/30_Gate_Politica_Insolvencia_y_Cierre_2026-09-23.md`.

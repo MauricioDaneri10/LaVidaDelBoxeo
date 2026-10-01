@@ -255,11 +255,11 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
   const esTitulo = pelea.esTitulo > 0;
 
   return (
-    <div className="fondo-app fixed inset-0 z-50 overflow-hidden select-none p-3 sm:p-5">
-      <div className="mx-auto max-w-5xl space-y-4">
+    <div className="fondo-app fight-screen-overlay fixed inset-0 z-50 overflow-y-auto overscroll-contain select-none p-2 sm:p-3">
+      <div className="fight-screen-content mx-auto flex min-h-full w-full max-w-5xl flex-col gap-2 sm:gap-2.5">
         
         {/* ENCABEZADO DE CARTELERA OFICIAL */}
-        <div className="text-center space-y-1">
+        <div className="fight-heading shrink-0 text-center space-y-0.5">
           <div className="font-cond text-xs uppercase tracking-[0.35em] text-sand">
             {esTitulo
               ? `${TITULOS[pelea.esTitulo as 1 | 2 | 3 | 4].cinturon} EN JUEGO`
@@ -268,7 +268,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
               : "COMBATE OFICIAL FEDERADO"}
           </div>
 
-          <h1 className="font-display text-4xl tracking-wide text-cream sm:text-5xl">
+          <h1 className="font-display text-2xl tracking-wide text-cream sm:text-4xl">
             {fase === "final" ? "Fallo Oficial de los Jueces" : `Asalto ${Math.min(e.asalto, e.totalAsaltos)} de ${e.totalAsaltos}`}
           </h1>
 
@@ -280,14 +280,14 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
         </div>
 
         {/* BARRAS DINÁMICAS DE SALUD, STAMINA Y CONDICIÓN */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="fight-status-grid grid shrink-0 grid-cols-2 gap-2">
           {[
             { l: e.A, nombre: nombreA, pugil: mio, lado: "izq", golpes: golpeA },
             { l: e.B, nombre: nombreB, pugil: pelea.rival, lado: "der", golpes: golpeB },
           ].map(({ l, nombre, pugil, lado }) => (
             <div
               key={nombre}
-              className={`panel p-3.5 rounded-2xl ${lado === "der" ? "text-right" : ""}`}
+              className={`panel fight-status-card p-2 sm:p-2.5 rounded-2xl ${lado === "der" ? "text-right" : ""}`}
             >
               <div className={`flex items-baseline gap-2 ${lado === "der" ? "flex-row-reverse" : ""}`}>
                 <span className="font-display text-2xl tracking-wide text-cream truncate">{nombre}</span>
@@ -344,10 +344,10 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
         {/* CUADRILÁTERO VECTORIAL CON ANIMACIONES PROCEDIMENTALES Y SACUDIDA */}
         <div
           key={sacudida}
-          className={`panel relative overflow-hidden rounded-3xl border border-line ${
+          className={`panel fight-ring relative shrink-0 overflow-hidden rounded-3xl border border-line ${
             sacudida > 0 && fase === "asalto" ? "anim-shake" : ""
           }`}
-          style={{ minHeight: 330 }}
+          style={{ height: "clamp(150px, 28vh, 290px)" }}
         >
           {/* Gradas y público atmosférico */}
           <div
@@ -483,10 +483,10 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
         </div>
 
         {/* REGISTRO COMPUBOX Y PANELES DE INSTRUCCIONES / FALLO OFICIAL */}
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="fight-details grid shrink-0 items-stretch gap-2 lg:grid-cols-[1fr_320px]">
           
           {/* ESTADÍSTICAS COMPUBOX OFICIALES */}
-          <div className="panel p-4 rounded-2xl space-y-3">
+          <div className="panel fight-stats-panel p-2.5 sm:p-3 rounded-2xl space-y-2">
             <div className="flex items-center justify-between border-b border-line pb-2">
               <span className="font-display text-lg tracking-wide text-gold flex items-center gap-2">
                 <I n="target" className="h-4 w-4" /> Estadísticas
@@ -552,7 +552,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
           </div>
 
           {/* CONTROLES TÁCTICOS DE ESQUINA / FALLO OFICIAL */}
-          <div className="panel p-4 rounded-2xl flex flex-col justify-between">
+          <div className="panel fight-controls-panel p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between">
             {fase === "cartelera" && (
               <div className="space-y-3">
                 <div className="font-display text-lg text-cream border-b border-line pb-1.5">
@@ -574,11 +574,11 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
             )}
 
             {fase === "esquina" && (
-              <div className="space-y-2.5">
+              <div className="fight-corner-content space-y-2">
                 <div className="font-display text-base text-gold border-b border-line pb-1">
                   Tu Esquina · Instrucciones Tácticas
                 </div>
-                <div className="space-y-1.5">
+                <div className="fight-plan-list space-y-1">
                   {(Object.keys(PLANES) as PlanId[]).map(pid => {
                     const pl = PLANES[pid];
                     const esSeleccionado = plan === pid;
@@ -586,7 +586,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                       <button
                         key={pid}
                         onClick={() => setPlan(pid)}
-                        className={`flex w-full items-center gap-2.5 border p-2 rounded-xl text-left transition-all cursor-pointer ${
+                        className={`fight-plan-option flex w-full items-center gap-2 border p-1.5 rounded-xl text-left transition-all cursor-pointer ${
                           esSeleccionado
                             ? "border-gold bg-gold/15 text-gold shadow-md"
                             : "border-line bg-panel2 text-sand hover:border-line2"
@@ -594,8 +594,8 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                       >
                         <I n={pl.icono} className={`h-4 w-4 shrink-0 ${esSeleccionado ? "text-gold" : "text-sand"}`} />
                         <div className="min-w-0">
-                          <span className="block font-display text-sm text-cream truncate">{pl.nombre}</span>
-                          <span className="block font-cond text-[10px] text-mut truncate">{pl.desc}</span>
+                          <span className="block font-display text-xs text-cream truncate">{pl.nombre}</span>
+                          <span className="block font-cond text-[9px] text-mut truncate">{pl.desc}</span>
                         </div>
                       </button>
                     );
@@ -604,7 +604,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
 
                 <Btn
                   variant="blood"
-                  className="w-full mt-2"
+                  className="fight-round-button w-full mt-1"
                   onClick={iniciarAsalto}
                   pulso
                 >

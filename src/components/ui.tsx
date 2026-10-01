@@ -86,7 +86,7 @@ export function Btn({ children, onClick, disabled, variant = "blood", className 
     : "bg-transparent text-sand border border-line hover:border-gold2";
   return (
     <button onClick={onClick} disabled={disabled}
-      className={`btn-poster ${bg} ${small ? "px-3 py-1 text-sm" : "px-4 py-1.5 text-lg"} ${className} ${pulso ? "guia-luminica" : ""}`}>
+      className={`btn-poster ${bg} ${small ? "min-h-8 px-3 py-1 text-sm" : "min-h-10 px-4 py-1.5 text-lg"} ${className} ${pulso ? "guia-luminica" : ""}`}>
       <span className="inline-flex items-center gap-1.5">{children}</span>
     </button>
   );

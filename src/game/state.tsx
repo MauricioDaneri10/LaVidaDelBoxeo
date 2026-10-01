@@ -1,109 +1,26 @@
-import { createContext, useContext, useEffect, useReducer } from "react";
+import { createContext, useContext, useEffect, useReducer, useState } from "react";
 import type { ReactNode } from "react";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
   aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, capacidadPlantel, chance, clamp, consejoEsquina, crearEstadoBase,
   elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
-  normalizarListaEspera, puedePactarPelea, sucursales, uid, valoracion,
+  normalizarListaEspera, puedePactarPelea, puedeProfesionalizar, proyeccionSemanalRecurrente, sucursales, uid, valoracion,
 } from "./engine";
-import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PartidaGuardada, PersonalId, Pugilista, ResultadoPelea, SaveEnvelope, Toast } from "./types";
-import { persistencia } from "./storage";
+import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
+import { repositorioPartidas, type EstadoGuardado } from "./saveRepository";
+export { CLAVE_GUARDADO } from "./saveRepository";
+export { migrarGuardado } from "./saveValidation";
+import { migrarGuardado } from "./saveValidation";
 
-const CLAVE = "vida-del-boxeo-v2";
-const CLAVE_PARTIDAS = `${CLAVE}:partidas`;
-const FORMATO_GUARDADO = 1 as const;
-export const CLAVE_GUARDADO = CLAVE;
 let toastId = 1;
-
-type Registro = Record<string, unknown>;
-
-export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolean } {
-  if (!raw || typeof raw !== "object") throw new Error("Formato de guardado inválido");
-  const registro = raw as Registro;
-  const esEnvelope = registro.formatVersion === FORMATO_GUARDADO && registro.state && typeof registro.state === "object";
-  let estado = (esEnvelope ? registro.state : registro) as Registro;
-  const schemaInicial = Number(estado.schemaVersion) || 1;
-  let schema = schemaInicial;
-
-  // V1 → V2: métricas de comunidad y nombre de ranura.
-  if (schema < 2) {
-    estado = { ...estado, seguidores: estado.seguidores ?? 0, recreativos: estado.recreativos ?? 0, nombrePartida: estado.nombrePartida ?? estado.nombreGimnasio ?? "Mi carrera" };
-    schema = 2;
-  }
-  // V2 → V3: identidad estable y curso de continuidad.
-  if (schema < 3) {
-    estado = { ...estado, partidaId: typeof estado.partidaId === "string" && estado.partidaId ? estado.partidaId : `migrada-${Date.now()}`, ultimaSemanaScout: estado.ultimaSemanaScout ?? 0, ultimaSemanaEntrenada: estado.ultimaSemanaEntrenada ?? 0 };
-    schema = 3;
-  }
-  return { estado: { ...estado, schemaVersion: schema }, migrado: schemaInicial !== schema };
-}
-
-function envoltura(estado: EstadoJuego, savedAt = new Date().toISOString()): SaveEnvelope {
-  return { formatVersion: FORMATO_GUARDADO, gameVersion: estado.version, schemaVersion: estado.schemaVersion, saveId: estado.partidaId, savedAt, state: estado };
-}
-
-export function listarPartidas(): PartidaGuardada[] {
-  try {
-    const raw = persistencia.getItem(CLAVE_PARTIDAS);
-    const partidas = raw ? JSON.parse(raw) as PartidaGuardada[] : [];
-    return Array.isArray(partidas) ? partidas.filter(p => p && p.id && p.estado) : [];
-  } catch { return []; }
-}
-
-function guardarLista(partidas: PartidaGuardada[]) {
-  persistencia.setItem(CLAVE_PARTIDAS, JSON.stringify(partidas.slice(0, 5)));
-}
-
-export function borrarPartida(id: string) {
-  try { guardarLista(listarPartidas().filter(p => p.id !== id)); } catch {}
-}
-
-export function guardarEnRanura(estado: EstadoJuego, nombre = estado.nombrePartida || estado.nombreGimnasio || "Mi carrera"): boolean {
-  try {
-    const ahora = new Date().toISOString();
-    const id = estado.partidaId || uid();
-    const estadoGuardado = { ...estado, nombrePartida: nombre.trim() || "Mi carrera", partidaId: id };
-    const partida: PartidaGuardada = { id, nombre: estadoGuardado.nombrePartida, coach: estadoGuardado.nombreJugador, gimnasio: estadoGuardado.nombreGimnasio, semana: estadoGuardado.semana, dia: estadoGuardado.dia, dinero: estadoGuardado.dinero, guardadaEn: ahora, estado: estadoGuardado };
-    guardarLista([partida, ...listarPartidas().filter(p => p.id !== id)]);
-    persistencia.setItem(CLAVE, JSON.stringify(envoltura(estadoGuardado, ahora)));
-    persistencia.setItem(`${CLAVE}:guardadoEn`, ahora);
-    return true;
-  } catch { return false; }
-}
-
-export function guardarPartida(estado: EstadoJuego): boolean {
-  try {
-    const anterior = persistencia.getItem(CLAVE);
-    if (anterior) persistencia.setItem(`${CLAVE}:respaldo`, anterior);
-    if (estado.creado) return guardarEnRanura(estado);
-    const ahora = new Date().toISOString();
-    persistencia.setItem(CLAVE, JSON.stringify(envoltura(estado, ahora)));
-    persistencia.setItem(`${CLAVE}:guardadoEn`, ahora);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
+export const listarPartidas = () => repositorioPartidas.listar();
+export const borrarPartida = (id: string) => repositorioPartidas.borrar(id);
+export const guardarEnRanura = (estado: EstadoJuego, nombre?: string) => repositorioPartidas.guardar(estado, nombre);
+export const guardarPartida = (estado: EstadoJuego) => repositorioPartidas.guardar(estado);
 function cargarInicial(): EstadoJuego {
-  const base = crearEstadoBase();
-  try {
-    const raw = persistencia.getItem(CLAVE);
-    if (!raw) return base;
-    const migrado = migrarGuardado(JSON.parse(raw));
-    const estado = sanitizarEstado(migrado.estado);
-    return migrado.migrado ? { ...estado, toasts: [{ id: 0, texto: "Partida actualizada al formato nuevo y guardada de forma segura.", tono: "info" }] } : estado;
-  } catch {
-    try {
-      const respaldo = persistencia.getItem(`${CLAVE}:respaldo`);
-      if (!respaldo) throw new Error("Sin respaldo");
-      const migrado = migrarGuardado(JSON.parse(respaldo));
-      const estado = sanitizarEstado(migrado.estado);
-      return { ...estado, toasts: [{ id: 0, texto: "Se recuperó la última copia segura de tu partida.", tono: "alerta" }] };
-    } catch {
-      return { ...base, toasts: [{ id: 0, texto: "No se pudo leer la partida guardada. Se inició una carrera nueva.", tono: "alerta" }] };
-    }
-  }
+  const estado = repositorioPartidas.cargar();
+  toastId = Math.max(0, ...estado.toasts.map(t => t.id)) + 1;
+  return estado;
 }
 
 function conToast(s: EstadoJuego, texto: string, tono: Toast["tono"] = "info"): EstadoJuego {
@@ -112,6 +29,28 @@ function conToast(s: EstadoJuego, texto: string, tono: Toast["tono"] = "info"): 
 
 function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[] {
   return [...arr, { concepto, monto }];
+}
+
+/** Evalúa objetivos de Don Anselmo también para las recompensas repetibles c8+. */
+export function objetivoConsejoCumplido(id: string, s: EstadoJuego): boolean {
+  const numero = Number(id.match(/^c(\d+)$/)?.[1]);
+  if (!Number.isFinite(numero) || numero < 1) return false;
+  // Desde c8, la cadena alterna tres metas repetibles; los guardados antiguos
+  // ya pueden contener esos IDs aunque no tengan metadatos del objetivo.
+  const objetivo = numero >= 8 ? `c${((numero - 8) % 3) + 8}` : id;
+  const hitos: Record<string, () => boolean> = {
+    c1: () => s.plantel.some(p => p.rol === "boxeador"),
+    c2: () => s.stats.victorias > 0,
+    c3: () => s.equipamiento.length > 0,
+    c4: () => s.stats.veladas > 0,
+    c5: () => s.fama >= 40,
+    c6: () => s.cinturones.length > 0,
+    c7: () => s.personal.length > 0,
+    c8: () => s.recreativos >= 3,
+    c9: () => s.seguidores >= 1500,
+    c10: () => s.stats.victorias >= 3,
+  };
+  return hitos[objetivo]?.() ?? false;
 }
 
 // La capacidad del gimnasio cuenta a todo el plantel: alumnos, espera y boxeadores.
@@ -135,7 +74,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   const probBoca = 0.12 + st.fama / 500 + (st.personal.some(p => p.tipo === "asistente") ? 0.06 : 0) + (st.equipamiento.includes("carteles") ? 0.04 : 0);
   if (st.semana > 1 && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st) && chance(probBoca)) {
     const nuevo = genPugilista({ rol: "alumno", joven: chance(0.4) });
-    st.plantel = [...st.plantel, nuevo];
+    st.plantel = incorporarAlumno(st, nuevo);
     st = conToast(st, `Boca a boca: ${nuevo.nombre.split(" ")[0]} se suma a las clases.`, "ok");
   }
 
@@ -143,22 +82,36 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   if (sucursales(st) > 0 && st.personal.some(p => p.tipo === "entrenadorLocal") && st.plantel.length < limitePlantel(st) && chance(0.12)) {
     const talento = genPugilista({ rol: "alumno", joven: true });
     talento.atrib.talento = clamp(talento.atrib.talento + azar(5, 15) + (st.personal.some(p => p.tipo === "ojeador") ? 4 : 0), 0, 97);
-    st.plantel = normalizarListaEspera({ ...st, plantel: [...st.plantel, talento] }).plantel;
+    st.plantel = incorporarAlumno(st, talento);
     st = conToast(st, `La sucursal descubrió a ${talento.nombre}, un talento del barrio.`, "oro");
   }
 
-  // eventos del teléfono
-  if (st.dia === 2) {
-    const nuevos = generarEventos(st);
-    if (nuevos.length > 0) st = { ...st, eventos: [...st.eventos, ...nuevos].slice(-4) };
-  }
-
-  // envejecer y vencer eventos
+  // Solo envejecen los eventos que ya estaban activos al comenzar el día.
   st.eventos = st.eventos
     .map(e => ({ ...e, venceEn: e.venceEn - 1 }))
     .filter(e => e.venceEn > 0);
 
+  // Los eventos nuevos conservan su plazo completo durante el primer día visible.
+  if (st.dia === 2) {
+    const nuevos = generarEventos(st);
+    // No descartamos asuntos todavía vigentes para hacer lugar a novedades:
+    // se conserva el inbox activo y solo se agregan eventos en espacios libres.
+    const cuposDisponibles = Math.max(0, 4 - st.eventos.length);
+    if (cuposDisponibles > 0 && nuevos.length > 0) {
+      st = { ...st, eventos: [...st.eventos, ...nuevos.slice(0, cuposDisponibles)] };
+    }
+  }
+
   return st;
+}
+
+/** Centraliza alta, distintivo temporal y enfoque inmediato del entrenador automático. */
+function incorporarAlumno(estado: EstadoJuego, pugilista: Pugilista): Pugilista[] {
+  const nuevo: Pugilista = { ...pugilista, semanaIngreso: estado.semana };
+  if (estado.personal.some(p => p.tipo === "directorTecnico")) {
+    nuevo.combo = nuevo.lesion || nuevo.energia < 70 ? "descanso" : consejoEsquina(nuevo, null);
+  }
+  return normalizarListaEspera({ ...estado, plantel: [...estado.plantel, nuevo] }).plantel;
 }
 
 function diaSabado(s: EstadoJuego): EstadoJuego {
@@ -167,7 +120,7 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
 
   // Guanteos (sparring): alumnos, amateurs y profesionales pueden hacerlos.
   const conEnergia = st.plantel.filter(p => !p.enEspera && p.energia >= 20);
-  if (conEnergia.length > 0 && st.plantel.length >= 2) {
+  if (conEnergia.length >= 2) {
     const lugares = ["en el gimnasio", "con el " + elegir(["Club La Loma", "Club Ferro"]), "en una exhibición de barrio"];
     const lugar = elegir(lugares);
     let guanteos = 0;
@@ -191,6 +144,8 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
     if (listos.length > 0 && st.cursos.includes("dt")) {
       st = conToast(st, `${listos[0].nombre.split(" ")[0]} ya puede tramitar su Licencia Federativa.`, "oro");
     }
+  } else if (conEnergia.length === 1) {
+    st = conToast(st, "El guanteo del sábado necesita al menos dos pugilistas disponibles con energía. Revisá el plantel y la recuperación.", "info");
   }
 
   // El Representante agenda solo la cartelera del sábado
@@ -218,8 +173,6 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
     const costos = 250 + st.pendientes.length * 80;
     const neto = recaudado - costos;
     st.dinero += neto;
-    st.stats.dineroGanado += Math.max(0, neto);
-    st.stats.resultadoNeto += neto;
     st.stats.veladas += 1;
     st.libroIngresos = linea(st.libroIngresos, "Entradas de la velada del sábado", neto);
     st.fama = clamp(st.fama + (neto > 0 ? 2 : 1), 0, 100);
@@ -234,9 +187,13 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
 function domingoBalance(s: EstadoJuego): EstadoJuego {
   let st: EstadoJuego = { ...s };
   st.stats = { ...st.stats };
+  const ingresosYaLiquidados = sumaLibro(st.libroIngresos);
+  const gastosYaLiquidados = sumaLibro(st.libroGastos);
   const nivel = nivelGimnasio(st);
-  let ingresos: LineaLibro[] = [];
-  let gastos: LineaLibro[] = [];
+  // Incluye primero los movimientos concretos ocurridos durante la semana;
+  // debajo se agregan cuotas, nómina, alquiler y liquidaciones del domingo.
+  let ingresos: LineaLibro[] = [...st.libroIngresos];
+  let gastos: LineaLibro[] = [...st.libroGastos];
 
   // ---- INGRESOS ----
   const alumnos = alumnosActivos(st).length;
@@ -285,17 +242,24 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     if (c.tipo === "festival") st.fama = clamp(st.fama + 3, 0, 100);
     if (c.tipo === "bingo" && chance(0.5) && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st)) {
       const nuevo = genPugilista({ rol: "alumno", joven: true });
-    st.plantel = normalizarListaEspera({ ...st, plantel: [...st.plantel, nuevo] }).plantel;
+      st.plantel = incorporarAlumno(st, nuevo);
       ingresos = linea(ingresos, `El bingo trajo a ${nuevo.nombre.split(" ")[0]} al gimnasio`, 0);
     }
   });
   st.comunitarios = [];
   const seguidoresObjetivo = Math.max(0, Math.round(200 + st.fama * 60 + st.stats.victorias * 40 - derrotas * 20));
-  // Los seguidores reflejan la salud actual del club: la fama y los resultados
-  // los atraen, pero una mala racha también puede hacerlos bajar.
-  st.seguidores = seguidoresObjetivo;
+  // La comunidad crece o se enfría gradualmente; no debe saltar a su objetivo
+  // teórico de un domingo al siguiente. Las activaciones puntuales (p. ej. prensa)
+  // se conservan y el saldo converge sin dar saltos masivos.
+  st.seguidores += clamp(seguidoresObjetivo - st.seguidores, -60, 90);
 
   const totalIngresos = ingresos.reduce((a, l) => a + l.monto, 0);
+  const ingresosOperativos = ingresos
+    .filter(l => l.concepto !== "Desembolso del préstamo")
+    .reduce((total, l) => total + l.monto, 0);
+  const ingresosOperativosYaLiquidados = st.libroIngresos
+    .filter(l => l.concepto !== "Desembolso del préstamo")
+    .reduce((total, l) => total + l.monto, 0);
 
   // ---- GASTOS ----
   if (!st.propiedades.includes("local")) {
@@ -305,10 +269,10 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   if (sueldos > 0) {
     gastos = linea(gastos, `Sueldos del personal (${st.personal.length})`, sueldos);
   }
-  // La deuda es posible, pero visible y con un costo creciente. Nunca se
-  // corrige silenciosamente ni se convierte en dinero infinito.
+  // El cargo es proporcional en deudas pequeñas, pero tiene un techo para
+  // evitar que el interés compuesto vuelva matemáticamente irrecuperable la partida.
   if (st.dinero < 0) {
-    const costoFinanciero = Math.max(10, Math.ceil(Math.abs(st.dinero) * 0.03));
+    const costoFinanciero = clamp(Math.ceil(Math.abs(st.dinero) * 0.03), 10, 50);
     gastos = linea(gastos, "Costo financiero por caja negativa", costoFinanciero);
     st = conToast(st, `La caja está en negativo: se suma un costo financiero de ${fmt(costoFinanciero)}.`, "alerta");
   }
@@ -323,9 +287,14 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     }
   }
 
-  const total = totalIngresos - gastos.reduce((a, l) => a + l.monto, 0);
-  st.dinero += total;
-  st.stats.dineroGanado += Math.max(0, total);
+  const totalGastos = gastos.reduce((a, l) => a + l.monto, 0);
+  const total = totalIngresos - totalGastos;
+  // Los movimientos intrasemanales ya modificaron la caja al ocurrir; aquí
+  // solo se aplica la diferencia nueva, aunque el resumen muestre la semana
+  // completa desde el lunes.
+  const liquidacionNueva = (totalIngresos - ingresosYaLiquidados) - (totalGastos - gastosYaLiquidados);
+  st.dinero += liquidacionNueva;
+  st.stats.dineroGanado += Math.max(0, ingresosOperativos - ingresosOperativosYaLiquidados);
   st.stats.resultadoNeto += total;
   // El libro visible conserva el último cierre para que el jugador pueda
   // entender de dónde salió el resultado, incluso después de cerrar el modal.
@@ -351,6 +320,12 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
     st.plantel = st.plantel.map(p => ({ ...p, edad: p.edad + (st.semana % 48 === 1 ? 1 : 0) }));
   }
 
+  // El resumen conserva la semana liquidada; el libro activo arranca vacío
+  // para la semana nueva y nunca arrastra movimientos ya contabilizados.
+  st.libroIngresos = [];
+  st.libroGastos = [];
+  st.semanaLibro = st.semana;
+
   // recuperación de energía dominical
   const recup = calcularModificadores(st).recuperacionEnergia;
   st.plantel = st.plantel.map(p => {
@@ -368,44 +343,18 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
   }
 
   // consejos de Don Anselmo: evaluar hitos
-  const hitos: Record<string, boolean> = {
-    c1: st.plantel.some(p => p.rol === "boxeador"),
-    c2: st.stats.victorias > 0,
-    c3: st.equipamiento.length > 0,
-    c4: st.stats.veladas > 0,
-    c5: st.fama >= 40,
-    c6: st.cinturones.length > 0,
-    c7: st.personal.length > 0,
-    c8: st.recreativos >= 3,
-    c9: st.seguidores >= 1500,
-    c10: st.stats.peleas >= 3,
-  };
   let nuevoConsejo = false;
   st.consejos = st.consejos.map(c => {
-    if (!c.cumplido && hitos[c.id]) { nuevoConsejo = true; return { ...c, cumplido: true }; }
+    if (!c.cumplido && objetivoConsejoCumplido(c.id, st)) { nuevoConsejo = true; return { ...c, cumplido: true }; }
     return c;
   });
   if (nuevoConsejo) st = conToast(st, "Don Anselmo tiene un consejo listo para cobrar.", "oro");
-
-  // salto al profesionalismo, respetando el cupo de diez profesionales
-  let profesionales = st.plantel.filter(p => p.rol === "boxeador" && p.circuito === "pro").length;
-  st.plantel = st.plantel.map(p => {
-    if (p.rol === "boxeador" && p.circuito === "amateur" && p.peleasAmateur >= 50) {
-      if (profesionales >= capacidadProfesionales(st)) {
-        return p;
-      }
-      profesionales += 1;
-      st = conToast(st, `${p.nombre.split(" ")[0]} completó 50 peleas amateurs y pasa al circuito profesional.`, "oro");
-      return { ...p, circuito: "pro" as const };
-    }
-    return p;
-  });
 
   return st;
 }
 
 // ==================== REDUCTOR ====================
-function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
+function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
   switch (a.type) {
     case "NUEVO_JUEGO": {
       const base = crearEstadoBase();
@@ -424,8 +373,15 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     }
     case "CONTINUAR":
       return { ...s, creado: true };
-    case "IMPORTAR":
-      return conToast({ ...a.estado, creado: true }, "Partida importada correctamente.", "ok");
+    case "IMPORTAR": {
+      try {
+        const migrado = migrarGuardado(a.estado);
+        const cargado = sanitizarEstado(migrado.estado);
+        return conToast({ ...cargado, creado: true }, "Partida importada correctamente.", "ok");
+      } catch (error) {
+        return conToast(s, `No se importó la partida: ${error instanceof Error ? error.message : "formato inválido"}`, "alerta");
+      }
+    }
     case "REINICIAR":
       return crearEstadoBase();
 
@@ -474,6 +430,24 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const nuevo: Pugilista = { ...p, rol: "boxeador", licenciaFederativa: true, enEspera: false, bonusDebut: true, energia: clamp(p.energia, 30, 100) };
       return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - 200, plantel: s.plantel.map(x => x.id === a.id ? nuevo : x) }),
         `${p.nombre.split(" ")[0]} ya tiene su Licencia Amateur y es boxeador federado. ¡Bono de Madurez activo en su debut!`, "oro");
+    }
+
+    case "PROMOVER_PRO": {
+      const p = s.plantel.find(boxeador => boxeador.id === a.id);
+      if (!p) return s;
+      const validacion = puedeProfesionalizar(p, s);
+      if (!validacion.ok) {
+        const mensajes = {
+          rol: "Solo un boxeador federado puede pasar al profesionalismo.",
+          circuito: "Este boxeador ya es profesional.",
+          trayectoria: "Necesita completar 50 peleas amateurs antes de decidir el pase.",
+          cartelera: "Resolvé o bajá su pelea agendada antes de cambiarlo de circuito.",
+          cupo: "El cupo profesional está completo (10). Liberá una plaza antes de aceptar el pase.",
+        } satisfies Record<NonNullable<typeof validacion.motivo>, string>;
+        return conToast(s, mensajes[validacion.motivo!], "alerta");
+      }
+      return conToast({ ...s, plantel: s.plantel.map(boxeador => boxeador.id === p.id ? { ...boxeador, circuito: "pro" as const } : boxeador) },
+        `${p.nombre.split(" ")[0]} acepta el pase profesional. Su récord e historial amateur se conservan.`, "oro");
     }
 
     case "ALTERNAR_ELITE": {
@@ -539,8 +513,6 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       st.stats = { ...st.stats };
       st.pendientes = st.pendientes.filter(p => p.id !== a.peleaId);
       st.dinero += r.bolsa;
-      st.stats.dineroGanado += r.bolsa;
-      st.stats.resultadoNeto += r.bolsa;
       st.libroIngresos = linea(st.libroIngresos, `Bolsa vs ${pelea.rival.nombre.split(" ")[0]} (${r.metodo})`, r.bolsa);
       st.stats.peleas += 1;
       if (r.gane) { st.stats.victorias += 1; if (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") st.stats.kos += 1; }
@@ -632,20 +604,15 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!info.multiple && s.personal.some(p => p.tipo === a.tipo)) return conToast(s, "Ese puesto ya está cubierto.", "info");
       if ((a.tipo === "gerente" || a.tipo === "coordinadorSucursal" || a.tipo === "entrenadorLocal") && s.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length >= sucursales(s))
         return conToast(s, "Necesitás una sucursal más para ese puesto.", "alerta");
-      const requisito: Partial<Record<PersonalId, { semana?: number; fama?: number; curso?: keyof typeof CURSOS }>> = {
-        representante: { semana: 2, curso: "veladas" },
-        preparador: { semana: 2 },
-        asistente: { semana: 2 },
-        difusion: { semana: 3, fama: 8 },
-        gerente: { semana: 4, curso: "franquicias" },
-        entrenadorLocal: { semana: 4, curso: "franquicias" },
-        coordinadorSucursal: { semana: 5, curso: "franquicias" },
-        ojeador: { semana: 3, fama: 6 },
-      };
-      const req = requisito[a.tipo];
+      const req = info.requisito;
       if (req?.semana && s.semana < req.semana) return conToast(s, `${info.nombre} se habilita a partir de la semana ${req.semana}.`, "info");
       if (req?.fama && s.fama < req.fama) return conToast(s, `${info.nombre} requiere ${req.fama} de fama.`, "info");
       if (req?.curso && !s.cursos.includes(req.curso)) return conToast(s, `Necesitás el curso ${CURSOS[req.curso].nombre}.`, "info");
+      const personalPrevisto = [...s.personal, { id: "prevision-nomina", tipo: a.tipo, nombre: "Previsión" }];
+      const proyeccionTrasContratar = proyeccionSemanalRecurrente({ ...s, personal: personalPrevisto });
+      if (proyeccionTrasContratar.total < 0 && !a.confirmado) {
+        return conToast(s, `La nómina dejaría un déficit recurrente de ${fmt(Math.abs(proyeccionTrasContratar.total))}/semana. Revisá la previsión y confirmá la contratación si querés asumirlo.`, "alerta");
+      }
       const nombres = ["Héctor Paz", "Miriam Sol", "Justo Lerma", "Carla Benítez", "Tito Aguirre", "Nadia Ríos", "Oscar Vidal", "Pamela Cruz"];
       const nuevo = { id: uid(), tipo: a.tipo as PersonalId, nombre: elegir(nombres) };
       const plantel = a.tipo === "directorTecnico"
@@ -662,7 +629,10 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     }
     case "CARGAR_PARTIDA": {
       const partida = listarPartidas().find(p => p.id === a.id);
-      return partida ? conToast({ ...sanitizarEstado(partida.estado), creado: true }, `Partida cargada: ${partida.nombre}.`, "ok") : s;
+      if (!partida) return s;
+      const migrado = migrarGuardado(partida.estado);
+      const cargado = sanitizarEstado(migrado.estado);
+      return conToast({ ...cargado, creado: true }, `Partida cargada: ${partida.nombre}.`, "ok");
     }
     case "RENOMBRAR_PARTIDA":
       return { ...s, nombrePartida: a.nombre.trim().slice(0, 32) || "Mi carrera" };
@@ -677,9 +647,13 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       const siguiente = normalizarListaEspera({
         ...s,
         plantel: s.plantel.filter(x => x.id !== a.id),
+        archivoCarreras: p.rol === "boxeador" ? [
+          { id: p.id, pugilista: structuredClone(p), club: s.nombreGimnasio, semanaSalida: s.semana, motivo: "Baja competitiva", historial: structuredClone(s.historial.filter(r => r.miId === p.id)) },
+          ...s.archivoCarreras,
+        ] : s.archivoCarreras,
         salonFama: esLeyenda ? [{ id: p.id, nombre: p.nombre, club: s.nombreGimnasio, record: { ...p.record }, titulos: p.titulo, semanaRetiro: s.semana, motivo: p.titulo >= 3 ? "Campeón de alto nivel" : "Récord histórico" }, ...s.salonFama].slice(0, 50) : s.salonFama,
       });
-      const promovido = alumnosActivos(siguiente).find(x => !antes.includes(x.id));
+      const promovido = alumnosActivos(siguiente).find(x => antes.includes(x.id));
       return conToast(siguiente,
         promovido
           ? `${nombre} deja el club. Se liberó una plaza: ${promovido.nombre.split(" ")[0]} sale de la lista de espera.`
@@ -698,12 +672,47 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.dia >= 6) return conToast(s, "Las actividades se agendan de lunes a viernes para el próximo domingo.", "info");
       if (s.comunitarios.length > 0) return conToast(s, "Ya hay una actividad social agendada para esta semana.", "info");
       if (s.dinero < info.inversion) return conToast(s, `Necesitás ${fmt(info.inversion)} para organizar ${info.nombre}.`, "alerta");
-      return conToast({ ...s, dinero: s.dinero - info.inversion, comunitarios: [{ tipo: a.actividad, nombre: info.nombre }] }, `${info.nombre} agendado para el domingo. Se invertieron ${fmt(info.inversion)}.`, "ok");
+      const atraeRecreativo = a.actividad === "claseAbierta" && s.recreativos < 12;
+      return conToast({
+        ...s,
+        dinero: s.dinero - info.inversion,
+        recreativos: atraeRecreativo ? s.recreativos + 1 : s.recreativos,
+        comunitarios: [{ tipo: a.actividad, nombre: info.nombre }],
+      }, `${info.nombre} agendado para el domingo. Se invirtieron ${fmt(info.inversion)}${atraeRecreativo ? "; se suma 1 alumno recreativo esta semana" : a.actividad === "claseAbierta" ? "; el cupo recreativo ya está completo" : ""}.`, "ok");
     }
 
     case "PEDIR_PRESTAMO": {
       if (s.prestamo && s.prestamo.saldo > 0) return conToast(s, "Ya tenés un préstamo activo. Primero terminá de pagarlo.", "info");
+      if (s.dinero >= 300) return conToast(s, "El préstamo de emergencia solo está disponible cuando la caja baja de $300.", "info");
       return conToast({ ...s, dinero: s.dinero + 500, prestamo: { saldo: 600, cuota: 60, semanasRestantes: 10 } }, "Préstamo de emergencia aprobado: recibís $500 y devolvés $600 en 10 cuotas.", "oro");
+    }
+
+    case "CERRAR_CLUB": {
+      if (s.dinero > -1_500) return conToast(s, "El cierre por insolvencia solo está disponible con una deuda de $1.500 o más.", "info");
+      if (!a.confirmado) return conToast(s, "Revisá la confirmación: cerrar el club elimina sus activos y su plantel.", "alerta");
+      const base = crearEstadoBase();
+      const nuevoNombre = `${s.nombreGimnasio || "Puños de Oro"} II`;
+      const estadoReconstruido: EstadoJuego = {
+        ...base,
+        creado: true,
+        nombreJugador: s.nombreJugador,
+        nombreGimnasio: nuevoNombre,
+        nombrePartida: `${nuevoNombre} · Reconstrucción`,
+        partidaId: s.partidaId || uid(),
+        // No transferir ventajas de legado a una reconstrucción por insolvencia.
+        legados: base.legados,
+        stats: {
+          ...base.stats,
+          peleas: s.stats.peleas,
+          victorias: s.stats.victorias,
+          kos: s.stats.kos,
+          veladas: s.stats.veladas,
+          titulos: s.stats.titulos,
+        },
+        salonFama: [...s.salonFama],
+        archivoCarreras: structuredClone(s.archivoCarreras),
+      };
+      return conToast(estadoReconstruido, "El club cerró por insolvencia. Récord e hitos históricos conservados; la reconstrucción comienza sin deuda ni activos anteriores.", "oro");
     }
 
     case "EVENTO": {
@@ -725,7 +734,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       } else if (acc.tipo === "nuevoAlumno") {
         if (st.plantel.length >= limitePlantel(st)) return conToast(s, "El plantel está completo: liberá un cupo o ampliá el gimnasio para recibirlo.", "alerta");
         const nuevo = genPugilista({ rol: "alumno", joven: true });
-        st = normalizarListaEspera({ ...st, plantel: [...st.plantel, nuevo] });
+        st = { ...st, plantel: incorporarAlumno(st, nuevo) };
         st = conToast(st, `${nuevo.nombre} entra al plantel de alumnos.`, "ok");
       } else if (acc.tipo === "exhibicion") {
         const boxeador = st.plantel.find(p => p.rol === "boxeador" && p.energia >= 30);
@@ -742,15 +751,17 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       } else if (acc.tipo === "fama" && acc.fama) {
         st.fama = clamp(st.fama + acc.fama, 0, 100);
         st = conToast(st, `+${acc.fama} de fama en el barrio.`, "ok");
-      } else if (acc.tipo === "mantenimiento" && acc.costo && acc.monto) {
+      } else if (acc.tipo === "mantenimiento" && acc.costo) {
         if (st.dinero < acc.costo) return conToast(s, `Necesitás ${fmt(acc.costo)} para reparar el gimnasio.`, "alerta");
         st.dinero -= acc.costo;
         st.libroGastos = linea(st.libroGastos, "Reparación del gimnasio", acc.costo);
-        st = conToast(st, "Reparación hecha. El gimnasio vuelve a funcionar.", "ok");
+        st = conToast(st, "Mantenimiento preventivo pagado.", "ok");
       } else if (acc.tipo === "entrevista" && acc.fama) {
         st.fama = clamp(st.fama + acc.fama, 0, 100);
-        st.seguidores += acc.monto ?? 0;
-        st = conToast(st, `La entrevista salió bien: +${acc.fama} fama y +${acc.monto ?? 0} seguidores.`, "oro");
+        if (acc.monto != null) st.seguidores = Math.max(0, st.seguidores + acc.monto);
+        const impactoFama = `${acc.fama > 0 ? "+" : "−"}${Math.abs(acc.fama)} fama`;
+        const impactoSeguidores = acc.monto == null ? "" : ` y ${acc.monto > 0 ? "+" : acc.monto < 0 ? "−" : ""}${Math.abs(acc.monto)} seguidores`;
+        st = conToast(st, `La entrevista tuvo este impacto: ${impactoFama}${impactoSeguidores}.`, acc.fama > 0 ? "oro" : "alerta");
       } else if (acc.tipo === "recaudacion" && acc.costo && acc.monto) {
         if (st.dinero < acc.costo) return conToast(s, `Necesitás ${fmt(acc.costo)} para organizar la colecta.`, "alerta");
         st.dinero += acc.monto - acc.costo;
@@ -763,13 +774,15 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
     case "RECLAMAR_CONSEJO": {
       const c = s.consejos.find(x => x.id === a.id);
       if (!c || !c.cumplido || c.reclamado) return s;
-      const siguienteId = `c${s.consejos.length + 1}`;
+      const siguienteNumero = Math.max(0, ...s.consejos.map(x => Number(x.id.match(/^c(\d+)$/)?.[1]) || 0)) + 1;
+      const siguienteId = `c${siguienteNumero}`;
       const nuevos = [
         { texto: "Sumá tres alumnos recreativos para sostener la caja del club.", fama: 1, dinero: 60 },
         { texto: "Llegá a 1.500 seguidores y hacé conocido el nombre del gimnasio.", fama: 2, dinero: 80 },
         { texto: "Ganá tres peleas oficiales y consolidá tu primera camada.", fama: 2, dinero: 120 },
       ];
-      const recompensa = nuevos[(s.consejos.length - 7) % nuevos.length];
+      const indiceRecompensa = ((siguienteNumero - 8) % nuevos.length + nuevos.length) % nuevos.length;
+      const recompensa = nuevos[indiceRecompensa];
       return conToast({
         ...s,
         consejos: [...s.consejos.map(x => x.id === a.id ? { ...x, reclamado: true } : x), { id: siguienteId, texto: recompensa.texto, fama: recompensa.fama, dinero: recompensa.dinero, cumplido: false, reclamado: false }],
@@ -783,7 +796,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.plantel.length >= limitePlantel(s)) return conToast(s, "El plantel está completo. Liberá un cupo o mejorá el gimnasio para recibir más alumnos.", "alerta");
       const t = genPugilista({ rol: "alumno", joven: true });
       t.atrib.talento = clamp(t.atrib.talento + azar(4, 12), 0, 97);
-      const next = normalizarListaEspera({ ...s, ultimaSemanaScout: s.semana, plantel: [...s.plantel, t] });
+      const next = { ...s, ultimaSemanaScout: s.semana, plantel: incorporarAlumno(s, t) };
       const espera = alumnosEnEspera(next).some(p => p.id === t.id);
       return conToast(next,
         `${espera ? "Talento encontrado: " : "Nuevo alumno: "}${t.nombre} (talento ${Math.round(t.atrib.talento)}, valoración ${valoracion(t.atrib)}) ${espera ? "quedó en lista de espera." : "se sumó a tus clases."}`, espera ? "info" : "oro");
@@ -800,6 +813,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
         ...base, creado: true,
         nombreJugador: mejor ? mejor.nombre : "El Heredero",
         nombreGimnasio: s.nombreGimnasio + " II",
+        partidaId: uid(),
         legados: s.legados + 1,
         dinero: base.dinero + (s.legados + 1) * 500 + (mejor ? Math.round(valoracion(mejor.atrib) * 30) : 0),
         fama: clamp(base.fama + (s.legados + 1) * 10, 0, 100),
@@ -810,19 +824,74 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
   }
 }
 
+function sumaLibro(lineas: LineaLibro[]): number {
+  return lineas.reduce((total, linea) => total + linea.monto, 0);
+}
+
+function conceptoMovimiento(s: EstadoJuego, a: Accion): string {
+  switch (a.type) {
+    case "LICENCIAR": return `Licencia Amateur · ${s.plantel.find(p => p.id === a.id)?.nombre ?? "Boxeador"}`;
+    case "COMPRAR_EQUIPO": return `Compra · ${EQUIPOS[a.id]?.nombre ?? "Equipamiento"}`;
+    case "COMPRAR_CURSO": return `Curso · ${CURSOS[a.id]?.nombre ?? "Formación"}`;
+    case "COMPRAR_PROPIEDAD": return `Compra · ${PROPIEDADES[a.id]?.nombre ?? "Propiedad"}`;
+    case "PROGRAMAR_SOCIAL": return `Inversión · ${COMUNITARIOS[a.actividad]?.nombre ?? "Actividad social"}`;
+    case "PEDIR_PRESTAMO": return "Desembolso del préstamo";
+    case "RESOLVER_PELEA": {
+      const pelea = s.pendientes.find(p => p.id === a.peleaId);
+      return `Bolsa de pelea · ${pelea?.rival.nombre ?? "Rival"}`;
+    }
+    case "RECLAMAR_CONSEJO": return `Recompensa · ${s.consejos.find(c => c.id === a.id)?.texto ?? "Don Anselmo"}`;
+    case "EVENTO": return `Evento · ${s.eventos.find(e => e.id === a.id)?.titulo ?? "Club"}`;
+    case "AVANZAR_DIA": return s.dia === 5 ? "Velada del sábado · neto" : "Movimiento del club";
+    default: return "Movimiento del club";
+  }
+}
+
+/**
+ * Frontera única para registrar deltas monetarios de las acciones. Las
+ * transiciones de liquidación producen su desglose dentro de domingoBalance;
+ * carga/creación de partida no son operaciones económicas.
+ */
+function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
+  const base = s.semanaLibro === s.semana ? s : {
+    ...s, semanaLibro: s.semana, libroIngresos: [], libroGastos: [],
+  };
+  const siguiente = reductorBase(base, a);
+  if (["NUEVO_JUEGO", "CONTINUAR", "IMPORTAR", "REINICIAR", "CARGAR_PARTIDA", "LEGADO"].includes(a.type)) return siguiente;
+  if (siguiente.semana !== base.semana) {
+    return { ...siguiente, semanaLibro: siguiente.semana, libroIngresos: [], libroGastos: [] };
+  }
+  if (siguiente.resumen && siguiente.resumen !== base.resumen) return siguiente;
+
+  const cambioCaja = siguiente.dinero - base.dinero;
+  const cambioLibro = (sumaLibro(siguiente.libroIngresos) - sumaLibro(base.libroIngresos))
+    - (sumaLibro(siguiente.libroGastos) - sumaLibro(base.libroGastos));
+  const faltante = cambioCaja - cambioLibro;
+  if (!Number.isFinite(faltante) || Math.abs(faltante) < 0.001) return siguiente;
+
+  const concepto = conceptoMovimiento(base, a);
+  const monto = Math.abs(faltante);
+  return faltante > 0
+    ? { ...siguiente, semanaLibro: base.semana, libroIngresos: linea(siguiente.libroIngresos, concepto, monto) }
+    : { ...siguiente, semanaLibro: base.semana, libroGastos: linea(siguiente.libroGastos, concepto, monto) };
+}
+
 // Exportado para que el motor de reglas pueda probarse sin montar React.
 export { reductor };
 
 // ==================== CONTEXTO ====================
-interface Ctx { state: EstadoJuego; dispatch: React.Dispatch<Accion>; nivel: number; }
+interface Ctx { state: EstadoJuego; dispatch: React.Dispatch<Accion>; nivel: number; guardado: EstadoGuardado; reintentarGuardado: () => void; }
 const GameCtx = createContext<Ctx | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reductor, undefined, cargarInicial);
+  const [guardado, setGuardado] = useState(() => repositorioPartidas.estado);
+  const reintentarGuardado = () => { guardarPartida(state); setGuardado(repositorioPartidas.estado); };
   useEffect(() => {
     guardarPartida(state);
+    setGuardado(repositorioPartidas.estado);
   }, [state]);
-  return <GameCtx.Provider value={{ state, dispatch, nivel: nivelGimnasio(state) }}>{children}</GameCtx.Provider>;
+  return <GameCtx.Provider value={{ state, dispatch, nivel: nivelGimnasio(state), guardado, reintentarGuardado }}>{children}</GameCtx.Provider>;
 }
 
 export function useGame(): Ctx {

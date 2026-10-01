@@ -158,16 +158,19 @@ export const CURSOS: Record<CursoId, { nombre: string; rama: RamaCurso; nivel: 1
 };
 
 // ==================== PERSONAL DEL GIMNASIO ====================
-export const PERSONAL_INFO: Record<PersonalId, { nombre: string; sueldo: number; desc: string; multiple: boolean; icono: string }> = {
+export const PERSONAL_INFO: Record<PersonalId, {
+  nombre: string; sueldo: number; desc: string; multiple: boolean; icono: string;
+  requisito?: { semana?: number; fama?: number; curso?: CursoId };
+}> = {
   directorTecnico: { nombre: "Entrenador Automático", sueldo: 120, desc: "Organiza al 100% los entrenamientos: asigna el enfoque ideal a cada atleta cada semana.", multiple: false, icono: "glove" },
-  representante: { nombre: "Representante Deportivo y Promotor", sueldo: 150, desc: "Agenda solo las peleas del sábado eligiendo la mejor oferta de Selección de Rival.", multiple: false, icono: "case" },
-  preparador: { nombre: "Preparador Físico", sueldo: 90, desc: "+20% de ganancia en todo el Pilar Físico.", multiple: false, icono: "dumbbell" },
-  asistente: { nombre: "Asistente de Clases", sueldo: 70, desc: "+4 cupos de alumnos y mejora el boca a boca del barrio.", multiple: false, icono: "users" },
-  difusion: { nombre: "Jefe de Difusión", sueldo: 100, desc: "Ventas de marca ×1.8, más sponsors y +15% en eventos y veladas.", multiple: false, icono: "star" },
-  gerente: { nombre: "Gerente de Sucursal", sueldo: 110, desc: "Administra una sucursal y habilita su ingreso pasivo semanal.", multiple: true, icono: "store" },
-  entrenadorLocal: { nombre: "Entrenador Local", sueldo: 80, desc: "Suma $200 al ingreso de la sucursal y descubre talentos automáticamente.", multiple: true, icono: "cap" },
-  coordinadorSucursal: { nombre: "Coordinador de Sucursales", sueldo: 140, desc: "Permite administrar una sede adicional y mantiene sus operaciones ordenadas.", multiple: true, icono: "store" },
-  ojeador: { nombre: "Ojeador de Talentos", sueldo: 85, desc: "Mejora la calidad de las búsquedas y atrae alumnos con más potencial.", multiple: false, icono: "target" },
+  representante: { nombre: "Representante Deportivo y Promotor", sueldo: 150, desc: "Agenda solo las peleas del sábado eligiendo la mejor oferta de Selección de Rival.", multiple: false, icono: "case", requisito: { semana: 2, curso: "veladas" } },
+  preparador: { nombre: "Preparador Físico", sueldo: 90, desc: "+20% de ganancia en todo el Pilar Físico.", multiple: false, icono: "dumbbell", requisito: { semana: 2 } },
+  asistente: { nombre: "Asistente de Clases", sueldo: 70, desc: "+4 cupos de alumnos y mejora el boca a boca del barrio.", multiple: false, icono: "users", requisito: { semana: 2 } },
+  difusion: { nombre: "Jefe de Difusión", sueldo: 100, desc: "Ventas de marca ×1.8, más sponsors y +15% en eventos y veladas.", multiple: false, icono: "star", requisito: { semana: 3, fama: 8 } },
+  gerente: { nombre: "Gerente de Sucursal", sueldo: 110, desc: "Administra una sucursal y habilita su ingreso pasivo semanal.", multiple: true, icono: "store", requisito: { semana: 4, curso: "franquicias" } },
+  entrenadorLocal: { nombre: "Entrenador Local", sueldo: 80, desc: "Suma $200 al ingreso de la sucursal y descubre talentos automáticamente.", multiple: true, icono: "cap", requisito: { semana: 4, curso: "franquicias" } },
+  coordinadorSucursal: { nombre: "Coordinador de Sucursales", sueldo: 140, desc: "Permite administrar una sede adicional y mantiene sus operaciones ordenadas.", multiple: true, icono: "store", requisito: { semana: 5, curso: "franquicias" } },
+  ojeador: { nombre: "Ojeador de Talentos", sueldo: 85, desc: "Mejora la calidad de las búsquedas y atrae alumnos con más potencial.", multiple: false, icono: "target", requisito: { semana: 3, fama: 6 } },
 };
 
 // ==================== TÍTULOS Y CINTURONES ====================
@@ -254,64 +257,11 @@ export const PROPIEDADES: Record<PropiedadId, {
 export const PROPIEDADES_INFO = PROPIEDADES;
 
 // ==================== EVENTOS COMUNITARIOS ====================
-export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival" | "claseAbierta", { nombre: string; inversion: number; min: number; max: number; extra: string }> = {
-  bingo: { nombre: "Gran Bingo Familiar del Club", inversion: 200, min: 320, max: 650, extra: "Atrae alumnos al gimnasio" },
-  naipes: { nombre: "Torneo de Juegos de Mesa y Naipes", inversion: 100, min: 180, max: 420, extra: "Noche de camaradería" },
-  festival: { nombre: "Noche de Festival y Exhibición de Boxeo", inversion: 500, min: 700, max: 1400, extra: "+3 de Fama garantizada" },
-  claseAbierta: { nombre: "Clase Abierta del Barrio", inversion: 60, min: 100, max: 220, extra: "Atrae alumnos recreativos" },
-};
-
-// Eventos de club ampliados
-export const EVENTOS_CLUB_INFO: Record<string, {
-  id: string;
-  nombre: string;
-  emoji: string;
-  costoOrganizacion: number;
-  recaudacionBase: number;
-  famaMultiplicador: number;
-  famaGanada: number;
-  descripcion: string;
-}> = {
-  bingoFamiliar: {
-    id: "bingoFamiliar",
-    nombre: "Gran Bingo Familiar",
-    emoji: "🎟️",
-    costoOrganizacion: 120,
-    recaudacionBase: 250,
-    famaMultiplicador: 4,
-    famaGanada: 2,
-    descripcion: "Tarde de sorteos, premios y buffet con las familias del barrio en el salón del club.",
-  },
-  torneoJuegosMesa: {
-    id: "torneoJuegosMesa",
-    nombre: "Torneo de Juegos de Mesa & Truco",
-    emoji: "🃏",
-    costoOrganizacion: 80,
-    recaudacionBase: 160,
-    famaMultiplicador: 3,
-    famaGanada: 1,
-    descripcion: "Competencia barrial de truco, ajedrez y dominó para socios y aficionados.",
-  },
-  festivalBoxeo: {
-    id: "festivalBoxeo",
-    nombre: "Festival de Boxeo & Kermesse",
-    emoji: "🎪",
-    costoOrganizacion: 250,
-    recaudacionBase: 450,
-    famaMultiplicador: 8,
-    famaGanada: 4,
-    descripcion: "Exhibición de guanteos al aire libre, puestos gastronómicos y música en vivo.",
-  },
-  copaMundialClubes: {
-    id: "copaMundialClubes",
-    nombre: "Copa Mundial de Clubes de Élite",
-    emoji: "👑",
-    costoOrganizacion: 50000,
-    recaudacionBase: 85000,
-    famaMultiplicador: 20,
-    famaGanada: 25,
-    descripcion: "Mega-torneo internacional transmitido a nivel global. Consagra a tu club como la máxima dinastía del pugilismo.",
-  },
+export const COMUNITARIOS: Record<"bingo" | "naipes" | "festival" | "claseAbierta", { nombre: string; inversion: number; min: number; max: number; extra: string; emoji: string }> = {
+  bingo: { nombre: "Gran Bingo Familiar del Club", inversion: 200, min: 250, max: 420, extra: "Atrae alumnos al gimnasio", emoji: "🎟️" },
+  naipes: { nombre: "Torneo de Juegos de Mesa y Naipes", inversion: 100, min: 130, max: 220, extra: "Noche de camaradería", emoji: "🃏" },
+  festival: { nombre: "Noche de Festival y Exhibición de Boxeo", inversion: 500, min: 580, max: 850, extra: "+3 de Fama garantizada", emoji: "🎪" },
+  claseAbierta: { nombre: "Clase Abierta del Barrio", inversion: 60, min: 80, max: 140, extra: "Puede sumar 1 recreativo (tope 12)", emoji: "🏫" },
 };
 
 // Emblemas de club
