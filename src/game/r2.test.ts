@@ -249,10 +249,17 @@ describe("R2: aceptación cruzada", () => {
     expect(reductor(roundtrip(next), { type: "CERRAR_DOMINGO" }).semana).toBe(s.semana);
   });
   it("A04: normal y rápida cobran velada y guanteos una sola vez", () => {
-    const { s, p, rival } = fixture();
-    const input = { ...s, dia: 5, pendientes: [], veladaProgramada: true, plantel: [p, rival] };
+    const { s, p, rival, pelea } = fixture();
+    // R3 requires an actual valid bout for a show. Two other boxers still spar.
+    const competidor = { ...p, id: "r2-show-own" };
+    const pactada = { ...pelea, miId: competidor.id, velada: true };
+    const input = { ...s, dia: 5, pendientes: [pactada], veladaProgramada: true, plantel: [p, rival, competidor] };
     let next = reductor(input, { type: "AVANZAR_DIA" });
     expect(next.stats.veladas).toBe(1); expect(next.plantel[0].guanteosRealizados).toBe(1);
+    next = roundtrip(next);
+    const result = simularPeleaEntera(crearEstadoPelea(pactada, next.plantel[2], []), "equilibrado");
+    next = reductor(next, { type: "RESOLVER_PELEA", peleaId: pactada.id, resultado: result });
+    expect(next.pendientes).toHaveLength(0);
     next = reductor(roundtrip(next), { type: "SEMANA_RAPIDA" });
     expect(next.stats.veladas).toBe(1); expect(next.plantel[0].guanteosRealizados).toBe(1);
     expect(next.resumen!.ingresos.filter(x => x.concepto === "Entradas de la velada del sábado")).toHaveLength(1);
@@ -406,7 +413,7 @@ describe("R2: aceptación cruzada", () => {
   it("R1/A16: schema 5 migra explícitamente para proteger la nueva categoría de decisión", () => {
     const { s } = fixture(); const old = { ...s, schemaVersion: 5 };
     const migrated = migrarGuardado(old);
-    expect(migrated.migrado).toBe(true); expect(migrated.estado).toEqual({ ...old, combateActivo: null, schemaVersion: 6 });
-    expect(SCHEMA_ACTUAL).toBe(6); expect(migrarGuardado(migrated.estado).migrado).toBe(false);
+    expect(migrated.migrado).toBe(true); expect(migrated.estado).toEqual({ ...old, combateActivo: null, schemaVersion: 7, contratosTitularesHistoricos: [] });
+    expect(SCHEMA_ACTUAL).toBe(7); expect(migrarGuardado(migrated.estado).migrado).toBe(false);
   });
 });

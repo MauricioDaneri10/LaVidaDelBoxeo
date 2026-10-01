@@ -1,5 +1,10 @@
 # Biblia de Arte Canónica
 
+## Actualización R3 aprobada — 2026-10-01
+
+Sin rediseño de assets/canvas. UI mínima R3: historial con «Archivado · sin cobro» distinto de «Cobrado»; coordinador suspendido sin prometer sedes; previsión distingue actividades estimadas de ingresos previstos y cobros garantizados. Pruebas afectadas aisladas, footer/bounds: no equivalen a certificación visual R4.
+
+
 **Proyecto:** La Vida del Boxeo  
 **Versión:** 1.0  
 **Estado:** Dirección visual y reglas de producción  

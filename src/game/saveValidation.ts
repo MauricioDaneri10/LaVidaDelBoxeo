@@ -7,8 +7,9 @@ export const ATRIBUTOS_BASE: Atributos = {
   inteligencia: 40, mentalidad: 40, talento: 50,
 };
 import type { EstadoJuego } from "./types";
+import { consolidarConsejos, evidenciaCobroDanada } from "./consejos";
 
-export const SCHEMA_ACTUAL = 6;
+export const SCHEMA_ACTUAL = 7;
 export class ErrorGuardado extends Error {
   constructor(message: string, public readonly codigo: "corruption" | "incompatible" | "ambiguous" = "corruption") { super(message); }
 }
@@ -35,6 +36,7 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
   const versionAntigua = s.version === 1;
   const inicial = s.schemaVersion === undefined ? 1 : s.schemaVersion;
   if (typeof inicial !== "number" || !Number.isInteger(inicial) || inicial < 1 || inicial > SCHEMA_ACTUAL) throw new ErrorGuardado("Schema incompatible: original protegido.", "incompatible");
+  if (evidenciaCobroDanada(s.consejos)) throw new ErrorGuardado("Evidencia de cobro de un hito dañada: original protegido; se necesita recuperar ese registro antes de habilitar nuevos pagos.", "ambiguous");
   // Stable legacy identity: repeated migration of the same bytes is identical.
   const migraciones: Record<number, (x: Obj) => Obj> = {
     1: x => ({ ...x, seguidores: x.seguidores ?? 0, recreativos: x.recreativos ?? 0, nombrePartida: x.nombrePartida ?? x.nombreGimnasio ?? "Mi carrera", schemaVersion: 2 }),
@@ -43,6 +45,12 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
     4: x => ({ ...x, archivoCarreras: x.archivoCarreras ?? [], schemaVersion: 5 }),
     // The new decision label must be rejected by older readers, not silently discarded.
     5: x => ({ ...x, combateActivo: x.combateActivo ?? null, schemaVersion: 6 }),
+    6: x => {
+      if ("contratosTitularesHistoricos" in x) throw new ErrorGuardado("Metadata anterior con nombre reservado: Original protegido; se necesita recuperar la extensión antes de migrar.", "ambiguous");
+      return { ...x, consejos: consolidarConsejos(x.consejos, true),
+      contratosTitularesHistoricos: Array.isArray(x.pendientes) ? x.pendientes.filter(p => objeto(p) && typeof p.id === "string" && typeof p.esTitulo === "number" && p.esTitulo > 0).map(p => p.id) : [],
+      schemaVersion: 7 };
+    },
   };
   for (let v = inicial; v < SCHEMA_ACTUAL; v++) s = migraciones[v](s);
   if (versionAntigua) s = { ...s, version: 2 };
@@ -181,6 +189,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
   const rules: Record<string, Rule> = {
     version: oneOf([2]), schemaVersion: oneOf([SCHEMA_ACTUAL]), creado: bool, nombreJugador: str, nombreGimnasio: str,
     combateActivo: activeCombat,
+    contratosTitularesHistoricos: optional(list(id)),
     dinero: num(), fama: num(0, 100), seguidores: count, recreativos: count, dia: num(1, 7, true), semana: num(1, Infinity, true), ultimaSemanaScout: count,
     mes: num(1, 12, true), anio: num(1, Infinity, true), plantel: list(boxer, "id"), rivales: list(boxer, "id"),
     ofertas: list(fields({ id, rival: boxer, nivel: oneOf(["accesible", "parejo", "desafio"]), bolsa: num(0), etiqueta: str, detalle: str, esTitulo: title }, {}, ["id", "rival", "nivel", "bolsa", "etiqueta", "detalle", "esTitulo"]), "id"),
@@ -191,7 +200,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
     prestamo: nullable(fields({ saldo: num(0), cuota: num(0), semanasRestantes: count }, {}, ["saldo", "cuota", "semanasRestantes"])),
     eventos: list(fields({ id, tipo: oneOf(["desafio", "patrocinio", "comunitario", "prospecto", "federacion", "mantenimiento", "entrevista", "recaudacion"]), de: str, titulo: str, texto: str, venceEn: count, opciones: list(fields({ texto: str, accion: action }, {}, ["texto", "accion"])) }, {}, ["id", "tipo", "de", "titulo", "texto", "venceEn", "opciones"]), "id"),
     comunitarios: list(fields({ tipo: oneOf(Object.keys(COMUNITARIOS)), nombre: str }, {}, ["tipo", "nombre"])),
-    consejos: list(fields({ id, texto: str, fama: num(0), dinero: optional(num(0)), cumplido: bool, reclamado: bool }, {}, ["id", "texto", "fama", "cumplido", "reclamado"]), "id"),
+    consejos: list(fields({ id, texto: str, fama: num(0), dinero: optional(num(0)), cumplido: bool, reclamado: bool, archivado: optional(bool), motivoArchivo: optional(str) }, {}, ["id", "texto", "fama", "cumplido", "reclamado"]), "id"),
     prensa: list(fields({ id, semana: num(1, Infinity, true), texto: str }, {}, ["id", "semana", "texto"]), "id"),
     cinturones: list(fields({ id, dueno: id, nivel: num(1, 4, true), semana: num(1, Infinity, true) }, {}, ["id", "dueno", "nivel", "semana"]), "id"),
     salonFama: list(fields({ id, nombre: str, club: str, record, titulos: count, semanaRetiro: num(1, Infinity, true), motivo: str }, {}, ["id", "nombre", "club", "record", "titulos", "semanaRetiro", "motivo"]), "id"),

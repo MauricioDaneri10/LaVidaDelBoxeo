@@ -105,6 +105,7 @@ function PantallaPrincipal() {
   const primerAlumnoListo = state.plantel.find(p => puedeHabilitar(p, state));
   const proyeccion = proyeccionSemanal(state);
   const ingresosEstimados = proyeccion.ingresos.reduce((total, l) => total + l.monto, 0);
+  const adicionalesEstimados = proyeccion.estimados.reduce((total, l) => total + l.mean, 0);
   const gastosEstimados = proyeccion.gastos.reduce((total, l) => total + l.monto, 0);
   const balanceEstimado = proyeccion.total;
   const alumnosActivosIniciales = state.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
@@ -246,12 +247,13 @@ function PantallaPrincipal() {
           {state.dia <= 5 && (
             <div className="forecast-strip mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-panel/70 px-4 py-2.5 font-cond text-sm">
               <span className="font-display uppercase tracking-wide text-sand">Previsión del domingo</span>
-              <span className="text-win">Entradas seguras {fmt(ingresosEstimados)}</span>
+              <span className="text-win" title="Importes deterministas con el plantel, contratos y estado actuales; pueden cambiar antes del domingo.">Ingresos previstos {fmt(ingresosEstimados)}</span>
+              {proyeccion.estimados.length > 0 && <span className="text-gold" title={proyeccion.estimados.map(l => `${l.concepto}: ${fmt(l.min)}–${fmt(l.max)}; media ${fmt(l.mean)}`).join("\n")}>Actividades estimadas +{fmt(adicionalesEstimados)}</span>}
               <span className="text-blood">Gastos previstos {fmt(gastosEstimados)}</span>
               <span className={balanceEstimado >= 0 ? "text-gold font-bold" : "text-blood font-bold"}>
                 {balanceEstimado >= 0 ? "A favor" : "En pérdida"} {balanceEstimado >= 0 ? "+" : "−"}{fmt(Math.abs(balanceEstimado))}
               </span>
-              <span className="text-mut">Incluye ayuda inicial, cuotas y gastos fijos. Peleas y eventos son variables.</span>
+              <span className="text-mut">Saldo previsto sin actividades variables. Sus estimaciones no son cobros garantizados.</span>
             </div>
           )}
 
@@ -311,6 +313,7 @@ function PantallaPrincipal() {
             })
           }
         >
+          <button className="btn-poster mb-3 self-center border border-line px-3 py-2 text-sand" onClick={() => dispatch({ type: "BUSCAR_RIVAL", id: state.ofertasPara! })}>Volver a buscar rival</button>
           <p className="mb-3 font-cond text-sm text-sand">
             Tu rival del sábado para{" "}
             <b className="text-cream">

@@ -1,5 +1,10 @@
 # Aseguramiento de Calidad Canónico
 
+## Actualización R3 aprobada — 2026-10-01
+
+R3: RED→GREEN por contrato; unicidad y compatibilidad legacy, schema7/originales/backups, regresiones R1/R2. Contratos titulares antiguos mantienen checkpoint/pago único; nuevos sin excepción. Seis escenarios12/52 exactos y deficitarios intactos; 120 semanas×3 semillas con conciliación y roundtrip. Navegador aislado5234 y regresiones5231/5232; nunca partida personal/3000. Evidencia final y límites en informe52; gate no certifica juego completo.
+
+
 **Proyecto:** La Vida del Boxeo  
 **Versión:** 1.0  
 **Estado:** Contrato de calidad para cada cambio

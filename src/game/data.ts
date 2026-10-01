@@ -135,7 +135,7 @@ export const EQUIPOS: Record<GearId, { nombre: string; costo: number; desc: stri
   batas: { nombre: "Batas de Seda", costo: 1200, desc: "El paseo al ring es un espectáculo.", efecto: "+25% de fama por victoria", cat: "indumentaria", icono: "shirt" },
   botiquin: { nombre: "Botiquín con Hielo", costo: 350, desc: "Hielo, vendas y manos expertas.", efecto: "+6 de recuperación de energía semanal", cat: "instalaciones", icono: "heart" },
   vestuarios: { nombre: "Vestuarios con Duchas", costo: 1800, desc: "Comodidad que se nota.", efecto: "+4 cupos de alumnos y +2 de recuperación", cat: "instalaciones", icono: "house" },
-  barraProteinas: { nombre: "Barra de Proteínas", costo: 3200, desc: "Batidos después de cada turno.", efecto: "+20% de ganancia en Fuerza y +4 energía", cat: "instalaciones", icono: "bolt" },
+  barraProteinas: { nombre: "Barra de Proteínas", costo: 3200, desc: "Batidos después de cada turno. La compra no añade energía inmediata.", efecto: "+20% de ganancia en Fuerza y +4 energía de recuperación semanal", cat: "instalaciones", icono: "bolt" },
   sauna: { nombre: "Sauna Seco y Frío", costo: 8500, desc: "Recuperación de atletas de élite.", efecto: "+10 de recuperación de energía semanal", cat: "instalaciones", icono: "fire" },
   carteles: { nombre: "Carteles del Barrio", costo: 250, desc: "Tu nombre en cada esquina.", efecto: "+1 de fama al instalar y más boca a boca", cat: "difusion", icono: "flag" },
   sonido: { nombre: "Sonido Motivacional", costo: 1100, desc: "Música que empuja en el último minuto.", efecto: "+10% de ganancia en todos los combos", cat: "difusion", icono: "play" },
@@ -169,7 +169,7 @@ export const PERSONAL_INFO: Record<PersonalId, {
   difusion: { nombre: "Jefe de Difusión", sueldo: 100, desc: "Ventas de marca ×1.8, más sponsors y +15% en eventos y veladas.", multiple: false, icono: "star", requisito: { semana: 3, fama: 8 } },
   gerente: { nombre: "Gerente de Sucursal", sueldo: 110, desc: "Administra una sucursal y habilita su ingreso pasivo semanal.", multiple: true, icono: "store", requisito: { semana: 4, curso: "franquicias" } },
   entrenadorLocal: { nombre: "Entrenador Local", sueldo: 80, desc: "Suma $200 al ingreso de la sucursal y descubre talentos automáticamente.", multiple: true, icono: "cap", requisito: { semana: 4, curso: "franquicias" } },
-  coordinadorSucursal: { nombre: "Coordinador de Sucursales", sueldo: 140, desc: "Permite administrar una sede adicional y mantiene sus operaciones ordenadas.", multiple: true, icono: "store", requisito: { semana: 5, curso: "franquicias" } },
+  coordinadorSucursal: { nombre: "Coordinador de Sucursales", sueldo: 140, desc: "Nuevas contrataciones suspendidas hasta definir una función diferenciada. Los coordinadores existentes conservan su contrato.", multiple: true, icono: "store", requisito: { semana: 5, curso: "franquicias" } },
   ojeador: { nombre: "Ojeador de Talentos", sueldo: 85, desc: "Mejora la calidad de las búsquedas y atrae alumnos con más potencial.", multiple: false, icono: "target", requisito: { semana: 3, fama: 6 } },
 };
 
@@ -287,6 +287,9 @@ export const CONSEJOS_INICIALES: Omit<Consejo, "cumplido" | "reclamado">[] = [
   { id: "c5", texto: "Llegá a 40 de fama. Que todo el barrio hable de tu gimnasio.", fama: 3 },
   { id: "c6", texto: "Colgá tu primer cinturón en la pared del gimnasio.", fama: 3 },
   { id: "c7", texto: "Contratá a tu primer miembro del personal. Nadie llega solo a la cima.", fama: 1 },
+  { id: "c8", texto: "Sumá tres alumnos recreativos para sostener la caja del club.", fama: 1, dinero: 60 },
+  { id: "c9", texto: "Llegá a 1.500 seguidores y hacé conocido el nombre del gimnasio.", fama: 2, dinero: 80 },
+  { id: "c10", texto: "Ganá tres peleas oficiales y consolidá tu primera camada.", fama: 2, dinero: 120 },
 ];
 
 // Calendario

@@ -3,13 +3,15 @@
 // títulos y simulación de combate con jueces y Registro Oficial.
 // ============================================================
 
-import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
+import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, CURSOS, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
 import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
-  OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
+  OfertaRival, Pelea, PersonalId, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
 } from "./types";
 import { conFuenteAzar, numeroAleatorio } from "./random";
 import { ATRIBUTOS_BASE, SCHEMA_ACTUAL, validarEstado } from "./saveValidation";
+import { socialActivityRange, weeklyEconomy } from "./economy";
+import type { EstimatedIncome, WeeklyEconomy } from "./economy";
 
 // ==================== UTILIDADES ====================
 export const uid = () => numeroAleatorio().toString(36).slice(2, 10) + numeroAleatorio().toString(36).slice(2, 6);
@@ -45,6 +47,8 @@ export function calcularModificadores(e: EstadoJuego): ModificadoresClub {
   const multiplicar = (claves: ClaveAtributo[], valor: number) => claves.forEach(k => { gananciaAtributo[k] *= valor; });
   if (e.equipamiento.includes("sacosCuero")) multiplicar(["fuerza", "potencia"], 1.25);
   if (e.equipamiento.includes("perasDoble")) multiplicar(["velocidad", "eficacia"], 1.25);
+  if (e.equipamiento.includes("cuerdaVelocidad")) multiplicar(["velocidad"], 1.1);
+  if (e.equipamiento.includes("plataformaReaccion")) multiplicar(["defensa", "eficacia"], 1.1);
   if (e.equipamiento.includes("manoplasPro")) multiplicar(["ataque", "tecnica"], 1.25);
   if (e.equipamiento.includes("ringReglamentario")) multiplicar(["tecnica", "defensa"], 1.25);
   if (e.equipamiento.includes("soga")) multiplicar(["resistencia"], 1.15);
@@ -53,6 +57,7 @@ export function calcularModificadores(e: EstadoJuego): ModificadoresClub {
   if (e.cursos.includes("altoRendimiento")) Object.keys(gananciaAtributo).forEach(k => { gananciaAtributo[k as ClaveAtributo] *= 1.2; });
   if (e.personal.some(p => p.tipo === "preparador")) multiplicar(["fuerza", "velocidad", "potencia", "resistencia"], 1.2);
   let recuperacionEnergia = 30;
+  if (e.equipamiento.includes("barraProteinas")) recuperacionEnergia += 4;
   if (e.equipamiento.includes("vendasGel")) recuperacionEnergia += 4;
   if (e.equipamiento.includes("pisoGoma")) recuperacionEnergia += 2;
   if (e.equipamiento.includes("botiquin")) recuperacionEnergia += 6;
@@ -155,6 +160,31 @@ export function rasgoInfo(id: string) {
 export function sucursales(e: EstadoJuego): number {
   return e.propiedades.filter(p => p === "sucursal").length;
 }
+
+export type BloqueoPersonal = "funcionPendiente" | "cubierto" | "sinSucursales" | "cupoAdministrativo" | "cupoEntrenador" | "semana" | "fama" | "curso";
+
+/** Disponibilidad de nuevas altas; no altera contratos ni sustituye la confirmación financiera. */
+export function puedeContratarPersonal(e: EstadoJuego, tipo: PersonalId): { ok: boolean; motivo?: BloqueoPersonal; mensaje?: string } {
+  if (tipo === "coordinadorSucursal") return {
+    ok: false, motivo: "funcionPendiente",
+    mensaje: "Nuevas contrataciones no disponibles: falta definir una función diferenciada para este puesto. Los coordinadores existentes conservan su contrato.",
+  };
+  const info = PERSONAL_INFO[tipo];
+  if (!info.multiple && e.personal.some(p => p.tipo === tipo)) return { ok: false, motivo: "cubierto", mensaje: "Ese puesto ya está cubierto." };
+  if (tipo === "gerente" || tipo === "entrenadorLocal") {
+    const capacidad = sucursales(e);
+    if (capacidad === 0) return { ok: false, motivo: "sinSucursales", mensaje: "Este puesto requiere una sucursal." };
+    const administrativos = e.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
+    const entrenadores = e.personal.filter(p => p.tipo === "entrenadorLocal").length;
+    if (tipo === "gerente" && administrativos >= capacidad) return { ok: false, motivo: "cupoAdministrativo", mensaje: "El cupo administrativo de las sucursales está cubierto por gerentes y coordinadores existentes." };
+    if (tipo === "entrenadorLocal" && entrenadores >= capacidad) return { ok: false, motivo: "cupoEntrenador", mensaje: "El cupo de entrenadores locales de las sucursales está cubierto." };
+  }
+  const req = info.requisito;
+  if (req?.semana && e.semana < req.semana) return { ok: false, motivo: "semana", mensaje: `${info.nombre} se habilita a partir de la semana ${req.semana}.` };
+  if (req?.fama && e.fama < req.fama) return { ok: false, motivo: "fama", mensaje: `${info.nombre} requiere ${req.fama} de fama.` };
+  if (req?.curso && !e.cursos.includes(req.curso)) return { ok: false, motivo: "curso", mensaje: `Necesitás el curso ${CURSOS[req.curso].nombre}.` };
+  return { ok: true };
+}
 export function capacidadAlumnos(e: EstadoJuego): number {
   return 10 + calcularModificadores(e).capacidadAlumnos;
 }
@@ -226,48 +256,19 @@ export function estadoRecord(p: Pugilista): { etiqueta: string; tono: "oro" | "o
   return { etiqueta: "Récord equilibrado", tono: "info", multiplicadorBolsa: 0.9 };
 }
 
-/** Proyección conservadora compartida por el encabezado y el balance semanal. */
-export function proyeccionSemanal(e: EstadoJuego): { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number } {
-  const nivel = nivelGimnasio(e);
-  const alumnos = alumnosActivos(e).length;
-  const boxeadores = e.plantel.filter(p => p.rol === "boxeador").length;
-  const cuota = 18 + 2 * (nivel - 1);
-  const ingresos: LineaLibro[] = [{ concepto: `Cuotas de alumnos (${alumnos} × ${fmt(cuota)})`, monto: alumnos * cuota }];
-  if (e.recreativos > 0) ingresos.push({ concepto: `Cuotas recreativas (${e.recreativos} × $10)`, monto: e.recreativos * 10 });
-  if (boxeadores > 0) ingresos.push({ concepto: `Aporte del plantel federado (${boxeadores} × $12)`, monto: boxeadores * 12 });
-  if (e.semana === 1) ingresos.push({ concepto: "Ayuda de apertura del club", monto: 240 });
-  const nSuc = sucursales(e);
-  const gerentes = e.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
-  const entrenadoresLocales = e.personal.filter(p => p.tipo === "entrenadorLocal").length;
-  if (nSuc > 0 && gerentes > 0) {
-    const activas = Math.min(nSuc, gerentes);
-    let porSucursal = 650 + 8 * e.fama + Math.min(activas, entrenadoresLocales) * 200;
-    if (e.cursos.includes("imperio")) porSucursal *= 1.5;
-    ingresos.push({ concepto: `Ingresos pasivos de sucursales (${activas})`, monto: Math.round(porSucursal * activas) });
-  }
-  if (e.marcaRopa && e.equipamiento.includes("estudioMarca")) {
-    let ventas = Math.round(e.fama * 6 + 40);
-    ventas = Math.round(ventas * calcularModificadores(e).multiplicadorMarca);
-    ingresos.push({ concepto: `Ventas de la marca "${e.marcaRopa}"`, monto: ventas });
-  }
-  e.comunitarios.forEach(c => {
-    const info = COMUNITARIOS[c.tipo];
-    ingresos.push({ concepto: `Dividendos estimados: ${c.nombre}`, monto: Math.round(((info.min + info.max) / 2) * calcularModificadores(e).multiplicadorEventos) });
-  });
-  if (e.patrocinio) ingresos.push({ concepto: `Patrocinio de ${e.patrocinio.nombre}`, monto: e.patrocinio.semanal });
-  const gastos: LineaLibro[] = [];
-  if (!e.propiedades.includes("local")) gastos.push({ concepto: "Alquiler del local", monto: 150 });
-  const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
-  if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
-  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: clamp(Math.ceil(Math.abs(e.dinero) * 0.03), 10, 50) });
-  if (e.prestamo && e.prestamo.saldo > 0) gastos.push({ concepto: `Cuota del préstamo (${e.prestamo.semanasRestantes} restantes)`, monto: Math.min(e.prestamo.cuota, e.prestamo.saldo) });
-  const totalIngresos = ingresos.reduce((total, l) => total + l.monto, 0);
-  const totalGastos = gastos.reduce((total, l) => total + l.monto, 0);
-  return { ingresos, gastos, total: totalIngresos - totalGastos };
+/** Guaranteed Sunday amounts; random social returns are presented separately. */
+export function proyeccionSemanal(e: EstadoJuego): WeeklyEconomy & { estimados: EstimatedIncome[] } {
+  const mods = calcularModificadores(e);
+  const garantizados = weeklyEconomy(e, { nivel: nivelGimnasio(e), multiplicadorMarca: mods.multiplicadorMarca });
+  const estimados = e.comunitarios.map(c => ({
+    concepto: `Dividendos estimados: ${c.nombre}`,
+    ...socialActivityRange(c.tipo, mods.multiplicadorEventos),
+  }));
+  return { ...garantizados, estimados };
 }
 
 /** Flujo recurrente sostenible: excluye ayudas, eventos sociales y patrocinios temporales. */
-export function proyeccionSemanalRecurrente(e: EstadoJuego): { ingresos: LineaLibro[]; gastos: LineaLibro[]; total: number } {
+export function proyeccionSemanalRecurrente(e: EstadoJuego): ReturnType<typeof proyeccionSemanal> {
   return proyeccionSemanal({ ...e, semana: Math.max(2, e.semana), comunitarios: [], patrocinio: null });
 }
 export function normalizarListaEspera(e: EstadoJuego): EstadoJuego {
@@ -386,7 +387,7 @@ export function puedePactarPelea(p: Pugilista, e: EstadoJuego): { ok: boolean; m
   return { ok: true };
 }
 
-export function generarOfertas(p: Pugilista): OfertaRival[] {
+export function generarOfertas(p: Pugilista, permiteTitulosInternacionales = true): OfertaRival[] {
   const vg = valoracion(p.atrib);
   const multiplicador = estadoRecord(p).multiplicadorBolsa;
   const bolsa = (base: number) => Math.round(base * multiplicador);
@@ -422,7 +423,7 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
   };
   ofertas.forEach(oferta => { oferta.rival = ajustarExperiencia(oferta.rival); });
   const tit = tituloAspirable(p);
-  if (tit > 0) {
+  if (tit > 0 && (tit < 3 || permiteTitulosInternacionales)) {
     const info = TITULOS[tit as 1 | 2 | 3 | 4];
     const bolsa = tit === 4 ? azar(60, 150) * 1000 : info.bolsa;
     const campeon = ajustarExperiencia(genRivalPorVG(clamp(vg + azar(6, 9), 30, 97), p.division, azar(65, 85), p.genero, "pro"));
@@ -439,9 +440,34 @@ export function generarOfertas(p: Pugilista): OfertaRival[] {
 }
 
 export function ofertasValidasPara(p: Pugilista, e: EstadoJuego): OfertaRival[] {
-  return generarOfertas(p).map(of => of.esTitulo >= 3 && !e.cursos.includes("tv")
-    ? { ...of, esTitulo: 0 as const, etiqueta: "Pelea de experiencia", detalle: "Necesitás el curso de Televisión para aspirar a títulos internacionales." }
-    : of);
+  return generarOfertas(p, e.cursos.includes("tv"));
+}
+
+/** Revalida solo ofertas no pactadas; no migra ni modifica contratos históricos.
+ * Es puro: el reducer puede rechazar una oferta legacy sin generar rivales ni azar.
+ */
+export function ofertaValidaPara(p: Pugilista, oferta: OfertaRival, e: Pick<EstadoJuego, "cursos">): boolean {
+  if (oferta.rival.circuito !== p.circuito || oferta.rival.genero !== p.genero || oferta.rival.division !== p.division) return false;
+  if (oferta.rival.titulo !== oferta.esTitulo) return false;
+  if (oferta.esTitulo === 0) {
+    const base = { accesible: 250, parejo: 600, desafio: 1800 }[oferta.nivel];
+    return oferta.bolsa === Math.round(base * estadoRecord(p).multiplicadorBolsa);
+  }
+  if (oferta.nivel !== "desafio" || tituloAspirable(p) !== oferta.esTitulo) return false;
+  if (oferta.esTitulo >= 3 && !e.cursos.includes("tv")) return false;
+  return oferta.esTitulo === 4
+    ? Number.isInteger(oferta.bolsa / 1000) && oferta.bolsa >= 60000 && oferta.bolsa <= 150000
+    : oferta.bolsa === TITULOS[oferta.esTitulo].bolsa;
+}
+
+/** Eligibility at execution time, shared with R2 result validation; no receipt or payout. */
+export function puedeEjecutarPelea(s: EstadoJuego, pelea: Pelea): boolean {
+  const p = s.plantel.find(p => p.id === pelea.miId);
+  if (!p || (pelea.semanaProgramada ?? s.semana) !== s.semana || (pelea.diaProgramado ?? 6) !== s.dia) return false;
+  if (!puedePactarPelea(p, { ...s, pendientes: s.pendientes.filter(x => x.id !== pelea.id) }).ok) return false;
+  if (pelea.rival.circuito !== p.circuito || pelea.rival.genero !== p.genero || pelea.rival.division !== p.division) return false;
+  return pelea.esTitulo === 0 || (p.circuito === "pro" && (s.contratosTitularesHistoricos?.includes(pelea.id)
+    || tituloAspirable(p) === pelea.esTitulo && (pelea.esTitulo < 3 || s.cursos.includes("tv"))));
 }
 
 // ==================== MOTOR DE COMBATE ====================
@@ -526,11 +552,7 @@ export function validarResultadoCombate(s: EstadoJuego, pelea: Pelea, r: Resulta
   if (!p || !receipt || receipt.resultado !== JSON.stringify(r) || receipt.pelea !== JSON.stringify(pelea) || receipt.pugil !== JSON.stringify(p)) return false;
   if (s.combateActivo && receipt.sesion !== JSON.stringify(s.combateActivo)) return false;
   if (r.miId !== p.id || r.rivalNombre !== pelea.rival.nombre) return false;
-  if ((pelea.semanaProgramada ?? s.semana) !== s.semana || (pelea.diaProgramado ?? 6) !== s.dia) return false;
-  if (!puedePactarPelea(p, { ...s, pendientes: s.pendientes.filter(x => x.id !== pelea.id) }).ok) return false;
-  if (pelea.rival.circuito !== p.circuito || pelea.rival.genero !== p.genero || pelea.rival.division !== p.division) return false;
-  if (pelea.esTitulo > 0 && (p.circuito !== "pro" || tituloAspirable(p) !== pelea.esTitulo || (pelea.esTitulo >= 3 && !s.cursos.includes("tv")))) return false;
-  return true;
+  return puedeEjecutarPelea(s, pelea);
 }
 
 export function asaltosDePelea(pelea: Pelea): number {

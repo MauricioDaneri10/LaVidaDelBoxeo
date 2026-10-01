@@ -1,5 +1,10 @@
 # Diseño de Juego Canónico
 
+## Actualización R3 aprobada — 2026-10-01
+
+Reglas aprobadas R3: hitos Anselmo únicos c1–c10; c8 $60/+1 por 3 recreativos, c9 $80/+2 por 1.500 seguidores, c10 $120/+2 por 3 victorias. Sin pagos repetidos/retroactivos. Cuerda velocidad ×1,10; plataforma defensa/eficacia ×1,10; proteínas fuerza ×1,20 y recuperación semanal +4 techo100 sin energía inmediata. Arena elimina alquiler futuro sin devolución. Velada tentativa vacía cancela sin beneficios/cargo. Gerente/coordinador comparten cupo, entrenador independiente; altas de coordinador suspendidas, empleados existentes conservados. Ofertas sin TV ordinarias coherentes; contratos antiguos preservados.
+
+
 **Proyecto:** La Vida del Boxeo  
 **Versión:** 1.0  
 **Estado:** Documento rector  
