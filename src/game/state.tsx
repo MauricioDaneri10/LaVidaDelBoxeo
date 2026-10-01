@@ -439,7 +439,9 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
     case "CANCELAR_PELEA": {
       const pelea = s.pendientes.find(p => p.id === a.peleaId);
       if (!pelea) return s;
-      return conToast({ ...s, combateActivo: s.combateActivo?.pelea.id === a.peleaId ? null : s.combateActivo, pendientes: s.pendientes.filter(p => p.id !== a.peleaId) },
+      return conToast({ ...s,
+        ...(s.contratosTitularesHistoricos ? { contratosTitularesHistoricos: s.contratosTitularesHistoricos.filter(id => id !== a.peleaId) } : {}),
+        combateActivo: s.combateActivo?.pelea.id === a.peleaId ? null : s.combateActivo, pendientes: s.pendientes.filter(p => p.id !== a.peleaId) },
         "La pelea se bajó de la cartelera. La federación lo entiende.", "info");
     }
 
@@ -456,6 +458,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       let st: EstadoJuego = { ...s };
       st.stats = { ...st.stats };
       st.pendientes = st.pendientes.filter(p => p.id !== a.peleaId);
+      if (st.contratosTitularesHistoricos) st.contratosTitularesHistoricos = st.contratosTitularesHistoricos.filter(id => id !== a.peleaId);
       if (st.combateActivo?.pelea.id === a.peleaId) st.combateActivo = null;
       st.dinero += r.bolsa;
       st.libroIngresos = linea(st.libroIngresos, `Bolsa vs ${pelea.rival.nombre.split(" ")[0]} (${r.metodo})`, r.bolsa);

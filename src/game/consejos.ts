@@ -19,8 +19,9 @@ const esConsejo = (x: unknown): x is Consejo => !!x && typeof x === "object" && 
 /** A damaged payment record must not disappear in localized validation and unlock another reward. */
 export function evidenciaCobroDanada(raw: unknown): boolean {
   return Array.isArray(raw) && raw.some(c => c && typeof c === "object" && !Array.isArray(c)
-    && typeof c.id === "string" && objetivoConsejo(c.id)
-    && (typeof c.reclamado !== "boolean" || c.reclamado === true && !esConsejo(c)));
+    && ((c.reclamado === true && (typeof c.id !== "string" || !c.id))
+      || typeof c.id === "string" && objetivoConsejo(c.id)
+      && (typeof c.reclamado !== "boolean" || c.reclamado === true && !esConsejo(c))));
 }
 
 /** Migration is pure: retain IDs/order/extensions, no RNG, payment or invented date. */

@@ -1,5 +1,7 @@
 # R3 — Contenido y economía: entrega para revisión
 
+**Revisión posterior:** el head de entrega tenía tres omisiones adicionales. Informe53 registra reproducción, corrección y evidencia final351/351; las cifras346/346 de abajo corresponden a la entrega original, no al head corregido. Metadatos titulares expiran al cancelar/resolver; pago con identidad dañada y colisión de extensión bloquean escritura sin pérdida de originales.
+
 Fecha: 2026-10-01. Base main `2c445d2169d2a04c869328a5374c9fa73a469095`; rama `feature/r3-content-economy`. Alcance exclusivo A08/A10/A11/A21/A24, autorización del usuario en plan51 sección6. Implementación preparada para revisión, no aceptación ni certificación integral del juego.
 
 ## Hallazgos y evidencia ejecutable

@@ -45,9 +45,12 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
     4: x => ({ ...x, archivoCarreras: x.archivoCarreras ?? [], schemaVersion: 5 }),
     // The new decision label must be rejected by older readers, not silently discarded.
     5: x => ({ ...x, combateActivo: x.combateActivo ?? null, schemaVersion: 6 }),
-    6: x => ({ ...x, consejos: consolidarConsejos(x.consejos, true),
+    6: x => {
+      if ("contratosTitularesHistoricos" in x) throw new ErrorGuardado("Metadata anterior con nombre reservado: Original protegido; se necesita recuperar la extensión antes de migrar.", "ambiguous");
+      return { ...x, consejos: consolidarConsejos(x.consejos, true),
       contratosTitularesHistoricos: Array.isArray(x.pendientes) ? x.pendientes.filter(p => objeto(p) && typeof p.id === "string" && typeof p.esTitulo === "number" && p.esTitulo > 0).map(p => p.id) : [],
-      schemaVersion: 7 }),
+      schemaVersion: 7 };
+    },
   };
   for (let v = inicial; v < SCHEMA_ACTUAL; v++) s = migraciones[v](s);
   if (versionAntigua) s = { ...s, version: 2 };

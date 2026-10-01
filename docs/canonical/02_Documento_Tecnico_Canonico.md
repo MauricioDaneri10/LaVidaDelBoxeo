@@ -2,6 +2,8 @@
 
 ## Actualización R3 aprobada — 2026-10-01
 
+Revisión PR5 (informe53): la autorización titular operacional expira al cancelar/resolver, sin borrar resultados ni contratos del historial. Una identidad de cobro dañada o una extensión antigua que colisione con el nuevo campo reservado bloquea migración/escritura; no se asigna objetivo ni se reemplaza extensión. ID externo sano permanece intacto.
+
 Schema7 y migración explícita6→7 idempotente: consolidación por objetivo, archivo sin falso cobro y preservación de IDs/extensiones. Evidencia de pago dañada bloquea escritura ambigua, original protegido. contratosTitularesHistoricos deriva IDs pactados pre-R3, excepción solo título/TV, no seguridad médica/identidad/fecha. Checkpoints intactos. economy.ts comparte importes deterministas; RNG separado. UI/reducer comparten puedeContratarPersonal. Carga no regenera ofertas.
 
 

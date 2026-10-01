@@ -10,6 +10,52 @@ const fixture = () => ({ ...crearEstadoBase({ sinPoblacion: true }), creado: tru
 const counsel = (id: string, reclamado = false) => ({ id, texto: "Histórico", fama: 1, dinero: 60, cumplido: true, reclamado });
 
 describe("R3 — hitos, compatibilidad y veladas", () => {
+  it("revisión: evidencia pagada con identidad dañada no puede descartarse", () => {
+    const old = { ...fixture(), schemaVersion: 6, consejos: [{ ...counsel("c11", true), id: 11 }, counsel("c8")] };
+    expect(() => sanitizarEstado(old)).toThrow("Evidencia de cobro");
+  });
+  it("revisión: metadata desconocida no se sobrescribe en migración", () => {
+    const old = { ...fixture(), schemaVersion: 6, contratosTitularesHistoricos: { datoExterno: 0 } };
+    const before = structuredClone(old);
+    expect(() => sanitizarEstado(old)).toThrow("Original protegido");
+    expect(old).toEqual(before);
+    const bytes = new Map([[CLAVE_GUARDADO, JSON.stringify(old)]]);
+    const repo = new RepositorioPartidas({ durable: true, getItem: k => bytes.get(k) ?? null, setItem: (k, v) => { bytes.set(k, v); }, removeItem: k => { bytes.delete(k); } });
+    const loaded = repo.cargar(); expect(repo.guardar(loaded)).toBe(false);
+    expect(bytes).toEqual(new Map([[CLAVE_GUARDADO, JSON.stringify(old)]]));
+  });
+  it("revisión: un contrato cancelado no deja una excepción para otro con el mismo ID", () => {
+    const p = genPugilista({ rol: "boxeador" }); p.circuito = "pro";
+    const pelea = { id: "legacy-title", miId: p.id, rival: { ...p, id: "champ", titulo: 4 as const }, esTitulo: 4 as const, bolsa: 93000, velada: false, semanaProgramada: 5, diaProgramado: 6 };
+    const current = sanitizarEstado({ ...fixture(), schemaVersion: 6, dia: 6, plantel: [p], pendientes: [pelea] });
+    expect(puedeEjecutarPelea(current, current.pendientes[0])).toBe(true);
+    const cancelled = reductor(current, { type: "CANCELAR_PELEA", peleaId: pelea.id });
+    const reused = { ...pelea, bolsa: 150000 };
+    expect(puedeEjecutarPelea({ ...cancelled, pendientes: [reused] }, reused)).toBe(false);
+    expect(cancelled.dinero).toBe(current.dinero);
+    expect(sanitizarEstado(cancelled).contratosTitularesHistoricos).toEqual([]);
+  });
+  it("revisión: contrato histórico no elude identidad, salud, fecha ni recibos R2", () => {
+    const p = genPugilista({ rol: "boxeador" }); p.circuito = "pro";
+    const pelea = { id: "legacy-title", miId: p.id, rival: { ...p, id: "champ", titulo: 4 as const }, esTitulo: 4 as const, bolsa: 93000, velada: false, semanaProgramada: 5, diaProgramado: 6 };
+    const current = sanitizarEstado({ ...fixture(), schemaVersion: 6, dia: 6, plantel: [p], pendientes: [pelea] });
+    for (const own of [{ ...p, energia: 0 }, { ...p, licenciaFederativa: false }, { ...p, circuito: "amateur" as const }, { ...p, genero: p.genero === "M" ? "F" as const : "M" as const }]) {
+      expect(puedeEjecutarPelea({ ...current, plantel: [own] }, pelea)).toBe(false);
+    }
+    expect(puedeEjecutarPelea({ ...current, dia: 5 }, pelea)).toBe(false);
+    expect(puedeEjecutarPelea({ ...current, semana: 6 }, pelea)).toBe(false);
+    const result = simularPeleaEntera(crearEstadoPelea(pelea, current.plantel[0], []), "equilibrado");
+    const forged = { ...result, bolsa: result.bolsa + 1 };
+    expect(reductor(current, { type: "RESOLVER_PELEA", peleaId: pelea.id, resultado: forged }).dinero).toBe(current.dinero);
+  });
+  it("revisión: un ID externo sano y sus datos JSON permanecen intactos", () => {
+    const unknown = { ...counsel("externo", true), externo: { cero: 0, lista: [false, "dato"] } };
+    const old = { ...fixture(), schemaVersion: 6, consejos: [unknown, counsel("c8")] };
+    const migrated = sanitizarEstado(old);
+    expect(migrated.consejos.find(c => c.id === "externo")).toEqual(unknown);
+    expect(sanitizarEstado(migrated)).toEqual(migrated);
+    expect(reductor(migrated, { type: "RECLAMAR_CONSEJO", id: "externo" }).dinero).toBe(migrated.dinero);
+  });
   it.each([2, 3, 4])("A21: umbrales exactos y únicos con valor %i", n => {
     const s = fixture(); s.recreativos = n; s.seguidores = n + 1497; s.stats.victorias = n;
     expect(objetivoConsejoCumplido("c8", s)).toBe(n >= 3);
@@ -127,6 +173,7 @@ describe("R3 — hitos, compatibilidad y veladas", () => {
     expect(finished.combateActivo).toEqual(resumed);
     const paid = reductor(finished, { type: "RESOLVER_PELEA", peleaId: pelea.id, resultado: result });
     expect(paid.pendientes).toEqual([]); expect(paid.dinero - current.dinero).toBe(result.bolsa);
+    expect(paid.contratosTitularesHistoricos).toEqual([]);
     expect(reductor(sanitizarEstado(paid), { type: "RESOLVER_PELEA", peleaId: pelea.id, resultado: result }).dinero).toBe(paid.dinero);
     expect(sanitizarEstado(current)).toEqual(current);
   });
