@@ -378,8 +378,9 @@ describe("R1 — recuperación operacional y aceptación ampliada", () => {
     repo.cargar(); expect(repo.guardar(s)).toBe(false); expect(bytes).toEqual(before);
   });
   it("A28: carrera de legado recibe una identidad guardable, sin perder la ranura anterior", () => {
-    const { repo } = isolated(); const s = fixture(); expect(repo.guardar(s)).toBe(true);
+    const { repo } = isolated(); const s = { ...fixture(), fama: 85 }; expect(repo.guardar(s)).toBe(true);
     const next = reductor(s, { type: "LEGADO" });
+    expect(next.partidaId).not.toBe(s.partidaId);
     expect(repo.guardar(next)).toBe(true);
     expect(repo.listar().map(x => x.id)).toContain(s.partidaId);
     expect(repo.cargar()).toEqual(next);

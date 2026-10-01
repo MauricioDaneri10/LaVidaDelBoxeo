@@ -8,7 +8,7 @@ export const ATRIBUTOS_BASE: Atributos = {
 };
 import type { EstadoJuego } from "./types";
 
-export const SCHEMA_ACTUAL = 5;
+export const SCHEMA_ACTUAL = 6;
 export class ErrorGuardado extends Error {
   constructor(message: string, public readonly codigo: "corruption" | "incompatible" | "ambiguous" = "corruption") { super(message); }
 }
@@ -41,6 +41,8 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
     2: x => ({ ...x, partidaId: typeof x.partidaId === "string" && x.partidaId ? x.partidaId : `migrada-${hashTexto(JSON.stringify(x))}`, ultimaSemanaScout: x.ultimaSemanaScout ?? 0, ultimaSemanaEntrenada: x.ultimaSemanaEntrenada ?? 0, schemaVersion: 3 }),
     3: x => ({ ...x, libroIngresos: [], libroGastos: [], semanaLibro: 0, schemaVersion: 4 }),
     4: x => ({ ...x, archivoCarreras: x.archivoCarreras ?? [], schemaVersion: 5 }),
+    // The new decision label must be rejected by older readers, not silently discarded.
+    5: x => ({ ...x, combateActivo: x.combateActivo ?? null, schemaVersion: 6 }),
   };
   for (let v = inicial; v < SCHEMA_ACTUAL; v++) s = migraciones[v](s);
   if (versionAntigua) s = { ...s, version: 2 };
@@ -144,7 +146,29 @@ const title = num(0, 4, true);
 const bout = fields({ id, miId: id, rival: boxer, bolsa: num(0), esTitulo: title, velada: bool, semanaProgramada: optional(num(1, Infinity, true)), diaProgramado: optional(num(1, 7, true)) }, {}, ["id", "miId", "rival", "bolsa", "esTitulo", "velada"]);
 const punches = fields({ lanzados: count, conectados: count }, {}, ["lanzados", "conectados"]);
 const compubox = fields({ jab: punches, poder: punches }, {}, ["jab", "poder"]);
-const result = fields({ miId: optional(id), rivalNombre: optional(str), gane: bool, empate: bool, metodo: oneOf(["Nocaut", "Nocaut Técnico", "Decisión Unánime", "Decisión Dividida", "Empate"]), tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])), caidasA: count, caidasB: count, registroA: compubox, registroB: compubox, bolsa: num(0), fama: num(), tituloGanado: title, resumen: str }, {}, ["gane", "empate", "metodo", "tarjetas", "caidasA", "caidasB", "registroA", "registroB", "bolsa", "fama", "tituloGanado", "resumen"]);
+const fighterRules = {
+  p: boxer, hp: num(0), hpMax: num(1), energia: num(0, 100), caidas: count, registro: compubox,
+  plan: oneOf(["equilibrado", "presionar", "distancia", "nocaut", "recuperar"]), dmgDado: num(0), conectadosAsalto: count,
+  kdAsalto: count, aturdido: count, jabDmg: num(0), poderDmg: num(0), precision: num(0, 1), evasion: num(0, 1), costeEnergia: num(0), resisteDanio: num(0),
+};
+const fighter = fields(fighterRules, {}, Object.keys(fighterRules));
+const combatRules = {
+  pelea: bout, A: fighter, B: fighter, asalto: num(1, 13, true), totalAsaltos: num(1, 12, true),
+  tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])),
+  acciones: list(fields({ atacante: oneOf(["a", "b"]), tipo: oneOf(["jab", "poder"]), conecto: bool, dano: num(0), critico: bool,
+    estadoVisual: optional(fields({ A: fighter, B: fighter }, {}, ["A", "B"])) }, {}, ["atacante", "tipo", "conecto", "dano", "critico"])),
+  ko: nullable(oneOf(["a", "b"])), finalizada: bool, intercambiosAsalto: num(0, 3, true), asaltosCerrados: count,
+  semillaAzar: num(0, 4294967295, true),
+};
+const combat = fields(combatRules, {}, Object.keys(combatRules));
+const activeCombat: Rule = (v, p, i) => {
+  if (v === null) return null;
+  const local: string[] = [];
+  const checked = combat(v, p, local);
+  if (checked === BAD || local.length) throw new ErrorGuardado("Checkpoint de combate dañado: original protegido.");
+  return checked;
+};
+const result = fields({ miId: optional(id), rivalNombre: optional(str), gane: bool, empate: bool, metodo: oneOf(["Nocaut", "Nocaut Técnico", "Decisión Unánime", "Decisión Dividida", "Decisión Mayoritaria", "Empate"]), tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])), caidasA: count, caidasB: count, registroA: compubox, registroB: compubox, bolsa: num(0), fama: num(), tituloGanado: title, resumen: str }, {}, ["gane", "empate", "metodo", "tarjetas", "caidasA", "caidasB", "registroA", "registroB", "bolsa", "fama", "tituloGanado", "resumen"]);
 const ledger = list(fields({ concepto: str, monto: num(0) }, {}, ["concepto", "monto"]));
 const action = fields({ tipo: oneOf(["dinero", "fama", "nuevoAlumno", "programarComunitario", "aceptarPatrocinio", "exhibicion", "mantenimiento", "entrevista", "recaudacion", "nada"]), monto: optional(num()), costo: optional(num(0)), fama: optional(num()), nombre: optional(str), semanas: optional(count), comunitario: optional(oneOf(Object.keys(COMUNITARIOS))) }, {}, ["tipo"]);
 
@@ -156,6 +180,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
   if (objeto(raw) && "formatVersion" in raw && (typeof raw.savedAt !== "string" || !Number.isFinite(Date.parse(raw.savedAt)))) issues.push("envelope.savedAt");
   const rules: Record<string, Rule> = {
     version: oneOf([2]), schemaVersion: oneOf([SCHEMA_ACTUAL]), creado: bool, nombreJugador: str, nombreGimnasio: str,
+    combateActivo: activeCombat,
     dinero: num(), fama: num(0, 100), seguidores: count, recreativos: count, dia: num(1, 7, true), semana: num(1, Infinity, true), ultimaSemanaScout: count,
     mes: num(1, 12, true), anio: num(1, Infinity, true), plantel: list(boxer, "id"), rivales: list(boxer, "id"),
     ofertas: list(fields({ id, rival: boxer, nivel: oneOf(["accesible", "parejo", "desafio"]), bolsa: num(0), etiqueta: str, detalle: str, esTitulo: title }, {}, ["id", "rival", "nivel", "bolsa", "etiqueta", "detalle", "esTitulo"]), "id"),
@@ -187,5 +212,15 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
     pending.add(p.miId); return true;
   });
   if (checked.ofertasPara !== null && !ids.has(checked.ofertasPara)) { checked.ofertasPara = null; issues.push("ofertasPara: boxeador ausente"); }
+  const c = checked.combateActivo;
+  if (c) {
+    const b = checked.pendientes.find(p => p.id === c.pelea.id);
+    const own = checked.plantel.find(p => p.id === c.A.p.id);
+    if (!b || !own || JSON.stringify(b) !== JSON.stringify(c.pelea) || JSON.stringify(own) !== JSON.stringify(c.A.p)
+      || JSON.stringify(b.rival) !== JSON.stringify(c.B.p) || c.tarjetas.length !== 3 || c.asalto > c.totalAsaltos + 1
+      || c.asaltosCerrados > c.totalAsaltos || c.A.hp > c.A.hpMax || c.B.hp > c.B.hpMax) {
+      throw new ErrorGuardado("Checkpoint de combate incompatible: original protegido.");
+    }
+  }
   return { estado: checked, diagnosticos: issues };
 }

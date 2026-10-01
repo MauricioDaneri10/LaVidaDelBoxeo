@@ -104,7 +104,7 @@ export interface ResultadoPelea {
   rivalNombre?: string;
   gane: boolean;
   empate: boolean;
-  metodo: "Nocaut" | "Nocaut Técnico" | "Decisión Unánime" | "Decisión Dividida" | "Empate";
+  metodo: "Nocaut" | "Nocaut Técnico" | "Decisión Unánime" | "Decisión Dividida" | "Decisión Mayoritaria" | "Empate";
   tarjetas: TarjetaJuez[];
   caidasA: number;
   caidasB: number;
@@ -186,6 +186,7 @@ export interface ResumenSemanal { ingresos: LineaLibro[]; gastos: LineaLibro[]; 
 export type PropiedadId = "local" | "terreno" | "sucursal" | "apartamento" | "mansion" | "arena";
 
 export interface EstadoJuego {
+  combateActivo: import("./engine").EstadoPelea | null;
   version: number;
   schemaVersion: number;
   creado: boolean;
@@ -279,6 +280,7 @@ export type Accion =
   | { type: "ELEGIR_OFERTA"; ofertaId: string }
   | { type: "CANCELAR_PELEA"; peleaId: string }
   | { type: "RESOLVER_PELEA"; peleaId: string; resultado: ResultadoPelea }
+  | { type: "CHECKPOINT_COMBATE"; estado: import("./engine").EstadoPelea }
   | { type: "COMPRAR_EQUIPO"; id: GearId }
   | { type: "CREAR_MARCA"; nombre: string }
   | { type: "COMPRAR_CURSO"; id: CursoId }

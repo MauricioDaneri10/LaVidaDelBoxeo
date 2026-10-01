@@ -8,7 +8,7 @@ import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
   OfertaRival, Pelea, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
 } from "./types";
-import { numeroAleatorio } from "./random";
+import { conFuenteAzar, numeroAleatorio } from "./random";
 import { ATRIBUTOS_BASE, SCHEMA_ACTUAL, validarEstado } from "./saveValidation";
 
 // ==================== UTILIDADES ====================
@@ -170,7 +170,31 @@ export function alumnosEnEspera(e: EstadoJuego): Pugilista[] {
   return e.plantel.filter(p => p.rol === "alumno" && p.enEspera);
 }
 export function puedeHabilitar(p: Pugilista, e: EstadoJuego): boolean {
-  return p.rol === "alumno" && !p.licenciaFederativa && !p.enEspera && p.fogueo >= p.fogueoMeta && e.cursos.includes("dt");
+  return p.rol === "alumno" && !p.licenciaFederativa && !p.enEspera && p.guanteosRealizados >= 10 && e.cursos.includes("dt");
+}
+
+/** A fight without an old explicit date belongs to this week's Saturday. */
+export function peleasVencidas(e: EstadoJuego): Pelea[] {
+  return e.pendientes.filter(p => (p.semanaProgramada ?? e.semana) * 7 + (p.diaProgramado ?? 6) <= e.semana * 7 + e.dia);
+}
+
+function disponibleIndividualGuanteo(p: Pugilista, e: EstadoJuego): boolean {
+  return !p.enEspera && !p.lesion && p.combo !== "descanso" && p.energia >= 20
+    && (!p.proximaPeleaSemana || p.proximaPeleaSemana <= e.semana)
+    && !peleasVencidas(e).some(pelea => pelea.miId === p.id);
+}
+export function puedeGuantear(p: Pugilista, e: EstadoJuego): boolean {
+  return disponibleIndividualGuanteo(p, e)
+    && e.plantel.some(companero => companero.id !== p.id && disponibleIndividualGuanteo(companero, e));
+}
+
+export function enfoqueRecomendado(p: Pugilista, e: EstadoJuego): ComboId {
+  return consejoEsquina(p, e.pendientes.find(pelea => pelea.miId === p.id)?.rival ?? null);
+}
+
+/** Legacy values above the growth ceiling are preserved, never silently lowered. */
+export function crecerAtributo(actual: number, delta: number, techo: number): number {
+  return Math.max(actual, Math.min(techo, actual + Math.max(0, delta)));
 }
 export type MotivoProfesionalizacion = "rol" | "circuito" | "trayectoria" | "cartelera" | "cupo";
 export function puedeProfesionalizar(p: Pugilista, e: EstadoJuego): { ok: boolean; motivo?: MotivoProfesionalizacion } {
@@ -275,20 +299,19 @@ export interface ResultadoEntrenamiento { plantel: Pugilista[]; lineas: string[]
 export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamiento {
   const modificadores = calcularModificadores(e);
   const tieneDT = e.personal.some(p => p.tipo === "directorTecnico");
-  const rivalSabado = e.pendientes[0]?.rival ?? null;
   const lineas: string[] = [];
   const plantel = e.plantel.map(b => {
     if (b.enEspera) return b;
     const comboId: ComboId = tieneDT
-      ? (b.lesion || b.energia < 70 ? "descanso" : consejoEsquina(b, rivalSabado))
+      ? enfoqueRecomendado(b, e)
       : b.combo;
     const combo = COMBOS[comboId];
     const n = { ...b, atrib: { ...b.atrib }, combo: comboId };
     const base = 1.05 * (0.65 + b.atrib.talento / 110);
     let energia = b.energia + combo.energia;
     if (comboId === "descanso") {
-      n.atrib.mentalidad = clamp(n.atrib.mentalidad + base * 0.45, 0, Math.min(99, b.atrib.talento + 3));
-      n.atrib.inteligencia = clamp(n.atrib.inteligencia + base * 0.4, 0, Math.min(99, b.atrib.talento + 3));
+      n.atrib.mentalidad = crecerAtributo(n.atrib.mentalidad, base * 0.45, Math.min(99, b.atrib.talento + 3));
+      n.atrib.inteligencia = crecerAtributo(n.atrib.inteligencia, base * 0.4, Math.min(99, b.atrib.talento + 3));
       n.energia = clamp(energia, 0, 100);
       return n;
     }
@@ -306,8 +329,8 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
     const subidas: string[] = [];
     combo.stats.forEach(k => {
       const g = ganancia(k);
-      n.atrib[k] = clamp(n.atrib[k] + g, 0, k === "talento" ? 99 : techo);
-      if (g >= 0.9) subidas.push(k.slice(0, 3).toUpperCase());
+      n.atrib[k] = crecerAtributo(n.atrib[k], g, k === "talento" ? 99 : techo);
+      if (n.atrib[k] - b.atrib[k] >= 0.9) subidas.push(k.slice(0, 3).toUpperCase());
     });
     energia += modificadores.energiaEntrenamiento;
     n.energia = clamp(energia, 0, 100);
@@ -322,7 +345,7 @@ export function aplicarEntrenamientoSemanal(e: EstadoJuego): ResultadoEntrenamie
 
 /** Consejo de la Esquina: combo ideal según debilidades propias y del rival */
 export function consejoEsquina(b: Pugilista, rival: Pugilista | null): ComboId {
-  if (b.energia < 35) return "descanso";
+  if (b.lesion || b.energia < 70) return "descanso";
   if (rival) {
     const r = rival.atrib;
     if (r.defensa < 50 && r.velocidad < 55) return "noqueador";
@@ -450,6 +473,7 @@ export interface AccionRing {
   conecto: boolean;
   dano: number;
   critico: boolean;
+  estadoVisual?: { A: Luchador; B: Luchador };
 }
 
 export interface EstadoPelea {
@@ -460,6 +484,53 @@ export interface EstadoPelea {
   acciones: AccionRing[];
   ko: "a" | "b" | null;
   finalizada: boolean;
+  intercambiosAsalto: number;
+  asaltosCerrados: number;
+  semillaAzar?: number;
+}
+
+function azarCombate<T>(e: EstadoPelea, ejecutar: () => T): T {
+  if (e.semillaAzar === undefined) return ejecutar();
+  return conFuenteAzar(() => {
+    e.semillaAzar = ((e.semillaAzar ?? 0) + 0x6D2B79F5) >>> 0;
+    let t = e.semillaAzar;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }, ejecutar);
+}
+
+const checkpointsEmitidos = new WeakMap<EstadoPelea, string>();
+export function emitirCheckpointCombate(e: EstadoPelea): EstadoPelea {
+  const copia = structuredClone(e);
+  checkpointsEmitidos.set(copia, JSON.stringify(copia));
+  return copia;
+}
+export function validarCheckpointCombate(s: EstadoJuego, e: EstadoPelea): boolean {
+  const pelea = s.pendientes.find(p => p.id === e.pelea.id);
+  const mio = s.plantel.find(p => p.id === e.A.p.id);
+  if (!pelea || !mio || checkpointsEmitidos.get(e) !== JSON.stringify(e) || e.semillaAzar === undefined) return false;
+  if (JSON.stringify(pelea) !== JSON.stringify(e.pelea) || JSON.stringify(mio) !== JSON.stringify(e.A.p)) return false;
+  if (JSON.stringify(pelea.rival) !== JSON.stringify(e.B.p) || e.totalAsaltos !== asaltosDePelea(pelea)) return false;
+  if (!puedePactarPelea(mio, { ...s, pendientes: s.pendientes.filter(p => p.id !== pelea.id) }).ok) return false;
+  if ((pelea.semanaProgramada ?? s.semana) !== s.semana || (pelea.diaProgramado ?? 6) !== s.dia) return false;
+  const anterior = s.combateActivo;
+  return !anterior || (anterior.pelea.id === pelea.id && e.asalto * 4 + e.intercambiosAsalto >= anterior.asalto * 4 + anterior.intercambiosAsalto);
+}
+
+/** Only engine-issued completed results have a receipt; caller payloads are not authority. */
+const resultadosEmitidos = new WeakMap<ResultadoPelea, { resultado: string; pelea: string; pugil: string; sesion: string }>();
+export function validarResultadoCombate(s: EstadoJuego, pelea: Pelea, r: ResultadoPelea): boolean {
+  const p = s.plantel.find(x => x.id === pelea.miId);
+  const receipt = resultadosEmitidos.get(r);
+  if (!p || !receipt || receipt.resultado !== JSON.stringify(r) || receipt.pelea !== JSON.stringify(pelea) || receipt.pugil !== JSON.stringify(p)) return false;
+  if (s.combateActivo && receipt.sesion !== JSON.stringify(s.combateActivo)) return false;
+  if (r.miId !== p.id || r.rivalNombre !== pelea.rival.nombre) return false;
+  if ((pelea.semanaProgramada ?? s.semana) !== s.semana || (pelea.diaProgramado ?? 6) !== s.dia) return false;
+  if (!puedePactarPelea(p, { ...s, pendientes: s.pendientes.filter(x => x.id !== pelea.id) }).ok) return false;
+  if (pelea.rival.circuito !== p.circuito || pelea.rival.genero !== p.genero || pelea.rival.division !== p.division) return false;
+  if (pelea.esTitulo > 0 && (p.circuito !== "pro" || tituloAspirable(p) !== pelea.esTitulo || (pelea.esTitulo >= 3 && !s.cursos.includes("tv")))) return false;
+  return true;
 }
 
 export function asaltosDePelea(pelea: Pelea): number {
@@ -553,30 +624,44 @@ function atacar(atacante: Luchador, defensor: Luchador, lado: "a" | "b", accione
 }
 
 export function simularIntercambio(e: EstadoPelea): { caida: "a" | "b" | null; ko: "a" | "b" | null } {
+  return azarCombate(e, () => simularIntercambioInterno(e));
+}
+function simularIntercambioInterno(e: EstadoPelea): { caida: "a" | "b" | null; ko: "a" | "b" | null } {
+  if (e.finalizada || e.ko || e.intercambiosAsalto >= 3) return { caida: null, ko: e.ko };
+  e.intercambiosAsalto++;
   const acciones: AccionRing[] = [];
   let caida: "a" | "b" | null = null;
   let ko: "a" | "b" | null = null;
   const r1 = atacar(e.A, e.B, "a", acciones);
+  if (acciones.length) acciones[acciones.length - 1].estadoVisual = { A: structuredClone(e.A), B: structuredClone(e.B) };
   if (r1 === "ko") ko = "b";
   else if (r1 === "caida") caida = "b";
   if (!ko) {
+    const cantidadAnterior = acciones.length;
     const r2 = atacar(e.B, e.A, "b", acciones);
+    if (acciones.length > cantidadAnterior) acciones[acciones.length - 1].estadoVisual = { A: structuredClone(e.A), B: structuredClone(e.B) };
     if (r2 === "ko") ko = "a";
     else if (r2 === "caida") caida = "a";
   }
   e.acciones = acciones;
   if (e.A.caidas >= 3 && !ko) { ko = "a"; }
   if (e.B.caidas >= 3 && !ko) { ko = "b"; }
+  e.ko = ko;
   return { caida, ko };
 }
 
 export function cerrarAsalto(e: EstadoPelea) {
+  return azarCombate(e, () => cerrarAsaltoInterno(e));
+}
+function cerrarAsaltoInterno(e: EstadoPelea) {
+  if (e.asaltosCerrados >= e.asalto) return;
   for (let j = 0; j < 3; j++) {
     const sesgo = azar(-10, 10) / 10;
-    const puntA = e.A.dmgDado + e.A.conectadosAsalto * 0.35 + e.A.kdAsalto * 9 + sesgo;
-    const puntB = e.B.dmgDado + e.B.conectadosAsalto * 0.35 + e.B.kdAsalto * 9 - sesgo;
-    const ganaA = puntA >= puntB;
-    let sa = ganaA ? 10 : 9, sb = ganaA ? 9 : 10;
+    const puntA = e.A.dmgDado + e.A.conectadosAsalto * 0.35 - e.A.kdAsalto * 9 + sesgo;
+    const puntB = e.B.dmgDado + e.B.conectadosAsalto * 0.35 - e.B.kdAsalto * 9 - sesgo;
+    const ganaA = puntA > puntB;
+    const igual = puntA === puntB;
+    let sa = igual || ganaA ? 10 : 9, sb = igual || !ganaA ? 10 : 9;
     if (e.A.kdAsalto >= 1) sa = e.A.kdAsalto >= 2 ? 7 : 8;
     if (e.B.kdAsalto >= 1) sb = e.B.kdAsalto >= 2 ? 7 : 8;
     e.tarjetas[j] = { a: e.tarjetas[j].a + sa, b: e.tarjetas[j].b + sb };
@@ -586,6 +671,8 @@ export function cerrarAsalto(e: EstadoPelea) {
   e.A.kdAsalto = 0; e.B.kdAsalto = 0;
   const regen = (l: Luchador) => { l.energia = clamp(l.energia + (l.p.rasgo === "maraton" ? 18 : 12), 0, 100); };
   regen(e.A); regen(e.B);
+  e.asaltosCerrados = e.asalto;
+  e.intercambiosAsalto = 0;
 }
 
 export function crearEstadoPelea(pelea: Pelea, mio: Pugilista, equipo: GearId[]): EstadoPelea {
@@ -601,6 +688,8 @@ export function crearEstadoPelea(pelea: Pelea, mio: Pugilista, equipo: GearId[])
     acciones: [],
     ko: null,
     finalizada: false,
+    intercambiosAsalto: 0,
+    asaltosCerrados: 0,
   };
 }
 
@@ -623,7 +712,8 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
   })();
   const metodo: ResultadoPelea["metodo"] = e.ko
     ? (e.A.caidas >= 3 || e.B.caidas >= 3 ? "Nocaut Técnico" : "Nocaut")
-    : empate ? "Empate" : (jA >= 2 ? "Decisión Unánime" : "Decisión Dividida");
+    : empate ? "Empate" : Math.max(jA, jB) === 3 ? "Decisión Unánime"
+    : Math.min(jA, jB) === 0 ? "Decisión Mayoritaria" : "Decisión Dividida";
   const vgMio = valoracion(e.A.p.atrib), vgRival = valoracion(e.B.p.atrib);
   let fama = gane ? clamp(2 + Math.round((vgRival - vgMio + 10) / 6) + e.pelea.esTitulo * 2, 2, 12) : empate ? 1 : 1;
   if (gane && e.A.p.rasgo === "volcan") fama += 1;
@@ -631,7 +721,7 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
   const resumen = e.ko
     ? `${metodo} en el asalto ${e.asalto}`
     : `${metodo} (${tarjetas.map(t => `${t.a}-${t.b}`).join(", ")})`;
-  return {
+  const resultado: ResultadoPelea = {
     miId: e.A.p.id,
     rivalNombre: e.B.p.nombre,
     gane, empate, metodo, tarjetas,
@@ -642,13 +732,17 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
     tituloGanado: gane && e.pelea.esTitulo > 0 ? e.pelea.esTitulo : 0,
     resumen,
   };
+  if (e.ko || e.asaltosCerrados >= e.totalAsaltos) resultadosEmitidos.set(resultado, {
+    resultado: JSON.stringify(resultado), pelea: JSON.stringify(e.pelea), pugil: JSON.stringify(e.A.p), sesion: JSON.stringify(e),
+  });
+  return resultado;
 }
 
 /** Simula de inmediato todo lo que falta de la pelea. */
 export function simularPeleaEntera(e: EstadoPelea, planJugador: PlanId): ResultadoPelea {
   while (!e.finalizada && !e.ko && e.asalto <= e.totalAsaltos) {
     e.A.plan = planJugador;
-    for (let i = 0; i < 3; i++) {
+    while (e.intercambiosAsalto < 3) {
       const r = simularIntercambio(e);
       if (r.ko) { e.ko = r.ko; break; }
     }
@@ -740,6 +834,7 @@ export function crearEstadoBase(opciones: { sinPoblacion?: boolean } = {}): Esta
     })),
     ofertas: [], ofertasPara: null,
     pendientes: [],
+    combateActivo: null,
     historial: [],
     equipamiento: [],
     marcaRopa: "",

@@ -12,7 +12,7 @@ import TopBar from "./components/TopBar";
 import { Btn, Chip, ContenedorToast, I, Modal } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
 import { TITULOS } from "./game/data";
-import { fmt, puedeHabilitar, proyeccionSemanal, valoracion } from "./game/engine";
+import { fmt, puedeHabilitar, proyeccionSemanal, valoracion, peleasVencidas } from "./game/engine";
 import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/shortcuts";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
@@ -57,7 +57,7 @@ function PantallaPrincipal() {
     };
   }, []);
 
-  const peleaActual = state.pendientes[0];
+  const peleaActual = peleasVencidas(state).find(p => p.id === state.combateActivo?.pelea.id) ?? peleasVencidas(state)[0];
   const enCartelera = carteleraAbierta && state.dia === 6 && peleaActual;
 
   useEffect(() => {
@@ -79,14 +79,14 @@ function PantallaPrincipal() {
         setPestana(pantallas[destino]);
       } else if (teclaCoincide(tecla, atajos.avanzar) || teclaCoincide(event.key, atajos.avanzar)) {
         event.preventDefault();
-        if (state.dia < 6 || state.pendientes.length === 0) dispatch({ type: "AVANZAR_DIA" });
+        if (!peleasVencidas(state).length) dispatch({ type: "AVANZAR_DIA" });
       } else if (teclaCoincide(tecla, atajos.semanaRapida) && state.dia < 7) {
         dispatch({ type: "SEMANA_RAPIDA" });
       }
     };
     window.addEventListener("keydown", manejarAtajo);
     return () => window.removeEventListener("keydown", manejarAtajo);
-  }, [ajustes, atajos, carteleraAbierta, fichaId, state.dia, state.pendientes.length]);
+  }, [ajustes, atajos, carteleraAbierta, fichaId, state.dia, state.semana, state.pendientes]);
 
   const alTerminarPelea = (r: ResultadoPelea) => {
     if (peleaActual) {
@@ -112,14 +112,14 @@ function PantallaPrincipal() {
   const guiaInicial = [
     { texto: "Elegir enfoque para cada boxeador", hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
     { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
-    { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.fogueo >= p.fogueoMeta)), tab: "plantel" as Pestana },
+    { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.guanteosRealizados >= 10)), tab: "plantel" as Pestana },
     { texto: "Habilitar al primer boxeador", hecho: state.plantel.some(p => p.rol === "boxeador"), tab: "plantel" as Pestana },
   ];
   const siguientePaso = !tieneEnfoqueInicial
     ? { texto: "Elegí un enfoque de entrenamiento para cada boxeador.", boton: "Abrir Plantel", tab: "plantel" as Pestana }
     : !state.equipamiento.length
       ? { texto: "Equipá el gimnasio para activar sus estaciones y beneficios.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
-      : !state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.fogueo >= p.fogueoMeta))
+      : !state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.guanteosRealizados >= 10))
         ? { texto: "Completá 10 guanteos para preparar al primer boxeador.", boton: "Ver Plantel", tab: "plantel" as Pestana }
         : !state.cursos.includes("dt")
           ? { texto: "Obtené la Licencia de Entrenador para tramitar licencias de boxeadores.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }

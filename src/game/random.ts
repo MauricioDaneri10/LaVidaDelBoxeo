@@ -10,6 +10,13 @@ export function numeroAleatorio(): number {
   return fuente();
 }
 
+/** Scoped combat stream: unrelated UI/game randomness cannot reroll a resumed bout. */
+export function conFuenteAzar<T>(temporal: FuenteAzar, ejecutar: () => T): T {
+  const anterior = fuente;
+  fuente = temporal;
+  try { return ejecutar(); } finally { fuente = anterior; }
+}
+
 export function usarSemilla(semillaInicial: number): () => void {
   let semilla = (semillaInicial >>> 0) || 1;
   const anterior = fuente;
