@@ -379,8 +379,9 @@ export function PanelMercado() {
   const [pagina, setPagina] = useState(0);
   const [nombreMarca, setNombreMarca] = useState("");
   const canvasAmplio = useResponsiveCapacity();
+  const canvasEstrecho = useResponsiveCapacity("(max-width: 639px), (max-height: 650px)");
   const canvasIntermedio = useResponsiveCapacity("(min-width: 900px) and (min-height: 900px)");
-  const porPagina = canvasAmplio ? 8 : canvasIntermedio ? 6 : 4;
+  const porPagina = canvasEstrecho ? 1 : canvasAmplio ? 8 : canvasIntermedio ? 6 : 4;
   useEffect(() => setPagina(0), [cat, porPagina]);
   const recomendadoId = recomendarEquipo(cat, state.equipamiento, state.dinero);
   const items = Object.entries(EQUIPOS)
@@ -396,7 +397,7 @@ export function PanelMercado() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {CATEGORIAS.map(c => (
+        {canvasEstrecho ? <select aria-label="Categoría del mercado" value={cat} onChange={e => { setCat(e.target.value as typeof cat); setPagina(0); }} className="min-h-11 w-full rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">{CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select> : CATEGORIAS.map(c => (
           <button
             key={c.id}
             onClick={() => { setCat(c.id); setPagina(0); }}
@@ -478,6 +479,11 @@ export function PanelPerfil() {
   const { state, dispatch } = useGame();
   const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
   const [ramaActiva, setRamaActiva] = useState<RamaCurso>("deportiva");
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
+  const [resumenAbierto, setResumenAbierto] = useState(false);
+  const [paginaCursos, setPaginaCursos] = useState(0);
+  useEffect(() => setPaginaCursos(0), [ramaActiva]);
+  const cursosDeRama = (Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === ramaActiva).sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel);
   const [socialAbierto, setSocialAbierto] = useState(false);
   const [confirmarCierre, setConfirmarCierre] = useState(false);
   const ramas: { id: RamaCurso; nombre: string; icono: string; color: string }[] = [
@@ -487,8 +493,7 @@ export function PanelPerfil() {
   ];
   const puedeLegado = state.plantel.some(p => p.titulo === 4) || state.fama >= 85;
 
-  return (
-    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+  const resumenPerfil = (
       <div className="profile-summary panel grid gap-2 p-2.5 md:grid-cols-[1fr_auto]">
         <div>
           <h2 className="font-display text-xl tracking-wide text-gold">Perfil del Coach · {state.nombreJugador}</h2>
@@ -529,26 +534,31 @@ export function PanelPerfil() {
         </div>
       </div>
 
+  );
+  return (
+    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+      {compacto ? <Btn small variant="ghost" onClick={() => setResumenAbierto(true)}>Perfil del coach · Detalles y legado</Btn> : resumenPerfil}
+      {resumenAbierto && <Modal wide title="Perfil del coach" icon="user" onClose={() => setResumenAbierto(false)}>{resumenPerfil}</Modal>}
       <div className="profile-subnav flex flex-wrap items-center justify-center gap-2">
+        {compacto ? <select aria-label="Sección del perfil" value={seccionPerfil} onChange={e => setSeccionPerfil(e.target.value as "cursos" | "bienes")} className="min-h-11 min-w-0 rounded-lg border border-line bg-panel2 px-2 text-sm text-cream"><option value="cursos">Cursos</option><option value="bienes">Bienes raíces</option></select> : (
         <div className="flex w-fit justify-center gap-2 rounded-xl border border-line bg-panel2 p-1">
           <button onClick={() => setSeccionPerfil("cursos")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "cursos" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Cursos</button>
           <button onClick={() => setSeccionPerfil("bienes")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "bienes" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Bienes raíces</button>
-        </div>
+        </div>)}
         <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}><I n="calendar" className="h-3.5 w-3.5" /> Actividades del club</Btn>
       </div>
 
       {/* CURSOS */}
       {seccionPerfil === "cursos" && <section className="profile-courses flex min-h-0 w-full flex-1 flex-col">
-        <h3 className="mb-2 text-center font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>
+        {!compacto && <h3 className="mb-2 text-center font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>}
         <div className="mb-2 flex flex-wrap justify-center gap-1.5">
-          {ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`profile-branch-tab inline-flex min-h-8 w-fit items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="h-3.5 w-3.5 shrink-0" />{rama.nombre.replace("Rama ", "")}</button>)}
+          {compacto ? <select aria-label="Rama de cursos" value={ramaActiva} onChange={e => setRamaActiva(e.target.value as RamaCurso)} className="min-h-11 w-full rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">{ramas.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select> : ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`profile-branch-tab inline-flex min-h-8 w-fit items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="h-3.5 w-3.5 shrink-0" />{rama.nombre.replace("Rama ", "")}</button>)}
         </div>
         <div className="profile-branch-panel grid min-h-0 flex-1 gap-2">
           {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
             <div key={rama.id} className="profile-branch-card panel flex min-h-0 w-full flex-col p-2">
-              <div className="profile-course-grid grid grid-cols-3 gap-2">
-                {(Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === rama.id)
-                  .sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel)
+              <div className={`profile-course-grid grid ${compacto ? "grid-cols-1" : "grid-cols-3"} gap-2`}>
+                {cursosDeRama.slice(compacto ? paginaCursos : 0, compacto ? paginaCursos + 1 : cursosDeRama.length)
                   .map(cid => {
                     const c = CURSOS[cid];
                     const aprobado = state.cursos.includes(cid);
@@ -579,6 +589,7 @@ export function PanelPerfil() {
             </div>
           ))}
         </div>
+        {compacto && <div className="flex shrink-0 items-center justify-center gap-2 py-1"><Btn small variant="ghost" disabled={paginaCursos === 0} onClick={() => setPaginaCursos(p => p - 1)}>Anterior</Btn><span className="text-xs text-sand">{paginaCursos + 1}/{cursosDeRama.length}</span><Btn small variant="ghost" disabled={paginaCursos + 1 >= cursosDeRama.length} onClick={() => setPaginaCursos(p => p + 1)}>Siguiente</Btn></div>}
       </section>}
 
       {socialAbierto && (
@@ -652,7 +663,8 @@ export function PanelPersonal() {
   const [pagina, setPagina] = useState(0);
   const [contratacionPendiente, setContratacionPendiente] = useState<PersonalId | null>(null);
   const capacidadEscritorio = useResponsiveCapacity("(min-width: 1100px) and (min-height: 650px)");
-  const porPagina = capacidadEscritorio ? 4 : 2;
+  const canvasEstrecho = useResponsiveCapacity("(max-width: 639px), (max-height: 650px)");
+  const porPagina = canvasEstrecho ? 1 : capacidadEscritorio ? 4 : 2;
   useEffect(() => setPagina(p => Math.min(p, Math.max(0, Math.ceil(tipos.length / porPagina) - 1))), [porPagina, tipos.length]);
   const flujoActual = proyeccionSemanalRecurrente(state).total;
 

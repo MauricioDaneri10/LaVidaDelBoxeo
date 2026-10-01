@@ -9,7 +9,7 @@ export const ATRIBUTOS_BASE: Atributos = {
 import type { EstadoJuego } from "./types";
 import { consolidarConsejos, evidenciaCobroDanada } from "./consejos";
 
-export const SCHEMA_ACTUAL = 7;
+export const SCHEMA_ACTUAL = 8;
 export class ErrorGuardado extends Error {
   constructor(message: string, public readonly codigo: "corruption" | "incompatible" | "ambiguous" = "corruption") { super(message); }
 }
@@ -50,6 +50,27 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
       return { ...x, consejos: consolidarConsejos(x.consejos, true),
       contratosTitularesHistoricos: Array.isArray(x.pendientes) ? x.pendientes.filter(p => objeto(p) && typeof p.id === "string" && typeof p.esTitulo === "number" && p.esTitulo > 0).map(p => p.id) : [],
       schemaVersion: 7 };
+    },
+    7: x => {
+      if ("guiaClub" in x) throw new ErrorGuardado("Metadata anterior con nombre reservado: original protegido; recuperá la extensión antes de migrar.", "ambiguous");
+      const validarPugil = (p: unknown): import("./types").Pugilista[] => {
+        const issues: string[] = [];
+        const checked = boxer(p, "guia.pugilista", issues);
+        return checked !== BAD && !issues.length ? [checked as import("./types").Pugilista] : [];
+      };
+      const sanos = (Array.isArray(x.plantel) ? x.plantel : []).flatMap(validarPugil);
+      const archivo = (Array.isArray(x.archivoCarreras) ? x.archivoCarreras : []).flatMap(p => {
+        const issues: string[] = [];
+        const checked = carreraArchivada(p, "guia.archivo", issues);
+        return checked !== BAD && !issues.length ? validarPugil((checked as Obj).pugilista) : [];
+      });
+      const licencia = [...sanos, ...archivo].some(p => p.rol === "boxeador" && p.licenciaFederativa);
+      const iniciales = sanos.filter(p => p.rol === "alumno" && !p.enEspera);
+      const confirmados = iniciales.filter(p => p.combo !== "acondicionamiento").map(p => p.id);
+      return { ...x, guiaClub: { alumnosIniciales: iniciales.map(p => p.id), enfoquesConfirmados: confirmados,
+        enfoques: licencia || (iniciales.length > 0 && iniciales.every(p => confirmados.includes(p.id))),
+        equipo: licencia || Array.isArray(x.equipamiento) && x.equipamiento.some(id => typeof id === "string" && id in EQUIPOS),
+        guanteos: licencia || sanos.some(p => p.guanteosRealizados >= 10), licencia }, schemaVersion: 8 };
     },
   };
   for (let v = inicial; v < SCHEMA_ACTUAL; v++) s = migraciones[v](s);
@@ -178,6 +199,7 @@ const activeCombat: Rule = (v, p, i) => {
 };
 const result = fields({ miId: optional(id), rivalNombre: optional(str), gane: bool, empate: bool, metodo: oneOf(["Nocaut", "Nocaut Técnico", "Decisión Unánime", "Decisión Dividida", "Decisión Mayoritaria", "Empate"]), tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])), caidasA: count, caidasB: count, registroA: compubox, registroB: compubox, bolsa: num(0), fama: num(), tituloGanado: title, resumen: str }, {}, ["gane", "empate", "metodo", "tarjetas", "caidasA", "caidasB", "registroA", "registroB", "bolsa", "fama", "tituloGanado", "resumen"]);
 const ledger = list(fields({ concepto: str, monto: num(0) }, {}, ["concepto", "monto"]));
+const carreraArchivada = fields({ id, pugilista: boxer, club: str, semanaSalida: num(1, Infinity, true), motivo: str, historial: list(result) }, {}, ["id", "pugilista", "club", "semanaSalida", "motivo", "historial"]);
 const action = fields({ tipo: oneOf(["dinero", "fama", "nuevoAlumno", "programarComunitario", "aceptarPatrocinio", "exhibicion", "mantenimiento", "entrevista", "recaudacion", "nada"]), monto: optional(num()), costo: optional(num(0)), fama: optional(num()), nombre: optional(str), semanas: optional(count), comunitario: optional(oneOf(Object.keys(COMUNITARIOS))) }, {}, ["tipo"]);
 
 /** No random generation, population padding, sorting or gameplay normalisation on load. */
@@ -190,6 +212,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
     version: oneOf([2]), schemaVersion: oneOf([SCHEMA_ACTUAL]), creado: bool, nombreJugador: str, nombreGimnasio: str,
     combateActivo: activeCombat,
     contratosTitularesHistoricos: optional(list(id)),
+    guiaClub: optional(fields({ alumnosIniciales: list(id), enfoquesConfirmados: list(id), enfoques: bool, equipo: bool, guanteos: bool, licencia: bool }, {}, ["alumnosIniciales", "enfoquesConfirmados", "enfoques", "equipo", "guanteos", "licencia"])),
     dinero: num(), fama: num(0, 100), seguidores: count, recreativos: count, dia: num(1, 7, true), semana: num(1, Infinity, true), ultimaSemanaScout: count,
     mes: num(1, 12, true), anio: num(1, Infinity, true), plantel: list(boxer, "id"), rivales: list(boxer, "id"),
     ofertas: list(fields({ id, rival: boxer, nivel: oneOf(["accesible", "parejo", "desafio"]), bolsa: num(0), etiqueta: str, detalle: str, esTitulo: title }, {}, ["id", "rival", "nivel", "bolsa", "etiqueta", "detalle", "esTitulo"]), "id"),
@@ -204,7 +227,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
     prensa: list(fields({ id, semana: num(1, Infinity, true), texto: str }, {}, ["id", "semana", "texto"]), "id"),
     cinturones: list(fields({ id, dueno: id, nivel: num(1, 4, true), semana: num(1, Infinity, true) }, {}, ["id", "dueno", "nivel", "semana"]), "id"),
     salonFama: list(fields({ id, nombre: str, club: str, record, titulos: count, semanaRetiro: num(1, Infinity, true), motivo: str }, {}, ["id", "nombre", "club", "record", "titulos", "semanaRetiro", "motivo"]), "id"),
-    archivoCarreras: list(fields({ id, pugilista: boxer, club: str, semanaSalida: num(1, Infinity, true), motivo: str, historial: list(result) }, {}, ["id", "pugilista", "club", "semanaSalida", "motivo", "historial"]), "id"),
+    archivoCarreras: list(carreraArchivada, "id"),
     veladaProgramada: bool, libroIngresos: ledger, libroGastos: ledger, semanaLibro: count,
     resumen: nullable(fields({ ingresos: ledger, gastos: ledger, total: num() }, {}, ["ingresos", "gastos", "total"])), legados: count,
     stats: fields({ peleas: count, victorias: count, kos: count, veladas: count, dineroGanado: num(), resultadoNeto: num(), titulos: count }, base.stats),

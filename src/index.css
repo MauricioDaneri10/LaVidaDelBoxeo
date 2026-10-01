@@ -461,3 +461,32 @@ html.movimiento-reducido *::after {
   .profile-property-card .font-cond { font-size: .42rem !important; }
   .profile-property-card .font-display { font-size: .5rem !important; }
 }
+
+/* R4: actions never inherit the legacy tiny-profile overrides. Composition
+   must adapt around these floors; reducing them is not a fitting strategy. */
+.btn-poster,
+:is(.app-nav, .profile-subnav, .profile-courses, .profile-properties, .staff-pagination, .market-card, .staff-card) button.btn-poster {
+  min-height: 36px !important;
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+.btn-poster > span { justify-content: center; vertical-align: middle; }
+.guide-steps button { min-height: 36px; font-size: 14px; }
+.profile-summary .font-cond,
+.profile-summary p,
+.profile-summary .grid > div > div:last-child,
+.profile-course-card > div > p { font-size: 12px !important; line-height: 1.3 !important; }
+.profile-summary .font-display,
+.profile-course-card > div > div:first-child { font-size: 14px !important; line-height: 1.3 !important; }
+.profile-course-card .profile-course-description { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+.profile-subnav > div button,
+.profile-courses .profile-branch-tab { min-height: 36px !important; font-size: 14px !important; }
+@media (pointer: coarse), (max-width: 700px) {
+  .btn-poster,
+  :is(.app-nav, .profile-subnav, .profile-courses, .profile-properties, .staff-pagination, .market-card, .staff-card) button.btn-poster,
+  .dialog-close { min-height: 44px !important; }
+  .dialog-close { min-width: 44px !important; }
+  .guide-steps button { min-height: 44px; }
+  .profile-subnav > div button,
+  .profile-courses .profile-branch-tab { min-height: 44px !important; }
+}

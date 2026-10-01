@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useMessages } from "../i18n";
 import { COMBOS, TITULOS } from "../game/data";
 import { enfoqueRecomendado, estadoRecord, fmt, puedeHabilitar, puedeProfesionalizar, rasgoInfo, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
@@ -43,11 +44,13 @@ export interface BoxerSheetProps {
   boxeadorId?: string;
   onCerrar: () => void;
   onCambiarBoxeador?: (id: string) => void;
+  onBuscarRival?: (id: string) => void;
   onIrAPestana?: (tab: "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal") => void;
 }
 
-export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAPestana }: BoxerSheetProps) {
+export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBuscarRival, onIrAPestana }: BoxerSheetProps) {
   const { state, dispatch } = useGame();
+  const { t } = useMessages();
   const inicialId = id || boxeadorId || state.plantel[0]?.id || "";
   const [activoId, setActivoId] = useState<string>(inicialId);
 
@@ -79,6 +82,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
   if (!p) return null;
 
   const vg = valoracion(p.atrib);
+  const necesitaEnfoque = p.rol === "alumno" && !p.enEspera && !state.guiaClub?.enfoquesConfirmados.includes(p.id);
   const rasgo = rasgoInfo(p.rasgo);
   const peleaAgendada = state.pendientes.find(x => x.miId === p.id);
   const consejo = enfoqueRecomendado(p, state);
@@ -261,13 +265,19 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
             <div className="panel p-2.5 rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-display text-lg tracking-wide text-gold flex items-center gap-1.5">
-                  <I n="glove" className="h-4 w-4" /> Enfoque de Entrenamiento Semanal
+                  <I n="glove" className="h-4 w-4" /> {t("focus.title")}
                 </span>
                 <span className="min-w-[120px] text-center font-cond text-xs leading-tight text-mut">
-                  <span className="block">Asignado</span><b className="block text-cream">{COMBOS[p.combo]?.nombre || "Libre"}</b>
+                  <span className="block">{t("focus.assigned")}</span><b className="block text-cream">{COMBOS[p.combo]?.nombre || "Libre"}</b>
                 </span>
               </div>
 
+              {necesitaEnfoque && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gold/40 p-2">
+                  <p className="text-sm text-cream">{t("focus.pending")}</p>
+                  <Btn small onClick={() => cambiarCombo(p.combo)}>{t("focus.confirm")}</Btn>
+                </div>
+              )}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
                 {(Object.keys(COMBOS) as ComboId[]).map(cid => {
                   const cb = COMBOS[cid];
@@ -394,7 +404,8 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                         small
                         variant="blood"
                         onClick={() => {
-                          dispatch({ type: "BUSCAR_RIVAL", id: p.id });
+                          if (onBuscarRival) onBuscarRival(p.id);
+                          else dispatch({ type: "BUSCAR_RIVAL", id: p.id });
                           onCerrar();
                         }}
                       >

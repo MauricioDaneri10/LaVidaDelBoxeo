@@ -1,4 +1,10 @@
+import { useSyncExternalStore } from "react";
+import { translate, type Arguments, type MessageKey } from "./catalog";
 export type Locale = "es" | "en" | "pt-BR";
+
+// Do not enable incomplete UI/content. Expand only after global coverage verification.
+export const IDIOMAS_HABILITADOS: readonly Locale[] = ["es"];
+const CAMBIO_IDIOMA = "vida-del-boxeo:idioma-cambio";
 
 export const LOCALES: Array<{ id: Locale; nombre: string }> = [
   { id: "es", nombre: "Español" },
@@ -12,14 +18,29 @@ const intlLocale: Record<Locale, string> = { es: "es-AR", en: "en-US", "pt-BR": 
 export function cargarIdioma(): Locale {
   try {
     const valor = localStorage.getItem(CLAVE_IDIOMA);
-    return valor === "en" || valor === "pt-BR" || valor === "es" ? valor : "es";
+    return IDIOMAS_HABILITADOS.includes(valor as Locale) ? valor as Locale : "es";
   } catch {
     return "es";
   }
 }
 
 export function guardarIdioma(locale: Locale) {
-  try { localStorage.setItem(CLAVE_IDIOMA, locale); } catch { /* preferencia opcional */ }
+  if (!IDIOMAS_HABILITADOS.includes(locale)) return false;
+  try {
+    localStorage.setItem(CLAVE_IDIOMA, locale);
+    window.dispatchEvent(new Event(CAMBIO_IDIOMA));
+    return true;
+  } catch { return false; }
+}
+
+function subscribe(listener: () => void) {
+  window.addEventListener(CAMBIO_IDIOMA, listener);
+  window.addEventListener("storage", listener);
+  return () => { window.removeEventListener(CAMBIO_IDIOMA, listener); window.removeEventListener("storage", listener); };
+}
+export function useMessages() {
+  const locale = useSyncExternalStore(subscribe, cargarIdioma, () => "es" as Locale);
+  return { locale, t: <K extends MessageKey>(key: K, ...args: Arguments<K>) => translate(locale, key, ...args) };
 }
 
 export function formatearNumero(valor: number, locale: Locale = cargarIdioma()): string {

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, useState } from "react";
 import type { ReactNode } from "react";
+import { registrarGuia } from "./onboarding";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
   aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, capacidadPlantel, chance, clamp, consejoEsquina, crearEstadoBase,
@@ -795,7 +796,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
   const base = s.semanaLibro === s.semana ? s : {
     ...s, semanaLibro: s.semana, libroIngresos: [], libroGastos: [],
   };
-  const siguiente = reductorBase(base, a);
+  const siguiente = registrarGuia(base, reductorBase(base, a), a);
   if (["NUEVO_JUEGO", "CONTINUAR", "IMPORTAR", "REINICIAR", "CARGAR_PARTIDA", "LEGADO"].includes(a.type)) return siguiente;
   if (siguiente.semana !== base.semana) {
     return { ...siguiente, semanaLibro: siguiente.semana, libroIngresos: [], libroGastos: [] };

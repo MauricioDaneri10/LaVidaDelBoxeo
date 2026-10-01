@@ -412,8 +412,9 @@ describe("R2: aceptación cruzada", () => {
   });
   it("R1/A16: schema 5 migra explícitamente para proteger la nueva categoría de decisión", () => {
     const { s } = fixture(); const old = { ...s, schemaVersion: 5 };
+    delete old.guiaClub;
     const migrated = migrarGuardado(old);
-    expect(migrated.migrado).toBe(true); expect(migrated.estado).toEqual({ ...old, combateActivo: null, schemaVersion: 7, contratosTitularesHistoricos: [] });
-    expect(SCHEMA_ACTUAL).toBe(7); expect(migrarGuardado(migrated.estado).migrado).toBe(false);
+    expect(migrated.migrado).toBe(true); expect(migrated.estado).toEqual({ ...old, combateActivo: null, schemaVersion: 8, contratosTitularesHistoricos: [], guiaClub: { alumnosIniciales: [], enfoquesConfirmados: [], enfoques: true, equipo: true, guanteos: true, licencia: true } });
+    expect(SCHEMA_ACTUAL).toBe(8); expect(migrarGuardado(migrated.estado).migrado).toBe(false);
   });
 });

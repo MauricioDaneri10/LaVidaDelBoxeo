@@ -1,5 +1,8 @@
-import React, { useEffect, type ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { mountDialog } from "../ui/dialogs";
+import { useMessages } from "../i18n";
 import type { Atributos, Pugilista } from "../game/types";
 
 // ============================================================================
@@ -127,30 +130,40 @@ export function FilaStat({ label, v }: { label: string; v: number }) {
 export function Modal({ title, icon, onClose, children, wide, fit, className = "" }: {
   title: ReactNode; icon?: string; onClose?: () => void; children: ReactNode; wide?: boolean; fit?: boolean; className?: string;
 }) {
-  return (
+  const { t } = useMessages();
+  const titleId = useId();
+  const layer = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  const reduced = useReducedMotion() || document.documentElement.classList.contains("movimiento-reducido");
+  useEffect(() => {
+    if (layer.current && dialog.current) return mountDialog(layer.current, dialog.current, () => close.current?.());
+  }, []);
+  return createPortal((
     <AnimatePresence>
-      <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div ref={layer} data-dialog-layer className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduced ? { duration: 0 } : undefined}>
         <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" onClick={onClose} />
-        <motion.div
-          initial={{ scale: 0.92, y: 24, opacity: 0 }}
+        <motion.div ref={dialog} tabIndex={-1}
+          initial={reduced ? false : { scale: 0.92, y: 24, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-           role="dialog" aria-modal="true" aria-labelledby="modal-title"
+          transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 28 }}
+           role="dialog" aria-modal="true" aria-labelledby={titleId}
            className={`panel relative flex w-full flex-col ${wide ? "max-w-4xl" : "max-w-lg"} max-h-[calc(100vh-1rem)] overflow-hidden scroll-fino hard-shadow ${className}`}>
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-panel2/95 px-5 py-3 backdrop-blur-sm">
-            <h3 id="modal-title" className="font-display flex items-center gap-2 text-2xl tracking-wide text-gold">
+            <h3 id={titleId} className="font-display flex items-center gap-2 text-2xl tracking-wide text-gold">
               {icon && <I n={icon} className="h-5 w-5" />}{title}
             </h3>
             {onClose && (
-              <button onClick={onClose} aria-label="Cerrar ventana" title="Cerrar" className="rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
+              <button onClick={onClose} aria-label={t("dialog.close")} title={t("action.close")} className="dialog-close grid min-h-9 min-w-9 place-items-center rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
             )}
           </div>
           <div className={`scroll-fino min-h-0 flex-1 overflow-y-auto overscroll-contain ${fit ? "p-3" : "p-4 sm:p-5"}`}>{children}</div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  );
+  ), document.body);
 }
 
 // Barra de Energía con rayo

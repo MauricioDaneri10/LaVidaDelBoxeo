@@ -81,6 +81,7 @@ describe("R1 — aceptación de partidas/carrera (sin almacenamiento del usuario
   });
   it("A13: migración antigua determinista e idempotente", () => {
     const viejo = { ...fixture(), schemaVersion: 1, partidaId: "" };
+    delete viejo.guiaClub; // This field did not exist in schema1.
     const a = migrarGuardado(viejo); const b = migrarGuardado(viejo);
     expect(a.estado).toEqual(b.estado);
     expect(migrarGuardado(a.estado)).toEqual({ estado: a.estado, migrado: false });
@@ -166,6 +167,7 @@ describe("R1 — recuperación operacional y aceptación ampliada", () => {
   it("A13: una versión de juego antigua conocida migra explícitamente", () => {
     const s = fixture();
     const legacy = { ...s, version: 1, schemaVersion: 1 };
+    delete legacy.guiaClub;
     const migrated = migrarGuardado(legacy);
     expect((migrated.estado as typeof s).version).toBe(2);
     expect((migrated.estado as typeof s).plantel).toEqual(s.plantel);
@@ -242,6 +244,7 @@ describe("R1 — recuperación operacional y aceptación ampliada", () => {
   it.each([1, 2, 3, 4])("A13: schema antiguo %s migra una vez y su roundtrip posterior es exacto", version => {
     const { repo, bytes } = isolated(); const s = fixture();
     const old = { ...s, schemaVersion: version }; delete (old as Partial<typeof old>).archivoCarreras;
+    delete old.guiaClub;
     const raw = JSON.stringify(old); bytes.set(K, raw);
     const current = repo.cargar();
     expect(current.schemaVersion).toBe(SCHEMA_ACTUAL);
@@ -324,6 +327,7 @@ describe("R1 — recuperación operacional y aceptación ampliada", () => {
   });
   it("A28: falla al proteger original impide migración/escritura, no pierde bytes", () => {
     const { repo, bytes, fault } = isolated(); const legacy = { ...fixture(), schemaVersion: 4 };
+    delete legacy.guiaClub;
     const raw = JSON.stringify(legacy); bytes.set(K, raw);
     const migrated = repo.cargar(); const before = new Map(bytes);
     fault(k => k.includes(":recuperacion:") ? "throw" : undefined);

@@ -1321,6 +1321,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
 
   it("migra una partida vieja a un envelope compatible sin perder identidad", () => {
     const anterior = { ...crearEstadoBase(), creado: true, schemaVersion: 1, partidaId: "", nombreGimnasio: "Club Viejo", libroIngresos: [{ concepto: "Libro ambiguo", monto: 50 }] };
+    delete anterior.guiaClub;
     const resultado = migrarGuardado(anterior);
     const estado = resultado.estado as typeof anterior & { schemaVersion: number; partidaId: string };
     expect(resultado.migrado).toBe(true);
