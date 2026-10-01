@@ -28,7 +28,7 @@ Checkout de trabajo: `E:/AI Factory/projects/la-vida-del-boxeo/workspaces/phase-
 
 ## Evidencia y autorización
 
-229 tests: 96 nuevos R2 + 60 R1 + 73 históricos; `npm run verify` aprobado. E2E aislados en 5231/5232. No se tocó la partida real ni localhost:3000.
+235 tests tras revisión PR #2: 102 R2 + 60 R1 + 73 históricos; `npm run verify` aprobado. Informe 49 documenta seis pruebas adicionales y rechazo semántico de checkpoints imposibles, conservando original/backup. E2E aislados en 5231/5232. No se tocó la partida real ni localhost:3000. PR completo no debe confundirse con R2 aislado; no fusionar/publicar sin decisión explícita.
 
 El propietario autorizó recalibrar las seis assertions económicas exactas afectadas por la trayectoria R2. Antes/después en el informe 46. No autorizó una reforma de economía y no se modificaron sus parámetros.
 

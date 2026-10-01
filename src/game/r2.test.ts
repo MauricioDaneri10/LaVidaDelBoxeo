@@ -169,6 +169,34 @@ describe("R2: aceptación cruzada", () => {
     expect([a.caida, a.ko, b.caida, b.ko]).toEqual([null, null, null, null]);
     expect(c).toEqual({ caida: "b", ko: null }); expect(e.intercambiosAsalto).toBe(3);
   });
+  it.each(["finalPrematuro", "asaltoSaltado", "identidadCruzada"] as const)("PR R2: checkpoint semánticamente inválido %s protege original y backup", caso => {
+    const { s, p, pelea } = fixture(); const e = crearEstadoPelea(pelea, p, []); e.semillaAzar = 77;
+    const st = reductor({ ...s, dia: 6 }, { type: "CHECKPOINT_COMBATE", estado: emitirCheckpointCombate(e) });
+    const otro = { ...p, id: "otro-pugil" };
+    const broken = structuredClone({ ...st, plantel: [...st.plantel, otro] });
+    if (caso === "finalPrematuro") broken.combateActivo!.finalizada = true;
+    if (caso === "asaltoSaltado") broken.combateActivo!.asalto = 3;
+    if (caso === "identidadCruzada") broken.combateActivo!.A.p = otro;
+    expect(() => sanitizarEstado(broken)).toThrow(/Checkpoint/);
+    const original = JSON.stringify(broken), backup = JSON.stringify(st);
+    const bytes = new Map([[CLAVE_GUARDADO, original], [`${CLAVE_GUARDADO}:respaldo`, backup]]);
+    const repo = new RepositorioPartidas({ durable: true, getItem: k => bytes.get(k) ?? null,
+      setItem: (k, v) => { bytes.set(k, v); }, removeItem: k => { bytes.delete(k); } });
+    expect(repo.cargar()).toEqual(st);
+    expect(bytes.get(CLAVE_GUARDADO)).toBe(original); expect(bytes.get(`${CLAVE_GUARDADO}:respaldo`)).toBe(backup);
+  });
+  it.each(["finalRapido", "finalUI", "koAntesDelResumen"] as const)("PR R2: fase terminal válida %s conserva roundtrip exacto", caso => {
+    const { s, p, pelea } = fixture(); const e = crearEstadoPelea(pelea, p, []); e.semillaAzar = 77;
+    if (caso === "koAntesDelResumen") { e.ko = "b"; e.B.hp = 0; e.B.caidas = 1; e.intercambiosAsalto = 1; }
+    else {
+      e.A.precision = 0; e.B.precision = 0;
+      simularPeleaEntera(e, "equilibrado");
+      expect(e.ko).toBeNull(); expect(e.asaltosCerrados).toBe(e.totalAsaltos);
+      if (caso === "finalUI") e.asalto = e.totalAsaltos + 1;
+    }
+    const st = reductor({ ...s, dia: 6 }, { type: "CHECKPOINT_COMBATE", estado: emitirCheckpointCombate(e) });
+    expect(st.combateActivo).toEqual(e); expect(roundtrip(st)).toEqual(st);
+  });
   it("A17/R1: corrupción del checkpoint no se repara reseteando salud", () => {
     const { s, p, pelea } = fixture(); const e = crearEstadoPelea(pelea, p, []); e.semillaAzar = 77;
     const st = reductor({ ...s, dia: 6 }, { type: "CHECKPOINT_COMBATE", estado: emitirCheckpointCombate(e) });

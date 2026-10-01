@@ -1,5 +1,9 @@
 # Gate R2 — Tiempo/salud/combate: revisión en borrador
 
+## Revisión adicional del PR #2
+
+[Informe 49: R2 incremental, historia previa y riesgo de despliegue](https://github.com/MauricioDaneri10/LaVidaDelBoxeo/blob/feature/audit-hardening/docs/audits/49_Revision_PR2_Historia_y_R2_2026-10-01.md). Se encontró y corrigió un P1: checkpoints con final prematuro, cursor saltado o identidad cruzada. Tres reproducciones RED, tres casos positivos terminales y **235/235 PASS** actuales (102 R2 + 60 R1 + 73 históricos), verify 9,007 s y E2E GPU 11,383 s. Los resultados 229 siguientes pertenecen a preparación inicial. PR permanece en borrador; se recomienda separar decisiones de baseline/R1 y R2 sin reestructurarlo aún. Merge dispararía Pages automáticamente; GitHub actualmente informa `has_pages: false`. No merge ni despliegue autorizado.
+
 ## Alcance y frontera de revisión
 
 Repositorio oficial: MauricioDaneri10/LaVidaDelBoxeo. Head: `feature/audit-hardening`; base del PR: `main`. Autorizados commits, push y PR borrador; no merge, despliegue ni R3–R5/BOX-15.

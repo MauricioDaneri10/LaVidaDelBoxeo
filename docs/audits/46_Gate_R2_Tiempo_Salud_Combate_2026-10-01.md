@@ -2,6 +2,8 @@
 
 Fecha: 2026-10-01. Proyecto: La Vida del Boxeo · MadArt Studios.
 
+**Addendum de revisión PR #2:** informe 49 reproduce tres checkpoints semánticamente inválidos que esta implementación inicial no rechazaba y documenta su corrección, tres roundtrips terminales legítimos y verificación actual 235/235. Los conteos 229 siguientes son la evidencia histórica del cierre inicial, no la revisión más reciente. No usar este informe para omitir los hallazgos de 49.
+
 ## Resultado y alcance
 
 R2 implementado y verificado para A03, A04, A05, A06, A07, A09, A14, A15, A16, A17 y A22. No equivale a certificar todo el juego ni a cerrar la auditoría integral.

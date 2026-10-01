@@ -216,7 +216,14 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
   if (c) {
     const b = checked.pendientes.find(p => p.id === c.pelea.id);
     const own = checked.plantel.find(p => p.id === c.A.p.id);
-    if (!b || !own || JSON.stringify(b) !== JSON.stringify(c.pelea) || JSON.stringify(own) !== JSON.stringify(c.A.p)
+    // Normal completion has two legitimate cursor forms: UI advances to N+1;
+    // fast simulation clamps back to N. Neither may replay a closed round.
+    const cerradoNormal = c.asaltosCerrados === c.totalAsaltos && c.intercambiosAsalto === 0
+      && (c.asalto === c.totalAsaltos || c.asalto === c.totalAsaltos + 1);
+    const asaltoEnCurso = c.asalto <= c.totalAsaltos && c.asaltosCerrados === c.asalto - 1;
+    if (!b || !own || c.pelea.miId !== c.A.p.id || (!cerradoNormal && !asaltoEnCurso)
+      || (c.finalizada && !c.ko && !cerradoNormal)
+      || JSON.stringify(b) !== JSON.stringify(c.pelea) || JSON.stringify(own) !== JSON.stringify(c.A.p)
       || JSON.stringify(b.rival) !== JSON.stringify(c.B.p) || c.tarjetas.length !== 3 || c.asalto > c.totalAsaltos + 1
       || c.asaltosCerrados > c.totalAsaltos || c.A.hp > c.A.hpMax || c.B.hp > c.B.hpMax) {
       throw new ErrorGuardado("Checkpoint de combate incompatible: original protegido.");

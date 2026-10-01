@@ -25,7 +25,7 @@ npm test -- src/game/r2.test.ts
 npm test -- src/game/game.test.ts
 ```
 
-Referencia R2: **96 tests R2 + 60 R1 + 73 previos = 229 PASS**, TypeScript, build, presupuesto y auditoría estructural PASS. Reutilizar evidencia solo si corresponde al código exacto; repetir controles afectados tras cambios, y la verificación completa al cerrar el gate.
+Referencia R2 tras revisión PR #2: **102 tests R2 + 60 R1 + 73 previos = 235 PASS**, TypeScript, build, presupuesto y auditoría estructural PASS. Reutilizar evidencia solo si corresponde al código exacto; repetir controles afectados tras cambios, y la verificación completa al cerrar el gate. [Revisión del PR completo](docs/audits/49_Revision_PR2_Historia_y_R2_2026-10-01.md).
 
 Aceptación R1 en navegador, opcional y separada de `npm run verify`:
 

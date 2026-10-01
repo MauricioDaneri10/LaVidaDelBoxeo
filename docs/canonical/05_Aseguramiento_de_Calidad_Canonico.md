@@ -13,7 +13,7 @@
 - [x] A14/A15/A16: reducer valida resultado completo/sesión y legado; caídas penalizan, igualdad 10–10 y consenso simétrico.
 - [x] A17: última caída recuperable termina asalto; snapshot y RNG reanudan dominio exactamente sin repetir golpes/cobros.
 - [x] A22: fecha civil, envejecimiento anual y vencimientos incluidos fines de semana.
-- [x] 96 R2 + 60 R1 + 73 históricos = 229 tests; verify aprobado. Baselines económicos exactos recalibrados con autorización, sin modificar parámetros.
+- [x] 102 R2 + 60 R1 + 73 históricos = 235 tests tras revisión PR #2; verify aprobado. Checkpoints semánticamente imposibles rechazados sin sobrescribir original/backup; finales UI/rápido/KO válidos preservados (informe 49). Baselines económicos exactos recalibrados con autorización, sin modificar parámetros.
 - [x] Chromium aislado en dos resoluciones: recarga parcial/esquina/final y aplicación única. Compatibilidad y almacenamiento R1 preservados.
 
 Informe 46 detalla red/green y límites; informe 47 mide GPU y tiempos. Reutilizar controles aprobados solo si código/fixtures/build/entorno relevante permanecen iguales. Pruebas afectadas durante cambios, verificación completa al cierre; no debilitar assertions. Comprobaciones independientes pueden correr en paralelo sin compartir artefactos mutables. R2 queda pendiente de aceptación del propietario; no certifica toda la auditoría ni inicia otros gates.
