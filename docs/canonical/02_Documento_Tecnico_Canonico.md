@@ -245,6 +245,12 @@ Una feature no se acepta si solo tiene una prueba manual.
 
 Google Login, sincronización online, monetización y backend deben ser adaptadores. No se permite introducir SDK, autenticación o red directamente en el dominio del juego.
 
+## Contrato vigente R2 — 2026-10-01
+
+Schema actual **6**, con migración explícita/idempotente 5→6 que añade `combateActivo` sin transformar campos válidos existentes. El contrato R1 siguiente permanece vigente; su referencia a schema 5 describe su cierre histórico. Un checkpoint inválido se rechaza con protección de originales, no se reemplaza por un combate curado.
+
+El avance normal/rápido comparte transición civil; las obligaciones pendientes bloquean avanzar/liquidar. Sesiones reales gobiernan licencia; disponibilidad médica, rival individual y crecimiento monotónico se obtienen por selectores comunes. Resultados completos requieren comprobante del motor y validación del reducer; no se paga dos veces. RNG propio/checkpoint permiten reanudar dominio sin rerollear; presentación vuelve a pausa segura. Empate exacto sin sesgo: 10–10; consenso 2–0: Decisión Mayoritaria. No se alteran precios ni parámetros económicos. Evidencia y límites: informe 46; rendimiento/hardware: informe 47. No autoriza R3–R5 ni BOX-15.
+
 ## Contrato operacional R1 — 2026-10-01
 
 Schema actual 5. `saveValidation.ts` contiene migraciones explícitas 1→2→3→4→5 y validación recursiva con diagnósticos; `saveRepository.ts` gobierna lectura/escritura mediante adaptador inyectable. Cargar no genera población, consume RNG ni aplica progresión. Todo dato válido actual se conserva exactamente en guardar→cargar: ceros, falsos, orden, arrays vacíos, resumen y libros.

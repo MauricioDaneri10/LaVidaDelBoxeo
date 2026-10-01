@@ -1,5 +1,5 @@
 import { DIAS, LOGOS_DISPONIBLES, MESES } from "../game/data";
-import { fechaDelJuego, fmt } from "../game/engine";
+import { fechaDelJuego, fmt, peleasVencidas } from "../game/engine";
 import { useGame } from "../game/state";
 import { Btn, I } from "./ui";
 
@@ -12,6 +12,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
   const { state, dispatch } = useGame();
   const finDeSemana = state.dia >= 6;
   const fechaActual = fechaDelJuego(state.semana, state.dia);
+  const carteleraPendiente = peleasVencidas(state).length > 0;
 
   const avanzar = () => dispatch({ type: "AVANZAR_DIA" });
   const semanaRapida = () => dispatch({ type: "SEMANA_RAPIDA" });
@@ -114,9 +115,9 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
             </Btn>
           ) : (
             <Btn variant={state.dia === 6 ? "blood" : "gold"} onClick={avanzar} pulso={pulsoAvanzar || state.dia === 6}
-              disabled={state.dia === 6 && state.pendientes.length > 0}>
+              disabled={carteleraPendiente}>
               {state.dia === 6
-                ? (state.pendientes.length > 0 ? "Resolvé la cartelera primero" : <><I n="play" className="h-4 w-4" /> Ir al Balance del Domingo</>)
+                ? (carteleraPendiente ? "Resolvé la cartelera primero" : <><I n="play" className="h-4 w-4" /> Ir al Balance del Domingo</>)
                 : <><I n="play" className="h-4 w-4" /> Avanzar día</>}
             </Btn>
           )}

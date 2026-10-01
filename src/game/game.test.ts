@@ -39,6 +39,7 @@ import { formatearMoneda, formatearNumero } from "../i18n";
 import { usarSemilla } from "./random";
 import { leerDiagnosticos } from "../diagnostics";
 import { crearPersistencia } from "./storage";
+import { SCHEMA_ACTUAL } from "./saveValidation";
 
 describe("reglas principales de La Vida del Boxeo", () => {
   it("genera una entrevista con opciones cuyo texto y consecuencias coinciden", () => {
@@ -618,7 +619,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const restaurar = usarSemilla(14014);
     try {
       const base = crearEstadoBase();
-      const alumno = { ...base.plantel.find(p => p.rol === "alumno")!, fogueo: 10, fogueoMeta: 10, energia: 100 };
+      const alumno = { ...base.plantel.find(p => p.rol === "alumno")!, fogueo: 10, fogueoMeta: 10, guanteosRealizados: 10, energia: 100 };
       let estado = { ...base, creado: true, semana: 4, dia: 1, dinero: 1_000, cursos: ["dt"] as typeof base.cursos, plantel: [alumno] };
       estado = reductor(estado, { type: "LICENCIAR", id: alumno.id });
       const federado = estado.plantel[0];
@@ -631,7 +632,8 @@ describe("reglas principales de La Vida del Boxeo", () => {
       estado = reductor(estado, { type: "ELEGIR_OFERTA", ofertaId: estado.ofertas[1].id });
       expect(estado.pendientes).toHaveLength(1);
       const pelea = estado.pendientes[0];
-      const resultado = simularPeleaEntera(crearEstadoPelea(pelea, federado, []), "equilibrado");
+      while (estado.dia < 6) estado = reductor(estado, { type: "AVANZAR_DIA" });
+      const resultado = simularPeleaEntera(crearEstadoPelea(pelea, estado.plantel[0], []), "equilibrado");
       estado = reductor(estado, { type: "RESOLVER_PELEA", peleaId: pelea.id, resultado });
 
       const boxeador = estado.plantel[0];
@@ -839,7 +841,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
 
   it("respeta los cupos 10/10/10 al tramitar licencias y permite licenciar tras liberar una plaza amateur", () => {
     const base = crearEstadoBase();
-    const alumnos = Array.from({ length: capacidadAlumnos(base) }, () => ({ ...genPugilista({ rol: "alumno" }), fogueo: 10, fogueoMeta: 10 }));
+    const alumnos = Array.from({ length: capacidadAlumnos(base) }, () => ({ ...genPugilista({ rol: "alumno" }), fogueo: 10, fogueoMeta: 10, guanteosRealizados: 10 }));
     const amateurs = Array.from({ length: 10 }, () => ({ ...genPugilista({ rol: "boxeador" }), circuito: "amateur" as const }));
     const pros = Array.from({ length: capacidadProfesionales(base) }, () => ({ ...genPugilista({ rol: "boxeador" }), circuito: "pro" as const }));
     const lleno = normalizarListaEspera({ ...base, creado: true, dinero: 10_000, cursos: ["dt"], plantel: [...alumnos, ...amateurs, ...pros] });
@@ -862,7 +864,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
   it("solo marca como habilitable a un alumno activo con licencia y prácticas", () => {
     const base = crearEstadoBase();
     const alumno = { ...base.plantel.find(p => p.rol === "alumno")! };
-    alumno.fogueo = alumno.fogueoMeta;
+    alumno.fogueo = alumno.fogueoMeta; alumno.guanteosRealizados = 10;
     expect(puedeHabilitar(alumno, base)).toBe(false);
     const conLicencia = { ...base, cursos: ["dt"] as typeof base.cursos };
     expect(puedeHabilitar(alumno, conLicencia)).toBe(true);
@@ -871,7 +873,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
 
   it("separa la licencia del entrenador de la licencia individual del pugilista", () => {
     const base = crearEstadoBase();
-    const alumno = { ...base.plantel.find(p => p.rol === "alumno")!, fogueo: 10, fogueoMeta: 10 };
+    const alumno = { ...base.plantel.find(p => p.rol === "alumno")!, fogueo: 10, fogueoMeta: 10, guanteosRealizados: 10 };
     const conLicenciaEntrenador = { ...base, cursos: ["dt"] as typeof base.cursos, dinero: 500 };
     expect(conLicenciaEntrenador.cursos).toContain("dt");
     expect(alumno.licenciaFederativa).toBe(false);
@@ -969,7 +971,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
   it("incluye una bolsa y la velada del sábado una sola vez en el balance semanal", () => {
     const base = crearEstadoBase();
     const boxeador = { ...genPugilista({ rol: "boxeador" }), licenciaFederativa: true, circuito: "amateur" as const };
-    const rival = genPugilista({ rol: "boxeador" });
+    const rival = { ...genPugilista({ rol: "boxeador", genero: boxeador.genero }), division: boxeador.division, circuito: boxeador.circuito };
     const pelea = { id: "pelea-semanal", miId: boxeador.id, rival, bolsa: 500, esTitulo: 0 as const, velada: true, semanaProgramada: 2, diaProgramado: 6 as const };
     let estado: ReturnType<typeof crearEstadoBase> = {
       ...base, creado: true, semana: 2, dia: 5, dinero: 1_000,
@@ -977,7 +979,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
     };
     const saldoInicial = estado.dinero;
     estado = reductor(estado, { type: "AVANZAR_DIA" });
-    const resultado = resolverPelea(crearEstadoPelea(pelea, boxeador, []));
+    const resultado = simularPeleaEntera(crearEstadoPelea(pelea, estado.plantel[0], []), "equilibrado");
     estado = reductor(estado, { type: "RESOLVER_PELEA", peleaId: pelea.id, resultado });
     estado = reductor(estado, { type: "AVANZAR_DIA" });
 
@@ -1142,12 +1144,13 @@ describe("reglas principales de La Vida del Boxeo", () => {
     ejecutar("entrenador_recaudacion", "naipes", false, false, true);
     ejecutar("entrenador_bingo", "bingo", false, false, true);
     expect(Object.keys(resultados)).toHaveLength(6);
-    expect(resultados.base).toEqual({ fin12: 600, min12: 570, fin52: 1_800, min52: 570 });
-    expect(resultados.recaudacion).toEqual({ fin12: 1_783, min12: 800, fin52: 5_963, min52: 800 });
-    expect(resultados.plantel_lleno_recaudacion).toEqual({ fin12: 3_037, min12: 800, fin52: 9_794, min52: 800 });
-    expect(resultados.nomina_temprana).toEqual({ fin12: -2_450, min12: -2_450, fin52: -10_842, min52: -10_842 });
-    expect(resultados.entrenador_recaudacion).toEqual({ fin12: 133, min12: 94, fin52: -4_951, min52: -4_951 });
-    expect(resultados.entrenador_bingo).toEqual({ fin12: 1_295, min12: 688, fin52: 3_831, min52: 688 });
+    // R2 baseline explicitly approved: same exact assertions, no economic parameter changes.
+    expect(resultados.base).toEqual({ fin12: 546, min12: 546, fin52: 1_584, min52: 534 });
+    expect(resultados.recaudacion).toEqual({ fin12: 1_703, min12: 800, fin52: 5_971, min52: 800 });
+    expect(resultados.plantel_lleno_recaudacion).toEqual({ fin12: 3_268, min12: 800, fin52: 10_170, min52: 800 });
+    expect(resultados.nomina_temprana).toEqual({ fin12: -1_979, min12: -1_979, fin52: -10_299, min52: -10_299 });
+    expect(resultados.entrenador_recaudacion).toEqual({ fin12: -180, min12: -180, fin52: -6_076, min52: -6_076 });
+    expect(resultados.entrenador_bingo).toEqual({ fin12: 1_288, min12: 587, fin52: 3_156, min52: 587 });
   });
 
   it("evita que el plantel crezca sin límite después de licenciar boxeadores", () => {
@@ -1318,7 +1321,7 @@ describe("reglas principales de La Vida del Boxeo", () => {
     const resultado = migrarGuardado(anterior);
     const estado = resultado.estado as typeof anterior & { schemaVersion: number; partidaId: string };
     expect(resultado.migrado).toBe(true);
-    expect(estado.schemaVersion).toBe(5);
+    expect(estado.schemaVersion).toBe(SCHEMA_ACTUAL);
     expect(estado.nombreGimnasio).toBe("Club Viejo");
     expect(estado.partidaId).toMatch(/^migrada-/);
     expect((estado as typeof estado & { libroIngresos: unknown[]; semanaLibro: number }).libroIngresos).toEqual([]);

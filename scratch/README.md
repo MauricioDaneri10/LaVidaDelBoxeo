@@ -6,7 +6,11 @@
 
 Las capturas `r1_archive_1280.png` y `r1_archive_1440.png` son evidencia de fixtures QA, no partidas del propietario. Tests Vitest vigentes: `src/game/game.test.ts` y `src/game/r1.test.ts`.
 
-## Evidencia histórica
+## Regresión y diagnóstico R2
+
+`test_r2_combat.py` conserva las assertions de recarga parcial/final, caída recuperable del último intercambio y resultado único en 1280×720/1440×900. Build en `dist`, puerto 5232, datos sintéticos y contextos nuevos. GPU/D3D11 en Windows; `R2_GPU=0` para software. `probe_r2_gpu.py` mide CDP/WebGL y capturas en memoria en el puerto 5233; el modo D3D11 es un diagnóstico Windows, no una promesa de aceleración portable. Ambos esperan disponibilidad HTTP observable antes de iniciar, con plazo acotado. No generan capturas versionables ni usan el puerto 3000. Requieren Python y Playwright/Chromium; no son parte de `npm run verify`. Evidencia: informes 46 y 47.
+
+## Evidencia histórica (BOX y auditorías anteriores)
 
 Los restantes scripts y capturas pertenecen a auditorías y BOX previos. Algunas sondas de `integral_probes.audit.ts` afirman deliberadamente defectos del baseline anterior: **no son assertions vigentes ni parte de npm run verify**, y pueden fallar después de reparar esos defectos. Su configuración está separada en `audit-vitest.config.mjs`.
 

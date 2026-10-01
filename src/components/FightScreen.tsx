@@ -4,6 +4,7 @@ import { TITULOS } from "../game/data";
 import {
   cerrarAsalto,
   crearEstadoPelea,
+  emitirCheckpointCombate,
   fmt,
   PLANES,
   planSugerido,
@@ -12,7 +13,7 @@ import {
   simularPeleaEntera,
   valoracion,
 } from "../game/engine";
-import type { EstadoPelea, PlanId } from "../game/engine";
+import type { AccionRing, EstadoPelea, PlanId } from "../game/engine";
 import {
   caida as sndCaida,
   campana,
@@ -23,6 +24,7 @@ import {
   ovacion as sndOvacion,
 } from "../game/audio";
 import { useGame } from "../game/state";
+import { hashTexto } from "../game/saveValidation";
 import type { Pelea, ResultadoPelea } from "../game/types";
 import { Figura } from "./GymView";
 import { BotonBrillante, Btn, Chip, I } from "./ui";
@@ -30,13 +32,7 @@ import { BotonBrillante, Btn, Chip, I } from "./ui";
 type FasePelea = "cartelera" | "esquina" | "asalto" | "conteo" | "final";
 
 interface IntercambioVisual {
-  acciones: {
-    atacante: "a" | "b";
-    tipo: "jab" | "poder";
-    conecto: boolean;
-    dano: number;
-    critico: boolean;
-  }[];
+  acciones: AccionRing[];
   caida: "a" | "b" | null;
   ko: "a" | "b" | null;
 }
@@ -64,24 +60,29 @@ function playOvacion() { try { sndOvacion(); } catch {} }
 function playMonedas() { try { sndMonedas(); } catch {} }
 
 export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps) {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const mio = state.plantel.find(p => p.id === pelea.miId) || state.plantel[0];
 
   const estado = useRef<EstadoPelea | null>(null);
   if (!estado.current) {
-    estado.current = crearEstadoPelea(pelea, mio, state.equipamiento);
+    estado.current = state.combateActivo?.pelea.id === pelea.id
+      ? structuredClone(state.combateActivo) : crearEstadoPelea(pelea, mio, state.equipamiento);
+    estado.current.semillaAzar ??= parseInt(hashTexto(`${state.partidaId}:${pelea.id}`), 16);
   }
   const e = estado.current;
+  const combateTerminado = e.finalizada || e.ko !== null || e.asaltosCerrados >= e.totalAsaltos;
+  const [luchadoresVisibles, setLuchadoresVisibles] = useState(() => ({ A: structuredClone(e.A), B: structuredClone(e.B) }));
+  const vista = { ...e, ...luchadoresVisibles };
 
-  const [fase, setFase] = useState<FasePelea>("cartelera");
-  const [plan, setPlan] = useState<PlanId>(planSugerido(e));
+  const [fase, setFase] = useState<FasePelea>(state.combateActivo?.pelea.id === pelea.id ? (combateTerminado ? "final" : "esquina") : "cartelera");
+  const [plan, setPlan] = useState<PlanId>(state.combateActivo?.pelea.id === pelea.id ? e.A.plan : planSugerido(e));
   const [, setTick] = useState(0);
 
   const colaRef = useRef<IntercambioVisual[]>([]);
   const accionIdxRef = useRef(0);
   const [conteoNum, setConteoNum] = useState(1);
   const [ladoCaida, setLadoCaida] = useState<"a" | "b">("b");
-  const [resultado, setResultado] = useState<ResultadoPelea | null>(null);
+  const [resultado, setResultado] = useState<ResultadoPelea | null>(() => combateTerminado ? resolverPelea(e) : null);
   const [sacudida, setSacudida] = useState(0);
   const [golpeA, setGolpeA] = useState(0);
   const [golpeB, setGolpeB] = useState(0);
@@ -90,16 +91,19 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
   // Registro detallado de tarjetas round-by-round para los 3 jueces
   const [desgloseRounds, setDesgloseRounds] = useState<DesgloseRoundJueces[]>([]);
   const prevTarjetasRef = useRef<{ a: number; b: number }[]>([
-    { a: 0, b: 0 },
-    { a: 0, b: 0 },
-    { a: 0, b: 0 },
+    ...e.tarjetas.map(t => ({ ...t })),
   ]);
 
   const rerender = () => setTick(t => t + 1);
+  const guardarCombate = () => dispatch({ type: "CHECKPOINT_COMBATE", estado: emitirCheckpointCombate(e) });
+
+  useEffect(() => { guardarCombate(); }, []);
 
   const finalizarCombate = (koLado: "a" | "b" | null) => {
     if (koLado) e.ko = koLado;
     const r = resolverPelea(e);
+    guardarCombate();
+    setLuchadoresVisibles({ A: structuredClone(e.A), B: structuredClone(e.B) });
     setResultado(r);
     playCampanaFinal();
     if (r.gane) {
@@ -115,12 +119,19 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
 
   const consumirAcciones = () => {
     const cola = colaRef.current;
-    if (cola.length === 0) return;
+    if (cola.length === 0 && e.intercambiosAsalto < 3 && !e.ko) {
+      const r = simularIntercambio(e);
+      guardarCombate();
+      cola.push({ acciones: e.acciones, caida: r.caida, ko: r.ko });
+    }
+    // Empty after a last-exchange count is an end-of-round transition,
+    // not an instruction to wait for a nonexistent action.
     const inter = cola[0];
 
-    if (accionIdxRef.current < inter.acciones.length) {
+    if (inter && accionIdxRef.current < inter.acciones.length) {
       const acc = inter.acciones[accionIdxRef.current];
       accionIdxRef.current++;
+      if (acc.estadoVisual) setLuchadoresVisibles(acc.estadoVisual);
 
       if (acc.conecto) {
         playGolpe(acc.critico);
@@ -143,13 +154,14 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
     // Intercambio completado
     cola.shift();
     accionIdxRef.current = 0;
+    setLuchadoresVisibles({ A: structuredClone(e.A), B: structuredClone(e.B) });
 
-    if (inter.ko) {
-      finalizarCombate(inter.ko === "a" ? "a" : "b");
+    if (inter?.ko || e.ko) {
+      finalizarCombate(inter?.ko ?? e.ko);
       return;
     }
 
-    if (inter.caida) {
+    if (inter?.caida) {
       setLadoCaida(inter.caida);
       playCaida();
       setConteoNum(1);
@@ -157,7 +169,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
       return;
     }
 
-    if (cola.length > 0) {
+    if (cola.length > 0 || e.intercambiosAsalto < 3) {
       timerRef.current = setTimeout(consumirAcciones, 280);
       return;
     }
@@ -165,6 +177,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
     // Fin regular del asalto
     const rondaAnterior = e.asalto;
     cerrarAsalto(e);
+    setLuchadoresVisibles({ A: structuredClone(e.A), B: structuredClone(e.B) });
 
     // Calcular desglose exacto de puntos otorgados por los 3 jueces en esta ronda
     const j1Score = { a: e.tarjetas[0].a - prevTarjetasRef.current[0].a, b: e.tarjetas[0].b - prevTarjetasRef.current[0].b };
@@ -184,6 +197,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
     prevTarjetasRef.current = e.tarjetas.map(t => ({ a: t.a, b: t.b }));
 
     e.asalto++;
+    guardarCombate();
     rerender();
 
     if (e.asalto > e.totalAsaltos) {
@@ -196,16 +210,9 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
 
   const iniciarAsalto = () => {
     e.A.plan = plan;
+    guardarCombate();
     playCampana();
-    const ronda: IntercambioVisual[] = [];
-
-    for (let i = 0; i < 3; i++) {
-      const r = simularIntercambio(e);
-      ronda.push({ acciones: e.acciones, caida: r.caida, ko: r.ko });
-      if (r.ko) break;
-    }
-
-    colaRef.current = ronda;
+    colaRef.current = [];
     accionIdxRef.current = 0;
     setFase("asalto");
     timerRef.current = setTimeout(consumirAcciones, 550);
@@ -240,6 +247,8 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
   const simularResto = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const r = simularPeleaEntera(e, plan);
+    guardarCombate();
+    setLuchadoresVisibles({ A: structuredClone(e.A), B: structuredClone(e.B) });
     setResultado(r);
     playCampanaFinal();
     if (r.gane) {
@@ -282,8 +291,8 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
         {/* BARRAS DINÁMICAS DE SALUD, STAMINA Y CONDICIÓN */}
         <div className="fight-status-grid grid shrink-0 grid-cols-2 gap-2">
           {[
-            { l: e.A, nombre: nombreA, pugil: mio, lado: "izq", golpes: golpeA },
-            { l: e.B, nombre: nombreB, pugil: pelea.rival, lado: "der", golpes: golpeB },
+            { l: vista.A, nombre: nombreA, pugil: mio, lado: "izq", golpes: golpeA },
+            { l: vista.B, nombre: nombreB, pugil: pelea.rival, lado: "der", golpes: golpeB },
           ].map(({ l, nombre, pugil, lado }) => (
             <div
               key={nombre}
@@ -400,7 +409,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
             <div key={`a${golpeA}`} className={golpeA > 0 && fase === "asalto" ? "anim-golpe" : ""}>
               <div className={ladoCaida === "a" && (fase === "conteo" || (fase === "final" && e.ko === "a")) ? "anim-caida" : ""}>
                 <Figura
-                  p={e.A.p}
+                  p={vista.A.p}
                   pose={ladoCaida === "a" && fase === "conteo" ? "caido" : "guardia"}
                   escala={1.5}
                 />
@@ -418,7 +427,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
               <div className={ladoCaida === "b" && (fase === "conteo" || (fase === "final" && e.ko === "b")) ? "anim-caida" : ""}>
                 <div className="-scale-x-100">
                   <Figura
-                    p={e.B.p}
+                    p={vista.B.p}
                     pose={ladoCaida === "b" && fase === "conteo" ? "caido" : "guardia"}
                     escala={1.5}
                   />
@@ -475,7 +484,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
               <span className="mr-1.5 font-bold uppercase tracking-widest text-gold font-mono-data">Ringside:</span>
               {fase === "cartelera" && "Los pugilistas se desafían en el centro del cuadrilátero. ¡El público está de pie!"}
               {fase === "esquina" && `Minuto de descanso: definí la estrategia para el asalto ${Math.min(e.asalto, e.totalAsaltos)}.`}
-              {fase === "asalto" && `${nombreA} (${PLANES[e.A.plan].nombre.toLowerCase()}) buscando el intercambio ante ${nombreB}. ¡Alta intensidad!`}
+              {fase === "asalto" && `${nombreA} (${PLANES[vista.A.plan].nombre.toLowerCase()}) buscando el intercambio ante ${nombreB}. ¡Alta intensidad!`}
               {fase === "conteo" && `¡${ladoCaida === "a" ? nombreA : nombreB} ha caído a la lona! El réferi marca el conteo...`}
               {fase === "final" && resultado && `${resultado.metodo}. ${resultado.gane ? `¡${nombreA} se consagra vencedor!` : `${nombreB} gana la noche.`}`}
             </span>
@@ -506,8 +515,8 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
               </thead>
               <tbody>
                 {[
-                  { l: e.A, n: nombreA },
-                  { l: e.B, n: nombreB },
+                  { l: vista.A, n: nombreA },
+                  { l: vista.B, n: nombreB },
                 ].map(({ l, n }) => (
                   <tr key={n} className="border-t border-line/60">
                     <td className="py-2 font-bold text-cream">{n}</td>
@@ -618,7 +627,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                 <div className="space-y-2">
                   <div className="font-display text-base text-gold">Combate en Curso</div>
                   <div className="font-cond text-xs text-sand leading-relaxed">
-                    Estrategia en ejecución: <b className="text-cream">{PLANES[e.A.plan].nombre}</b>
+                    Estrategia en ejecución: <b className="text-cream">{PLANES[vista.A.plan].nombre}</b>
                     <br />
                     Asalto {Math.min(e.asalto, e.totalAsaltos)} de {e.totalAsaltos}
                   </div>

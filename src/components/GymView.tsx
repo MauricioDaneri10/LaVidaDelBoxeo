@@ -160,7 +160,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
     const manoplas: Pugilista[] = [];
     for (const b of todos) {
       if (b.elite && tieneZonaElite && vip.length < 3) vip.push(b);
-      else if ((b.energia < 35 || b.combo === "descanso") && hidratacion.length < 2) hidratacion.push(b);
+      else if ((b.lesion || b.energia < 35 || b.combo === "descanso") && hidratacion.length < 2) hidratacion.push(b);
       else if (b.combo === "acondicionamiento" && soga.length < 2) soga.push(b);
       else if ((b.combo === "noqueador" || b.combo === "presion") && sacos.length < 2) sacos.push(b);
       else if (b.combo === "estilista" && ring.length < 2) ring.push(b);

@@ -171,10 +171,10 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             <>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="font-cond text-[10px] sm:text-[11px] uppercase tracking-wide text-sand whitespace-nowrap">
-                  Guanteos <b className="text-gold">{p.fogueo}/{p.fogueoMeta}</b>
+                  Guanteos <b className="text-gold">{p.guanteosRealizados}/{10}</b>
                 </span>
-                <div className="stat-bar w-full min-w-0" aria-label={`${p.fogueo} de ${p.fogueoMeta} guanteos`}>
-                  <i style={{ width: `${(p.fogueo / p.fogueoMeta) * 100}%`, background: "var(--color-gold)" }} />
+                <div className="stat-bar w-full min-w-0" aria-label={`${p.guanteosRealizados} de ${10} guanteos`}>
+                  <i style={{ width: `${Math.min(100, (p.guanteosRealizados / 10) * 100)}%`, background: "var(--color-gold)" }} />
                 </div>
               </div>
               {listoSabado && !p.enEspera && (

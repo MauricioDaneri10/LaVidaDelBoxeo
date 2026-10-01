@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { COMBOS, TITULOS } from "../game/data";
-import { consejoEsquina, estadoRecord, fmt, puedeHabilitar, puedeProfesionalizar, rasgoInfo, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
+import { enfoqueRecomendado, estadoRecord, fmt, puedeHabilitar, puedeProfesionalizar, rasgoInfo, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { ComboId, Pugilista } from "../game/types";
 import { Figura } from "./GymView";
@@ -81,8 +81,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
   const vg = valoracion(p.atrib);
   const rasgo = rasgoInfo(p.rasgo);
   const peleaAgendada = state.pendientes.find(x => x.miId === p.id);
-  const rivalSabado = peleaAgendada?.rival ?? null;
-  const consejo = consejoEsquina(p, rivalSabado);
+  const consejo = enfoqueRecomendado(p, state);
   const aspirable = tituloAspirable(p);
   const puedeLicenciar = puedeHabilitar(p, state);
   const paseProfesional = puedeProfesionalizar(p, state);
@@ -315,13 +314,13 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       Progreso de prácticas de combate
                     </span>
                     <span className="font-mono-data text-xs text-gold font-bold">
-                      {p.fogueo}/{p.fogueoMeta} guanteos (sparring)
+                      {p.guanteosRealizados}/{10} guanteos (sparring)
                     </span>
                   </div>
                   <div className="stat-bar h-3">
                     <i
                       style={{
-                        width: `${Math.min(100, (p.fogueo / p.fogueoMeta) * 100)}%`,
+                        width: `${Math.min(100, (p.guanteosRealizados / 10) * 100)}%`,
                         background: "var(--color-gold)",
                       }}
                     />
@@ -331,9 +330,9 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                     <p className="font-cond text-xs text-mut">
                       {p.enEspera
                         ? "Está en lista de espera: cuando se libere una plaza podrá continuar."
-                        : p.fogueo >= p.fogueoMeta
+                        : p.guanteosRealizados >= 10
                         ? "¡Pugil listo para tramitar su licencia!"
-                        : `Requiere ${p.fogueoMeta - p.fogueo} guanteos más para tramitar la licencia.`}
+                        : `Requiere ${10 - p.guanteosRealizados} guanteos más para tramitar la licencia.`}
                     </p>
                     {!state.cursos.includes("dt") && onIrAPestana && (
                       <Btn small variant="ghost" onClick={() => onIrAPestana("perfil")}>
@@ -355,7 +354,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onIrAP
                       ? "Está en lista de espera y todavía no puede entrenar ni competir."
                       : !state.cursos.includes("dt")
                       ? "Obtené la Licencia de Entrenador para federar boxeadores del club."
-                      : p.fogueo >= p.fogueoMeta
+                      : p.guanteosRealizados >= 10
                       ? "Prácticas completas: la ficha ya puede tramitar la licencia amateur para competir."
                       : "Completá las prácticas de combate de los sábados para habilitar la competencia amateur."}
                   </div>
