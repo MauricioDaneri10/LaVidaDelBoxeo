@@ -1,6 +1,6 @@
 # La Vida del Boxeo · MadArt Studios
 
-Prototipo web de gestión de un gimnasio y carreras de boxeo. Esta rama contiene el estado de trabajo completo hasta **Gate R1 — Partidas/carrera**; no es una aprobación integral ni una versión final del juego.
+Prototipo web de gestión de un gimnasio y carreras de boxeo. Esta rama contiene el estado de trabajo hasta **Gate R2 — Tiempo/salud/combate**, preparado para revisión en PR borrador; no es una aprobación integral ni una versión final del juego.
 
 ## Clonar el estado actual
 
@@ -21,10 +21,11 @@ La rama `main` y GitHub Pages no se actualizan al publicar esta rama de trabajo.
 ```sh
 npm run verify
 npm test -- src/game/r1.test.ts
+npm test -- src/game/r2.test.ts
 npm test -- src/game/game.test.ts
 ```
 
-Referencia al publicar: **60 tests R1 + 73 previos = 133 PASS**, TypeScript, build, presupuesto y auditoría estructural PASS. El resultado se debe repetir, no asumir a partir del documento.
+Referencia R2: **96 tests R2 + 60 R1 + 73 previos = 229 PASS**, TypeScript, build, presupuesto y auditoría estructural PASS. Reutilizar evidencia solo si corresponde al código exacto; repetir controles afectados tras cambios, y la verificación completa al cerrar el gate.
 
 Aceptación R1 en navegador, opcional y separada de `npm run verify`:
 
@@ -34,14 +35,15 @@ python -m venv .venv
 python -m pip install playwright
 python -m playwright install chromium
 python scratch/test_r1_persistence.py
+python scratch/test_r2_combat.py
 ```
 
-El script sirve la build en `127.0.0.1:5231`, necesita ese puerto libre y usa contextos nuevos con datos sintéticos. Ejecutar `npm run build` previamente; nunca trasladar las pruebas al perfil o almacenamiento del propietario.
+Los scripts usan `127.0.0.1:5231` (R1) y `127.0.0.1:5232` (R2), necesitan puertos libres y contextos nuevos con datos sintéticos. Ejecutar `npm run build` previamente; nunca trasladar pruebas al perfil o almacenamiento del propietario. R2 habilita GPU/D3D11 en Windows; `R2_GPU=0` permite software. Diagnóstico y límites: [rendimiento R2](docs/audits/47_R2_GPU_y_Tiempos_2026-10-01.md).
 
 ## Continuar el proyecto
 
-Leer primero [el estado publicado](docs/context/ESTADO_PUBLICADO_R1.md), los cinco [documentos canónicos](docs/canonical/), la [auditoría integral 44](docs/audits/44_Auditoria_Integral_Pre_BOX-15_2026-10-01.md) y el [cierre R1](docs/audits/45_Gate_R1_Partidas_Carrera_2026-10-01.md).
+Leer primero [el contexto R2](docs/context/ESTADO_LOCAL_R2.md), los cinco [documentos canónicos](docs/canonical/), la [auditoría integral 44](docs/audits/44_Auditoria_Integral_Pre_BOX-15_2026-10-01.md), el [cierre R1](docs/audits/45_Gate_R1_Partidas_Carrera_2026-10-01.md) y el [informe R2](docs/audits/46_Gate_R2_Tiempo_Salud_Combate_2026-10-01.md). El estado publicado R1 se conserva como evidencia histórica.
 
-R2, R3, R4 y R5 continúan abiertos. **No iniciar BOX-15 ni otro gate sin autorización.** Los informes anteriores son evidencia histórica, no certificación vigente de todo el juego. Este snapshot integra trabajo anterior y R1 en archivos compartidos; no atribuir todo su diff a R1.
+R2 está implementado/verificado y pendiente de aceptación del propietario; R3, R4 y R5 siguen abiertos. **No iniciar BOX-15 ni otro gate sin autorización.** Este branch incluye trabajo histórico anterior y R1: el diff completo contra `main` no es exclusivamente R2. La frontera incremental de R2 es `ec2b72dda7bac0434bd37ce8cf6d9a7c5299d38c..HEAD`. No se autoriza merge ni despliegue.
 
 `scratch/` contiene pruebas auxiliares y capturas; consultar su README antes de ejecutar scripts históricos. Los scripts gráficos de `scripts/` son herramientas previas opcionales con rutas/dependencias locales; no se ejecutan para compilar o verificar el juego web.
