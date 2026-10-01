@@ -5,6 +5,7 @@ import { notificacion } from "../game/audio";
 import { useGame } from "../game/state";
 import type { EventoJuego } from "../game/types";
 import { I } from "./ui";
+import { objetivoConsejo } from "../game/consejos";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
 
 export type PestanaDock = "mensajes" | "patrocinios" | "prensa" | "consejos";
@@ -64,8 +65,10 @@ export default function DockLateral({
   const { state, dispatch } = useGame();
   const mensajes = state.eventos.filter(e => e.tipo !== "patrocinio");
   const patrocinios = state.eventos.filter(e => e.tipo === "patrocinio");
-  const consejosActivos = state.consejos.filter(c => !c.reclamado);
-  const consejosListos = consejosActivos.filter(c => c.cumplido);
+  const consejosPendientes = state.consejos.filter(c => !c.reclamado && !c.archivado);
+  const [verHistorial, setVerHistorial] = useState(false);
+  const consejosActivos = verHistorial ? state.consejos.filter(c => c.reclamado || c.archivado) : consejosPendientes;
+  const consejosListos = consejosPendientes.filter(c => c.cumplido && objetivoConsejo(c.id));
   const esEscritorio = lado === "escritorio";
   const panelAmplio = useResponsiveCapacity("(min-width: 1280px) and (min-height: 720px)");
   const [movilAbierto, setMovilAbierto] = useState(false);
@@ -191,12 +194,16 @@ export default function DockLateral({
           )}
 
           {/* Hitos Canónicos de Don Anselmo */}
+          <button className="btn-poster border border-line px-2 py-1 text-xs text-sand" onClick={() => { setVerHistorial(v => !v); setPaginaConsejos(0); }}>{verHistorial ? "Ver hitos pendientes" : "Ver historial de hitos"}</button>
+          {verHistorial && <p className="font-cond text-xs text-mut">Los hitos duplicados se archivan sin nuevo pago. Los cobros anteriores se conservan.</p>}
           {consejosVisibles.map(c => (
             <div key={c.id} className={`border p-2.5 shadow-sm ${c.reclamado ? "border-line bg-panel opacity-60" : c.cumplido ? "border-gold2/70 bg-gold/10" : "border-line bg-panel"}`}>
               <p className="font-cond text-sm leading-snug text-sand">{c.texto}</p>
               <div className="mt-1.5 flex items-center justify-between">
                 <span className="font-cond text-[11px] uppercase tracking-wide text-mut">Recompensa: +{c.fama} fama{c.dinero ? ` · ${c.dinero} pesos` : ""}</span>
                 {c.reclamado ? <span className="font-cond text-[11px] uppercase text-win">Cobrado</span>
+                  : c.archivado ? <span className="font-cond text-[11px] uppercase text-mut" title={c.motivoArchivo}>Archivado · sin cobro</span>
+                  : !objetivoConsejo(c.id) ? <span className="font-cond text-[11px] uppercase text-mut">Hito no reconocido</span>
                   : !c.cumplido ? <span className="font-cond text-[11px] uppercase text-mut">Pendiente</span> : (
                     <button onClick={() => { notificacion(); dispatch({ type: "RECLAMAR_CONSEJO", id: c.id }); }}
                       className="btn-poster guia-luminica border border-[#ffe0a0]/50 bg-gold px-2.5 py-0.5 text-sm text-ink cursor-pointer">

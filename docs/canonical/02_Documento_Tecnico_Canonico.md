@@ -1,5 +1,10 @@
 # Documento Técnico Canónico
 
+## Actualización R3 aprobada — 2026-10-01
+
+Schema7 y migración explícita6→7 idempotente: consolidación por objetivo, archivo sin falso cobro y preservación de IDs/extensiones. Evidencia de pago dañada bloquea escritura ambigua, original protegido. contratosTitularesHistoricos deriva IDs pactados pre-R3, excepción solo título/TV, no seguridad médica/identidad/fecha. Checkpoints intactos. economy.ts comparte importes deterministas; RNG separado. UI/reducer comparten puedeContratarPersonal. Carga no regenera ofertas.
+
+
 **Proyecto:** La Vida del Boxeo  
 **Versión:** 1.0  
 **Estado:** Contrato técnico para futuras implementaciones

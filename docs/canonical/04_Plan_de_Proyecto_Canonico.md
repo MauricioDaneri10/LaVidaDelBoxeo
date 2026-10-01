@@ -1,5 +1,10 @@
 # Plan de Proyecto Canónico
 
+## Actualización R3 aprobada — 2026-10-01
+
+R3 implementado según plan51, entrega mediante PR en borrador para decisión del usuario. Evidencia en informe52. No iniciar R4/R5/BOX15 ni fusionar/desplegar. Pages permanece manual/confirmada/main.
+
+
 **Proyecto:** La Vida del Boxeo  
 **Versión:** 1.0  
 **Estado:** Plan rector de trabajo y tiempos  

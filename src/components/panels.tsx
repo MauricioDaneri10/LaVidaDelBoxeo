@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CATEGORIAS, COMBOS, COMUNITARIOS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { recomendarEquipo } from "../game/market";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, estadoRecord, fmt, nivelGimnasio, puedeHabilitar, puedeProfesionalizar, proyeccionSemanalRecurrente, sucursales, totalPeleas, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, estadoRecord, fmt, nivelGimnasio, puedeContratarPersonal, puedeHabilitar, puedeProfesionalizar, proyeccionSemanalRecurrente, totalPeleas, valoracion } from "../game/engine";
 import { guardarEnRanura, useGame } from "../game/state";
 import { ATAJOS_DEFAULT, ATAJOS_LABELS, conflictosAtajos, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { CategoriaMercado, CursoId, PersonalId, Pugilista, RamaCurso } from "../game/types";
@@ -654,7 +654,6 @@ export function PanelPersonal() {
   const capacidadEscritorio = useResponsiveCapacity("(min-width: 1100px) and (min-height: 650px)");
   const porPagina = capacidadEscritorio ? 4 : 2;
   useEffect(() => setPagina(p => Math.min(p, Math.max(0, Math.ceil(tipos.length / porPagina) - 1))), [porPagina, tipos.length]);
-  const nSuc = sucursales(state);
   const flujoActual = proyeccionSemanalRecurrente(state).total;
 
   return (
@@ -670,13 +669,7 @@ export function PanelPersonal() {
         {tipos.slice(pagina * porPagina, pagina * porPagina + porPagina).map(t => {
           const info = PERSONAL_INFO[t];
           const contratados = state.personal.filter(p => p.tipo === t);
-          const limiteSucursal = info.multiple && contratados.length >= Math.max(nSuc, 1);
-          const requisito = info.requisito;
-          const requisitosPendientes = [
-            requisito?.semana && state.semana < requisito.semana ? `Semana ${requisito.semana}` : null,
-            requisito?.fama && state.fama < requisito.fama ? `${requisito.fama} de fama` : null,
-            requisito?.curso && !state.cursos.includes(requisito.curso) ? `Curso ${CURSOS[requisito.curso].nombre}` : null,
-          ].filter((texto): texto is string => Boolean(texto));
+          const disponibilidad = puedeContratarPersonal(state, t);
           const previsionTrasContratar = proyeccionSemanalRecurrente({
             ...state,
             personal: [...state.personal, { id: "prevision-nomina", tipo: t, nombre: "Previsión" }],
@@ -692,12 +685,13 @@ export function PanelPersonal() {
                 <div className="grid h-9 w-9 place-items-center border border-line bg-ink text-sand"><I n={info.icono} className="h-4 w-4" /></div>
               </div>
               <p className="staff-desc mt-2 min-h-[42px] font-cond text-xs text-sand" title={info.desc}><span className="text-cream">Aporta:</span> {info.desc}</p>
-              {contratacionPendiente === t && requiereConfirmacionFinanciera && (
+              {contratacionPendiente === t && disponibilidad.ok && requiereConfirmacionFinanciera && (
                 <div className="mt-2 border border-blood/60 bg-blood/10 p-2" role="status" aria-live="polite">
                   <p className="font-cond text-xs text-cream">Flujo recurrente después de contratar: <b className="text-blood">En contra {fmt(Math.abs(previsionTrasContratar))}/semana</b>.</p>
                   <p className="mt-1 font-cond text-[11px] text-sand">No cuenta subsidios, eventos ni patrocinios temporales. Podés asumir el costo, pero revisá cómo cubrirlo.</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Btn small variant="blood" onClick={() => {
+                      if (!puedeContratarPersonal(state, t).ok) return;
                       dispatch({ type: "CONTRATAR", tipo: t, confirmado: true });
                       setContratacionPendiente(null);
                     }}>Contratar igualmente</Btn>
@@ -716,23 +710,23 @@ export function PanelPersonal() {
                   ))}
                 </div>
               )}
-              {requisitosPendientes.length > 0 && !(contratados.length > 0 && !info.multiple) && (
+              {!disponibilidad.ok && !(contratados.length > 0 && !info.multiple) && (
                 <div className="mt-auto">
-                  <p className="pt-2 text-center font-cond text-[11px] leading-tight text-mut" title={`Requisitos pendientes: ${requisitosPendientes.join(" · ")}`}>
-                    Se habilita: {requisitosPendientes.join(" · ")}
+                  <p className="pt-2 text-center font-cond text-[11px] leading-tight text-mut" title={disponibilidad.mensaje}>
+                    {disponibilidad.mensaje}
                   </p>
                   <Btn small variant="dark" disabled className="mt-2 min-h-9 w-full justify-center">No disponible</Btn>
                 </div>
               )}
-              {(!info.multiple || !limiteSucursal) && requisitosPendientes.length === 0 && !(contratados.length > 0 && !info.multiple) && contratacionPendiente !== t && (
+              {disponibilidad.ok && (contratacionPendiente !== t || !requiereConfirmacionFinanciera) && (
                 <Btn small variant="gold" className="mt-auto min-h-9 w-full justify-center" onClick={() => {
+                  if (!puedeContratarPersonal(state, t).ok) return;
                   if (requiereConfirmacionFinanciera) setContratacionPendiente(t);
                   else dispatch({ type: "CONTRATAR", tipo: t });
                 }}>
-                  <I n="case" className="h-3.5 w-3.5" /> {contratacionPendiente === t && requiereConfirmacionFinanciera ? "Revisando costo" : "Contratar"} {info.multiple ? `(${contratados.length}/${Math.max(nSuc, 1)})` : ""}
+                  <I n="case" className="h-3.5 w-3.5" /> Contratar
                 </Btn>
               )}
-              {info.multiple && limiteSucursal && <p className="mt-2 font-cond text-[11px] text-mut">Cada puesto de sucursal requiere una sucursal propia.</p>}
             </div>
           );
         })}

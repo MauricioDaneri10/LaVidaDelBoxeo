@@ -3,15 +3,20 @@ import type { ReactNode } from "react";
 import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
 import {
   aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, capacidadPlantel, chance, clamp, consejoEsquina, crearEstadoBase,
-  elegir, fmt, generarEventos, ofertasValidasPara, genPugilista, nivelGimnasio, sanitizarEstado,
-  normalizarListaEspera, puedePactarPelea, puedeProfesionalizar, proyeccionSemanalRecurrente, sucursales, uid, valoracion,
-  crecerAtributo, enfoqueRecomendado, fechaDelJuego, peleasVencidas, puedeGuantear, validarResultadoCombate, validarCheckpointCombate,
+  elegir, fmt, generarEventos, ofertasValidasPara, ofertaValidaPara, genPugilista, nivelGimnasio, sanitizarEstado,
+  normalizarListaEspera, puedePactarPelea, puedeProfesionalizar, puedeContratarPersonal, proyeccionSemanalRecurrente, sucursales, uid, valoracion,
+  crecerAtributo, enfoqueRecomendado, fechaDelJuego, peleasVencidas, puedeGuantear, puedeEjecutarPelea, validarResultadoCombate, validarCheckpointCombate,
 } from "./engine";
 import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, Pugilista, ResultadoPelea, Toast } from "./types";
 import { repositorioPartidas, type EstadoGuardado } from "./saveRepository";
 export { CLAVE_GUARDADO } from "./saveRepository";
 export { migrarGuardado } from "./saveValidation";
 import { migrarGuardado } from "./saveValidation";
+import { consolidarConsejos, objetivoConsejo } from "./consejos";
+import type { Consejo } from "./types";
+import { weeklyEconomy, socialActivityIncome } from "./economy";
+import { objetivoConsejoCumplido } from "./consejos";
+export { objetivoConsejoCumplido } from "./consejos";
 
 let toastId = 1;
 export const listarPartidas = () => repositorioPartidas.listar();
@@ -30,28 +35,6 @@ function conToast(s: EstadoJuego, texto: string, tono: Toast["tono"] = "info"): 
 
 function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[] {
   return [...arr, { concepto, monto }];
-}
-
-/** Evalúa objetivos de Don Anselmo también para las recompensas repetibles c8+. */
-export function objetivoConsejoCumplido(id: string, s: EstadoJuego): boolean {
-  const numero = Number(id.match(/^c(\d+)$/)?.[1]);
-  if (!Number.isFinite(numero) || numero < 1) return false;
-  // Desde c8, la cadena alterna tres metas repetibles; los guardados antiguos
-  // ya pueden contener esos IDs aunque no tengan metadatos del objetivo.
-  const objetivo = numero >= 8 ? `c${((numero - 8) % 3) + 8}` : id;
-  const hitos: Record<string, () => boolean> = {
-    c1: () => s.plantel.some(p => p.rol === "boxeador"),
-    c2: () => s.stats.victorias > 0,
-    c3: () => s.equipamiento.length > 0,
-    c4: () => s.stats.veladas > 0,
-    c5: () => s.fama >= 40,
-    c6: () => s.cinturones.length > 0,
-    c7: () => s.personal.length > 0,
-    c8: () => s.recreativos >= 3,
-    c9: () => s.seguidores >= 1500,
-    c10: () => s.stats.victorias >= 3,
-  };
-  return hitos[objetivo]?.() ?? false;
 }
 
 // La capacidad del gimnasio cuenta a todo el plantel: alumnos, espera y boxeadores.
@@ -171,6 +154,8 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
 
   // Recaudación de la velada propia (se cobra el sábado)
   if (st.veladaProgramada) {
+    const validas = peleasVencidas(st).filter(pelea => puedeEjecutarPelea(st, pelea));
+    if (validas.length === 0) return conToast({ ...st, veladaProgramada: false }, "Velada cancelada: no hay combates válidos. No se cobraron entradas ni gastos de organización.", "info");
     const modificadores = calcularModificadores(st);
     let recaudado = 300 + st.fama * 18 + (st.equipamiento.includes("ringReglamentario") ? 200 : 0);
     recaudado *= modificadores.multiplicadorVelada;
@@ -194,47 +179,14 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   st.stats = { ...st.stats };
   const ingresosYaLiquidados = sumaLibro(st.libroIngresos);
   const gastosYaLiquidados = sumaLibro(st.libroGastos);
-  const nivel = nivelGimnasio(st);
+  const determinista = weeklyEconomy(st, { nivel: nivelGimnasio(st), multiplicadorMarca: calcularModificadores(st).multiplicadorMarca });
   // Incluye primero los movimientos concretos ocurridos durante la semana;
   // debajo se agregan cuotas, nómina, alquiler y liquidaciones del domingo.
-  let ingresos: LineaLibro[] = [...st.libroIngresos];
-  let gastos: LineaLibro[] = [...st.libroGastos];
+  let ingresos: LineaLibro[] = [...st.libroIngresos, ...determinista.ingresos];
+  const gastos: LineaLibro[] = [...st.libroGastos, ...determinista.gastos];
 
   // ---- INGRESOS ----
   const alumnos = alumnosActivos(st).length;
-  const boxeadores = st.plantel.filter(p => p.rol === "boxeador").length;
-  const cuotaUnit = 18 + 2 * (nivel - 1);
-  ingresos = linea(ingresos, `Cuotas de alumnos (${alumnos} × ${fmt(cuotaUnit)})`, alumnos * cuotaUnit);
-  if (st.recreativos > 0) ingresos = linea(ingresos, `Cuotas recreativas (${st.recreativos} × $10)`, st.recreativos * 10);
-  if (boxeadores > 0) ingresos = linea(ingresos, `Aporte del plantel federado (${boxeadores} × $12)`, boxeadores * 12);
-
-  if (st.semana === 1) ingresos = linea(ingresos, "Subsidio de apertura del club", 240);
-
-  const nSuc = sucursales(st);
-  const gerentes = st.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
-  const entrenadoresLocales = st.personal.filter(p => p.tipo === "entrenadorLocal").length;
-  if (nSuc > 0) {
-    const activas = Math.min(nSuc, gerentes);
-    if (activas > 0) {
-      let porSucursal = 650 + 8 * st.fama;
-      porSucursal += Math.min(activas, entrenadoresLocales) * 200;
-      if (st.cursos.includes("imperio")) porSucursal *= 1.5;
-      ingresos = linea(ingresos, `Ingresos pasivos de sucursales (${activas})`, Math.round(porSucursal * activas));
-    } else {
-      ingresos = linea(ingresos, "Sucursales sin gerente (sin ingresos)", 0);
-    }
-  }
-
-  if (st.marcaRopa && st.equipamiento.includes("estudioMarca")) {
-    let ventas = Math.round(st.fama * 6 + 40);
-    ventas = Math.round(ventas * calcularModificadores(st).multiplicadorMarca);
-    ingresos = linea(ingresos, `Ventas de la marca "${st.marcaRopa}"`, ventas);
-  }
-
-  if (st.patrocinio) {
-    ingresos = linea(ingresos, `Patrocinio de ${st.patrocinio.nombre}`, st.patrocinio.semanal);
-  }
-
   const derrotas = Math.max(0, st.stats.peleas - st.stats.victorias);
   const objetivoRecreativos = clamp(Math.floor(st.fama / 8) + (st.personal.some(p => p.tipo === "asistente") ? 2 : 0) - Math.floor(derrotas / 3), 0, 12);
   st.recreativos = clamp(st.recreativos + (objetivoRecreativos > st.recreativos ? 1 : objetivoRecreativos < st.recreativos ? -1 : 0), 0, 12);
@@ -242,7 +194,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
   st.comunitarios.forEach(c => {
     const info = COMUNITARIOS[c.tipo];
     let recaudado = azar(info.min, info.max);
-    recaudado = Math.round(recaudado * calcularModificadores(st).multiplicadorEventos);
+    recaudado = socialActivityIncome(recaudado, calcularModificadores(st).multiplicadorEventos);
     ingresos = linea(ingresos, `Dividendos: ${c.nombre}`, recaudado);
     if (c.tipo === "festival") st.fama = clamp(st.fama + 3, 0, 100);
     if (c.tipo === "bingo" && chance(0.5) && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st)) {
@@ -267,24 +219,15 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     .reduce((total, l) => total + l.monto, 0);
 
   // ---- GASTOS ----
-  if (!st.propiedades.includes("local")) {
-    gastos = linea(gastos, "Alquiler del local", 150);
-  }
-  const sueldos = st.personal.reduce((a, p) => a + PERSONAL_INFO[p.tipo].sueldo, 0);
-  if (sueldos > 0) {
-    gastos = linea(gastos, `Sueldos del personal (${st.personal.length})`, sueldos);
-  }
   // El cargo es proporcional en deudas pequeñas, pero tiene un techo para
   // evitar que el interés compuesto vuelva matemáticamente irrecuperable la partida.
   if (st.dinero < 0) {
-    const costoFinanciero = clamp(Math.ceil(Math.abs(st.dinero) * 0.03), 10, 50);
-    gastos = linea(gastos, "Costo financiero por caja negativa", costoFinanciero);
+    const costoFinanciero = determinista.gastos.find(g => g.concepto === "Costo financiero por caja negativa")!.monto;
     st = conToast(st, `La caja está en negativo: se suma un costo financiero de ${fmt(costoFinanciero)}.`, "alerta");
   }
 
   if (st.prestamo && st.prestamo.saldo > 0) {
     const cuota = Math.min(st.prestamo.cuota, st.prestamo.saldo);
-    gastos = linea(gastos, `Cuota del préstamo (${st.prestamo.semanasRestantes} restantes)`, cuota);
     st.prestamo = { ...st.prestamo, saldo: st.prestamo.saldo - cuota, semanasRestantes: Math.max(0, st.prestamo.semanasRestantes - 1) };
     if (st.prestamo.saldo <= 0) {
       st.prestamo = null;
@@ -479,6 +422,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!of || !s.ofertasPara) return s;
       const peleador = s.plantel.find(p => p.id === s.ofertasPara);
       if (!peleador) return s;
+      if (!ofertaValidaPara(peleador, of, s)) return conToast(s, "Esta oferta antigua no es válida. Volvé a buscar rival para generar ofertas nuevas sin costo; tu cartelera confirmada se conserva.", "alerta");
       const validacion = puedePactarPelea(peleador, s);
       if (!validacion.ok) {
         const mensaje = validacion.motivo === "cooldown"
@@ -602,13 +546,8 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
 
     case "CONTRATAR": {
       const info = PERSONAL_INFO[a.tipo];
-      if (!info.multiple && s.personal.some(p => p.tipo === a.tipo)) return conToast(s, "Ese puesto ya está cubierto.", "info");
-      if ((a.tipo === "gerente" || a.tipo === "coordinadorSucursal" || a.tipo === "entrenadorLocal") && s.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length >= sucursales(s))
-        return conToast(s, "Necesitás una sucursal más para ese puesto.", "alerta");
-      const req = info.requisito;
-      if (req?.semana && s.semana < req.semana) return conToast(s, `${info.nombre} se habilita a partir de la semana ${req.semana}.`, "info");
-      if (req?.fama && s.fama < req.fama) return conToast(s, `${info.nombre} requiere ${req.fama} de fama.`, "info");
-      if (req?.curso && !s.cursos.includes(req.curso)) return conToast(s, `Necesitás el curso ${CURSOS[req.curso].nombre}.`, "info");
+      const disponibilidad = puedeContratarPersonal(s, a.tipo);
+      if (!disponibilidad.ok) return conToast(s, disponibilidad.mensaje ?? "Este puesto no está disponible.", "alerta");
       const personalPrevisto = [...s.personal, { id: "prevision-nomina", tipo: a.tipo, nombre: "Previsión" }];
       const proyeccionTrasContratar = proyeccionSemanalRecurrente({ ...s, personal: personalPrevisto });
       if (proyeccionTrasContratar.total < 0 && !a.confirmado) {
@@ -665,7 +604,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!s.cursos.includes("veladas")) return conToast(s, "Requiere el curso de Organización de Veladas.", "alerta");
       if (!s.veladaProgramada && s.dia >= 6) return conToast(s, "Ya es fin de semana: agendala el lunes.", "info");
       return conToast({ ...s, veladaProgramada: !s.veladaProgramada },
-        s.veladaProgramada ? "Velada cancelada. El público lo entenderá." : "Velada programada para el sábado: las entradas se cobran ese día.", "info");
+        s.veladaProgramada ? "Velada cancelada. El público lo entenderá." : "Velada tentativa para el sábado: requiere al menos un combate válido; si no lo hay, se cancela sin cargo.", "info");
     }
 
     case "PROGRAMAR_SOCIAL": {
@@ -775,22 +714,16 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
 
     case "RECLAMAR_CONSEJO": {
       const c = s.consejos.find(x => x.id === a.id);
-      if (!c || !c.cumplido || c.reclamado) return s;
-      const siguienteNumero = Math.max(0, ...s.consejos.map(x => Number(x.id.match(/^c(\d+)$/)?.[1]) || 0)) + 1;
-      const siguienteId = `c${siguienteNumero}`;
-      const nuevos = [
-        { texto: "Sumá tres alumnos recreativos para sostener la caja del club.", fama: 1, dinero: 60 },
-        { texto: "Llegá a 1.500 seguidores y hacé conocido el nombre del gimnasio.", fama: 2, dinero: 80 },
-        { texto: "Ganá tres peleas oficiales y consolidá tu primera camada.", fama: 2, dinero: 120 },
-      ];
-      const indiceRecompensa = ((siguienteNumero - 8) % nuevos.length + nuevos.length) % nuevos.length;
-      const recompensa = nuevos[indiceRecompensa];
+      const objetivo = c && objetivoConsejo(c.id);
+      if (!c || !objetivo || !c.cumplido || c.reclamado || c.archivado) return s;
+      const derechos = s.consejos.filter(x => objetivoConsejo(x.id) === objetivo);
+      if (derechos.some(x => x.reclamado) || derechos.find(x => !x.archivado)?.id !== c.id) return s;
       return conToast({
         ...s,
-        consejos: [...s.consejos.map(x => x.id === a.id ? { ...x, reclamado: true } : x), { id: siguienteId, texto: recompensa.texto, fama: recompensa.fama, dinero: recompensa.dinero, cumplido: false, reclamado: false }],
+        consejos: consolidarConsejos(s.consejos.map(x => x.id === a.id ? { ...x, reclamado: true } : x)) as Consejo[],
         fama: clamp(s.fama + c.fama, 0, 100),
         dinero: s.dinero + (c.dinero ?? 0),
-      }, `Don Anselmo asiente: +${c.fama} de fama${c.dinero ? ` y ${fmt(c.dinero)}` : ""}. Hay un nuevo consejo disponible.`, "oro");
+      }, `Don Anselmo asiente: +${c.fama} de fama${c.dinero ? ` y ${fmt(c.dinero)}` : ""}. Hito único cobrado.`, "oro");
     }
 
     case "SCOUT": {

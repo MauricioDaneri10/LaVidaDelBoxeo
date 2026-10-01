@@ -159,7 +159,7 @@ export interface PatrocinioActivo { nombre: string; semanal: number; semanas: nu
 export type TipoComunitario = "bingo" | "naipes" | "festival" | "claseAbierta";
 export interface ComunitarioProgramado { tipo: TipoComunitario; nombre: string; }
 export interface PrestamoActivo { saldo: number; cuota: number; semanasRestantes: number; }
-export interface Consejo { id: string; texto: string; fama: number; dinero?: number; cumplido: boolean; reclamado: boolean; }
+export interface Consejo { id: string; texto: string; fama: number; dinero?: number; cumplido: boolean; reclamado: boolean; archivado?: boolean; motivoArchivo?: string; }
 export interface NotaPrensa { id: string; semana: number; texto: string; }
 export interface Cinturon { id: string; dueno: string; nivel: 1 | 2 | 3 | 4; semana: number; }
 export interface EntradaSalonFama {
@@ -187,6 +187,7 @@ export type PropiedadId = "local" | "terreno" | "sucursal" | "apartamento" | "ma
 
 export interface EstadoJuego {
   combateActivo: import("./engine").EstadoPelea | null;
+  contratosTitularesHistoricos?: string[];
   version: number;
   schemaVersion: number;
   creado: boolean;

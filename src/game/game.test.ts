@@ -156,29 +156,31 @@ describe("reglas principales de La Vida del Boxeo", () => {
     expect(resultado.eventos.every(e => e.venceEn === 4)).toBe(true);
   });
 
-  it("mantiene alcanzables las metas repetibles de Don Anselmo más allá de c10", () => {
+  it("mantiene alcanzables los tres hitos únicos de Anselmo sin derechos repetibles", () => {
     const base = crearEstadoBase();
-    expect(objetivoConsejoCumplido("c11", { ...base, recreativos: 3 })).toBe(true);
-    expect(objetivoConsejoCumplido("c12", { ...base, seguidores: 1500 })).toBe(true);
-    expect(objetivoConsejoCumplido("c13", { ...base, stats: { ...base.stats, victorias: 3 } })).toBe(true);
-    expect(objetivoConsejoCumplido("c14", { ...base, recreativos: 3 })).toBe(true);
-    expect(objetivoConsejoCumplido("c15", { ...base, seguidores: 1500 })).toBe(true);
+    expect(objetivoConsejoCumplido("c8", { ...base, recreativos: 3 })).toBe(true);
+    expect(objetivoConsejoCumplido("c9", { ...base, seguidores: 1500 })).toBe(true);
+    expect(objetivoConsejoCumplido("c10", { ...base, stats: { ...base.stats, victorias: 3 } })).toBe(true);
+    expect(objetivoConsejoCumplido("c11", { ...base, recreativos: 3 })).toBe(false);
+    expect(objetivoConsejoCumplido("c14", { ...base, recreativos: 3 })).toBe(false);
+    expect(objetivoConsejoCumplido("c15", { ...base, seguidores: 1500 })).toBe(false);
     expect(objetivoConsejoCumplido("c10", { ...base, stats: { ...base.stats, peleas: 20, victorias: 2 } })).toBe(false);
   });
 
-  it("genera un solo consejo siguiente y acredita una sola vez la recompensa", () => {
+  it("no genera consejos sucesores y acredita una sola vez la recompensa", () => {
     const base = crearEstadoBase();
     const consejos = [
-      ...base.consejos.map(c => ({ ...c, cumplido: true, reclamado: true })),
-      { id: "c10", texto: "Ganá tres peleas oficiales.", fama: 2, cumplido: true, reclamado: false },
+      ...base.consejos.map(c => ({ ...c, cumplido: true, reclamado: c.id !== "c10" })),
     ];
     const lista = { ...base, consejos };
     const cobrado = reductor(lista, { type: "RECLAMAR_CONSEJO", id: "c10" });
-    expect(cobrado.consejos.filter(c => c.id === "c11")).toHaveLength(1);
+    expect(cobrado.consejos.filter(c => c.id === "c11")).toHaveLength(0);
     expect(cobrado.consejos.find(c => c.id === "c10")?.reclamado).toBe(true);
     const repetido = reductor(cobrado, { type: "RECLAMAR_CONSEJO", id: "c10" });
     expect(repetido.consejos).toHaveLength(cobrado.consejos.length);
     expect(repetido.fama).toBe(cobrado.fama);
+    expect(cobrado.dinero - lista.dinero).toBe(120);
+    expect(repetido.dinero).toBe(cobrado.dinero);
   });
 
   it("refleja al representante contratado y rechaza una segunda contratación única", () => {
@@ -932,8 +934,9 @@ describe("reglas principales de La Vida del Boxeo", () => {
       "Cuotas recreativas (3 × $10)",
       "Ingresos pasivos de sucursales (1)",
       'Ventas de la marca "Daneri Fightwear"',
-      "Dividendos estimados: Bingo",
     ]));
+    expect(proyeccion.ingresos.map(l => l.concepto)).not.toContain("Dividendos estimados: Bingo");
+    expect(proyeccion.estimados).toEqual([{ concepto: "Dividendos estimados: Bingo", min: 250, max: 420, mean: 335 }]);
     expect(proyeccion.gastos.map(l => l.concepto)).toContain("Costo financiero por caja negativa");
   });
 
