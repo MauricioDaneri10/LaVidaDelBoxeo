@@ -5,8 +5,23 @@
 
 let ctx: AudioContext | null = null;
 let maestro: GainNode | null = null;
+let habilitado = (() => {
+  try { return localStorage.getItem("vida-del-boxeo:sonido") !== "off"; } catch { return true; }
+})();
+
+export function audioHabilitado(): boolean { return habilitado; }
+export function setAudioHabilitado(valor: boolean) {
+  habilitado = valor;
+  try { localStorage.setItem("vida-del-boxeo:sonido", valor ? "on" : "off"); } catch { /* preferencia opcional */ }
+  if (!valor && ctx) {
+    void ctx.suspend();
+  } else if (valor && ctx) {
+    void ctx.resume();
+  }
+}
 
 function contexto(): AudioContext | null {
+  if (!habilitado) return null;
   try {
     if (!ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;

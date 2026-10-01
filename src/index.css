@@ -16,33 +16,183 @@
   --color-win: #4ecb71;
   --color-neonc: #38e0cf;
   --color-neonm: #ff4fa0;
-  --font-display: "Bebas Neue", "Barlow Condensed", sans-serif;
-  --font-cond: "Barlow Condensed", "Barlow", sans-serif;
-  --font-body: "Barlow", sans-serif;
+  --font-display: "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-cond: "Segoe UI", Tahoma, sans-serif;
+  --font-body: "Segoe UI", Tahoma, sans-serif;
 }
+
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+::selection { background: rgba(232, 178, 58, 0.35); color: var(--color-cream); }
 
 html, body {
   background: var(--color-ink);
   color: var(--color-cream);
   font-family: var(--font-body);
   min-height: 100%;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
 }
 
 /* fondo ambiental de sala de boxeo */
 .fondo-app {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
   background:
-    radial-gradient(900px 480px at 70% -10%, rgba(232, 178, 58, 0.07), transparent 60%),
-    radial-gradient(700px 500px at 0% 110%, rgba(212, 52, 44, 0.06), transparent 60%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 4px),
+    radial-gradient(900px 480px at 80% -10%, rgba(232, 178, 58, 0.10), transparent 62%),
+    radial-gradient(700px 500px at -10% 90%, rgba(212, 52, 44, 0.08), transparent 62%),
+    linear-gradient(135deg, rgba(255,255,255,.018) 25%, transparent 25%) 0 0 / 6px 6px,
+    linear-gradient(315deg, rgba(255,255,255,.012) 25%, transparent 25%) 0 0 / 6px 6px,
     var(--color-ink);
 }
 
-.panel {
-  background: linear-gradient(180deg, var(--color-panel2), var(--color-panel));
-  border: 1px solid var(--color-line);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+.fondo-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.32) 100%);
 }
-.hard-shadow { box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45); }
+
+.panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.035), transparent 35%),
+    linear-gradient(180deg, rgba(38,32,25,.98), rgba(25,20,15,.98));
+  border: 1px solid rgba(185, 138, 34, .24);
+  border-radius: 18px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 16px 38px rgba(0, 0, 0, 0.28);
+}
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232,178,58,.55), transparent);
+  opacity: .6;
+  pointer-events: none;
+}
+.hard-shadow { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
+
+/* Marco visual del Panel del Club: una bandeja holográfica cerrada, sin sumar ruido. */
+.club-panel {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(38, 32, 25, .96), rgba(20, 16, 12, .98)),
+    radial-gradient(circle at 50% 0%, rgba(56, 224, 207, .08), transparent 48%);
+  border: 1px solid rgba(56, 224, 207, .24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px rgba(232,178,58,.06), -10px 0 28px rgba(0,0,0,.24), 0 14px 34px rgba(0,0,0,.28);
+}
+.club-panel::before,
+.club-panel::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+.club-panel::before {
+  inset: 0;
+  background: linear-gradient(135deg, rgba(56,224,207,.08), transparent 24%, transparent 72%, rgba(232,178,58,.06));
+}
+.club-panel::after {
+  left: 10%;
+  right: 10%;
+  bottom: 5px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56,224,207,.65), transparent);
+  box-shadow: 0 0 12px rgba(56,224,207,.2);
+}
+.club-panel > * { position: relative; z-index: 1; }
+
+.app-footer { background: rgba(20,16,12,.72); }
+.fight-screen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  height: 100dvh;
+  min-height: 0;
+  background-color: var(--color-ink);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold2) var(--color-panel);
+}
+.fight-screen-content { min-height: 100%; }
+.fight-plan-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fight-plan-option { min-height: 2.6rem; }
+.fight-round-button { min-height: 2.4rem; }
+@media (max-height: 680px) {
+  .fight-screen-overlay { padding: .35rem !important; }
+  .fight-screen-content { gap: .35rem !important; }
+  .fight-heading > div:first-child { font-size: .58rem; letter-spacing: .22em; }
+  .fight-heading h1 { font-size: 1.45rem; line-height: 1.05; }
+  .fight-status-card { padding: .4rem !important; border-radius: .75rem; }
+  .fight-status-card .font-display { font-size: 1.05rem; }
+  .fight-status-card .font-cond { font-size: .58rem; }
+  .fight-status-card .stat-bar { height: .4rem; }
+  .fight-ring { height: clamp(120px, 23vh, 180px) !important; border-radius: 1rem; }
+  .fight-ring > div:first-child { height: 2.5rem; }
+  .fight-ring > div:first-child .anim-bob { width: .75rem; height: .75rem; }
+  .fight-details { gap: .35rem !important; }
+  .fight-stats-panel, .fight-controls-panel { padding: .45rem !important; border-radius: .75rem; }
+  .fight-stats-panel { gap: .25rem !important; }
+  .fight-stats-panel table { font-size: .68rem; }
+  .fight-stats-panel th { font-size: .53rem; }
+  .fight-stats-panel td { padding-top: .15rem; padding-bottom: .15rem; }
+  .fight-controls-panel { justify-content: flex-start; }
+  .fight-corner-content { display: flex; flex-direction: column; gap: .3rem !important; }
+  .fight-corner-content > div:first-child { font-size: .76rem; padding-bottom: .2rem; }
+  .fight-plan-list { gap: .2rem !important; }
+  .fight-plan-option { min-height: 2rem; padding: .25rem .35rem !important; gap: .35rem; }
+  .fight-plan-option svg { width: .75rem; height: .75rem; }
+  .fight-plan-option .font-display { font-size: .64rem; }
+  .fight-plan-option .font-cond { font-size: .52rem; }
+  .fight-round-button { min-height: 1.8rem; margin-top: .1rem !important; padding-top: .25rem; padding-bottom: .25rem; font-size: .7rem; }
+}
+@media (max-width: 640px) {
+  .fight-details { grid-template-columns: minmax(0, 1fr); }
+  .fight-plan-list { grid-template-columns: minmax(0, 1fr); }
+  .fight-ring { min-height: 145px; }
+}
+.plantel-grid > .panel { min-height: 126px; }
+.roster-cards > .roster-card { min-height: 126px; }
+.roster-cards { flex: 1 0 auto; grid-auto-rows: minmax(126px, auto); }
+.roster-avatar { transition: width .18s ease, height .18s ease; }
+.staff-grid > .staff-card { min-height: 0; }
+.app-main > .staff-screen { gap: .4rem; }
+.staff-screen > * + * { margin-top: 0 !important; }
+.calendar-grid > div { min-height: 0; }
+.calendar-screen > * + * { margin-top: 0 !important; }
+.calendar-day-cell { padding: .45rem !important; }
+.calendar-day-cell > :nth-child(2) { margin-bottom: .35rem !important; }
+.calendar-summary { gap: .35rem !important; padding: .5rem !important; }
+.calendar-summary > div { padding: .4rem !important; line-height: 1.15; }
+.calendar-agenda { padding: .55rem !important; }
+.calendar-agenda-list { gap: .35rem !important; }
+.calendar-agenda-list article { min-width: 0; }
+.calendar-agenda-list article > p { line-height: 1.2; }
+.profile-branch-panel { min-height: 5rem; place-items: center; }
+.profile-branch-panel > .profile-branch-card { min-width: 0; }
+.profile-branch-card { align-self: center; }
+.profile-property-grid { align-content: center; }
+.profile-course-card > .btn-poster { width: 100%; min-height: 1.8rem; padding: .25rem .4rem; font-size: .68rem; line-height: 1.1; }
+.profile-property-card > div:first-child { min-height: 2rem; }
+.profile-property-card .font-display { font-size: .82rem; line-height: 1.15; }
+.city-inspector-copy { flex-shrink: 0; }
 
 .btn-poster {
   font-family: var(--font-display);
@@ -52,18 +202,42 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 10px;
   transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.28), 0 8px 18px rgba(0, 0, 0, .14);
   cursor: pointer;
   user-select: none;
 }
-.btn-poster:hover:not(:disabled) { filter: brightness(1.12); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45); }
-.btn-poster:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4); }
+.btn-poster:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.28), 0 12px 24px rgba(0, 0, 0, .22); }
+.btn-poster:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
 .btn-poster:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
-.stat-bar { height: 8px; background: #120e09; border: 1px solid var(--color-line); position: relative; overflow: hidden; }
+button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+.stat-bar { height: 8px; background: #120e09; border: 1px solid rgba(185,138,34,.28); border-radius: 999px; position: relative; overflow: hidden; }
 .stat-bar i { position: absolute; inset: 0 auto 0 0; transition: width 0.5s ease; }
+
+/* Lenguaje visual común para tarjetas interactivas y estados de la interfaz. */
+.panel button:not(.btn-poster) { transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
+.panel button:not(.btn-poster):hover { border-color: rgba(232,178,58,.5); }
+.text-balance { text-wrap: balance; }
+.keycap {
+  display: inline-flex;
+  min-width: 1.55rem;
+  justify-content: center;
+  border: 1px solid var(--color-line2);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--color-ink);
+  color: var(--color-gold);
+  padding: .08rem .3rem;
+  font-family: var(--font-cond);
+  font-size: .68rem;
+  font-weight: 700;
+}
 
 .scroll-fino::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-fino::-webkit-scrollbar-thumb { background: var(--color-line2); }
@@ -86,8 +260,8 @@ html, body {
 
 @keyframes ropeJump { 0%, 100% { transform: translateY(0) scaleY(1); } 40% { transform: translateY(-9px) scaleY(1.02); } 60% { transform: translateY(-9px); } }
 .anim-salto { animation: ropeJump 0.72s ease-in-out infinite; }
-@keyframes ropeArc { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.anim-cuerda { animation: ropeArc 0.72s linear infinite; transform-origin: 50% 12%; }
+@keyframes ropeSwing { 0%, 100% { transform: rotate(-10deg) scaleY(0.98); } 50% { transform: rotate(10deg) scaleY(1); } }
+.anim-cuerda { animation: ropeSwing 0.72s ease-in-out infinite; transform-origin: 50% 50%; }
 
 @keyframes sombraBox { 0%, 100% { transform: translateX(0) rotate(0); } 30% { transform: translateX(-3px) rotate(-2deg); } 60% { transform: translateX(3px) rotate(2deg); } }
 .anim-sombra { animation: sombraBox 1.6s ease-in-out infinite; }
@@ -133,3 +307,157 @@ html, body {
 
 @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 .anim-latido { animation: latido 1.6s ease-in-out infinite; }
+
+button, input { font: inherit; }
+button { line-height: 1.2; }
+
+html.texto-grande { font-size: 112%; }
+html.alto-contraste {
+  --color-mut: #f0d9aa;
+  --color-line: #766348;
+  --color-line2: #a58d68;
+}
+html.movimiento-reducido *,
+html.movimiento-reducido *::before,
+html.movimiento-reducido *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+@media (max-width: 700px) {
+  .panel { border-radius: 14px; }
+  .btn-poster { letter-spacing: .045em; }
+  .fondo-app::after { background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.2)); }
+}
+
+@media (max-height: 800px) and (min-width: 701px) {
+  .calendar-screen > .panel:first-child { padding: .35rem .55rem !important; }
+  .calendar-screen > .panel:first-child h2 { font-size: 1rem; line-height: 1.1; }
+  .calendar-grid { flex: 0 0 4.5rem !important; }
+  .calendar-day-cell { padding: .3rem !important; }
+  .calendar-summary > div { padding: .25rem .35rem !important; font-size: .62rem !important; }
+  .calendar-agenda > div:first-child { margin-bottom: .3rem !important; }
+  .calendar-agenda-list article { padding: .35rem !important; }
+  .calendar-agenda-list article > p { margin-top: .15rem !important; font-size: .62rem !important; }
+  .calendar-agenda-list article > div:last-child { margin-top: .25rem !important; }
+  .profile-summary { gap: .15rem !important; padding: .1rem !important; }
+  .profile-summary h2 { font-size: .95rem !important; line-height: 1.05 !important; }
+  .profile-summary p { font-size: .62rem !important; line-height: 1.1 !important; }
+  .profile-summary .mt-2 { margin-top: .2rem !important; }
+  .profile-summary .grid > div { padding: .1rem .2rem !important; }
+  .profile-summary .grid > div > div:first-child { font-size: .88rem !important; line-height: 1 !important; }
+  .profile-summary .grid > div > div:last-child { font-size: .52rem !important; line-height: 1 !important; }
+  .profile-summary > div:last-child { gap: .15rem !important; padding-top: .1rem !important; }
+  .profile-summary > div:last-child > span { font-size: .58rem !important; line-height: 1.1 !important; }
+  .profile-subnav { gap: .25rem !important; }
+  .profile-subnav > div { padding: .15rem !important; }
+  .profile-subnav > div button { min-height: 1.1rem !important; padding: .1rem .35rem !important; font-size: .58rem !important; line-height: 1 !important; }
+  .profile-subnav > .btn-poster { min-height: 1.1rem !important; padding: .05rem .25rem !important; font-size: .5rem !important; }
+  .profile-courses { gap: 0 !important; }
+  .profile-courses > h3, .profile-properties > h3 { margin-bottom: .1rem !important; font-size: .72rem !important; line-height: 1 !important; }
+  .profile-courses .mb-2 { margin-bottom: .15rem !important; }
+  .profile-courses .profile-branch-tab { min-height: 1.4rem !important; padding: .1rem .4rem !important; font-size: .58rem !important; line-height: 1 !important; }
+  .profile-courses .profile-branch-tab svg { height: .7rem !important; width: .7rem !important; }
+  .profile-branch-card { padding: .2rem !important; }
+  .profile-branch-title { margin: 0 0 .1rem !important; font-size: .62rem !important; line-height: 1 !important; }
+  .profile-course-grid { gap: .25rem !important; }
+  .profile-course-card { gap: .15rem !important; padding: .25rem !important; }
+  .profile-course-card > div > div:first-child { font-size: .62rem !important; line-height: 1 !important; }
+  .profile-course-card > div > p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 1; margin-top: .1rem !important; font-size: .53rem !important; line-height: 1.05 !important; }
+  .profile-course-card > .btn-poster { min-height: 1.15rem !important; padding: .1rem .2rem !important; font-size: .5rem !important; }
+  .profile-properties { gap: 0 !important; }
+  .profile-property-grid { grid-auto-rows: max-content; }
+  .profile-property-card { padding: .25rem !important; }
+  .profile-property-card > div:first-child { min-height: 0 !important; }
+  .profile-property-card .font-display { overflow: hidden; font-size: .56rem !important; line-height: 1 !important; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-property-card .font-cond { overflow: hidden; font-size: .48rem !important; line-height: 1 !important; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-height: 800px) and (min-width: 701px) {
+  .profile-courses > h3, .profile-properties > h3, .profile-branch-title { display: none !important; }
+  .profile-courses .profile-branch-tab { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > div button { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > .btn-poster { min-height: 1rem !important; padding: .025rem .2rem !important; }
+  .profile-branch-card { padding: .1rem !important; }
+  .profile-course-card { gap: .05rem !important; padding: .08rem !important; }
+  .profile-property-card { padding: .15rem !important; }
+  .profile-property-card .font-cond { font-size: .42rem !important; }
+  .profile-property-card .font-display { font-size: .5rem !important; }
+  .game-screen .profile-properties .profile-property-card { padding: .08rem !important; }
+}
+
+/* Las ventanas normales de escritorio tienen menos altura que la pantalla completa. */
+@media (max-height: 950px) and (min-width: 701px) {
+  .fondo-app > .flex-1 { gap: .5rem; padding-top: .5rem; padding-bottom: .5rem; }
+  .app-nav { margin-bottom: .4rem !important; padding: .25rem !important; gap: .25rem !important; }
+  .app-nav button { padding: .35rem .6rem !important; font-size: .78rem !important; }
+  .action-banner { margin-bottom: .35rem !important; padding-top: .25rem !important; padding-bottom: .25rem !important; }
+  .forecast-strip { margin-bottom: .5rem !important; padding: .35rem .6rem !important; gap: .35rem 1rem !important; font-size: .72rem !important; }
+  .app-main > .game-screen { gap: .35rem !important; }
+  .market-card { min-height: 108px !important; padding: .45rem !important; }
+  .market-card .min-h-\[42px\] { min-height: 32px !important; }
+  .market-card .min-h-\[24px\], .market-card .min-h-\[22px\] { min-height: 16px !important; }
+  .market-card .mt-3 { margin-top: .35rem !important; }
+  .staff-card { min-height: 170px !important; padding: .65rem !important; }
+  .staff-card .mt-2 { margin-top: .35rem !important; }
+  .staff-card .min-h-\[42px\] { min-height: 30px !important; }
+  .staff-card > div:first-child > div:first-child > div:first-child { font-size: .9rem !important; line-height: 1.05 !important; }
+  .staff-card > p { margin-top: .25rem !important; min-height: 28px !important; font-size: .65rem !important; line-height: 1.15 !important; }
+  .staff-card .mt-3 { margin-top: .35rem !important; }
+  .staff-header { gap: .35rem .8rem !important; padding: .4rem .6rem !important; }
+  .staff-header h2 { font-size: 1.1rem !important; line-height: 1.1 !important; }
+  .staff-header > span { font-size: .68rem !important; }
+  .staff-card > .staff-desc { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-height: 25px !important; font-size: .61rem !important; line-height: 1.1 !important; }
+  .staff-pagination .btn-poster { min-height: 1.5rem !important; padding: .1rem .5rem !important; font-size: .68rem !important; line-height: 1 !important; }
+  .plantel-grid > .panel { min-height: 112px !important; }
+  .roster-cards { grid-auto-rows: minmax(112px, auto); }
+  .profile-branch-panel { display: grid !important; min-height: 0 !important; }
+  .profile-courses { gap: .15rem !important; }
+  .profile-courses > .mb-2 { margin-bottom: .2rem !important; }
+  .profile-courses > h3 { margin-bottom: .25rem !important; font-size: .95rem !important; }
+  .profile-branch-card { padding: .35rem !important; }
+  .profile-branch-title { margin-bottom: 0 !important; font-size: .82rem !important; }
+  .profile-course-grid { gap: .35rem !important; }
+  .profile-course-card { gap: .25rem !important; padding: .4rem !important; }
+  .profile-course-card > div > div:first-child { gap: .25rem !important; font-size: .72rem !important; }
+  .profile-course-card > div > p { margin-top: .2rem !important; font-size: .62rem !important; line-height: 1.15 !important; }
+  .profile-course-card > .btn-poster { min-height: 1.45rem !important; padding: .15rem .25rem !important; font-size: .58rem !important; }
+  .profile-properties { gap: .15rem !important; }
+  .profile-properties > h3 { margin-bottom: .25rem !important; font-size: .95rem !important; }
+  .profile-property-card { padding: .4rem !important; }
+  .profile-property-card > div:first-child { min-height: 0; gap: .25rem !important; }
+  .profile-property-card .font-display { font-size: .68rem !important; }
+  .profile-property-card p { font-size: .6rem !important; line-height: 1.12 !important; }
+  .roster-avatar { width: 2.75rem !important; height: 2.75rem !important; }
+  .boxer-sheet-content { font-size: .88em !important; }
+  .boxer-sheet-main { gap: .45rem !important; }
+  .boxer-sheet-right, .boxer-sheet-left { gap: .4rem !important; }
+  .boxer-sheet-right > .panel, .boxer-sheet-left > .panel { padding: .5rem !important; }
+  .boxer-sheet-right .min-h-\[56px\] { min-height: 46px !important; }
+  .boxer-sheet-right .p-2\.5 { padding: .45rem !important; }
+  .boxer-sheet-left > div:first-child { height: 5.5rem !important; }
+}
+
+@media (min-width: 1440px) and (min-height: 850px) {
+  .roster-avatar { width: 3.5rem; height: 3.5rem; }
+}
+
+/* La regla de altura corta debe ganar sobre los ajustes genéricos de escritorio. */
+@media (max-height: 800px) and (min-width: 701px) {
+  .profile-courses > h3, .profile-properties > h3, .profile-branch-title { display: none !important; }
+  .profile-courses .profile-branch-tab { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > div button { min-height: 1rem !important; padding: .05rem .3rem !important; }
+  .profile-subnav > .btn-poster { min-height: 1rem !important; padding: .025rem .2rem !important; }
+  .profile-branch-card { padding: .1rem !important; }
+  .profile-course-card { gap: .05rem !important; padding: .08rem !important; }
+  .profile-property-grid { grid-auto-rows: max-content; }
+  .profile-property-card { padding: .15rem !important; }
+  .profile-property-card .font-cond { font-size: .42rem !important; }
+  .profile-property-card .font-display { font-size: .5rem !important; }
+}
