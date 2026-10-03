@@ -53,6 +53,9 @@ interface DockLateralProps {
   lado?: "escritorio" | "movil";
   onNavegarPestana?: (p: "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal") => void;
   onSeleccionarBoxeador?: (id: string) => void;
+  abierto?: boolean;
+  onCerrar?: () => void;
+  accesoEnNavegacion?: boolean;
 }
 
 export default function DockLateral({
@@ -60,6 +63,9 @@ export default function DockLateral({
   setPestana = () => {},
   lado = "escritorio",
   onNavegarPestana,
+  abierto,
+  onCerrar,
+  accesoEnNavegacion = false,
   onSeleccionarBoxeador,
 }: DockLateralProps) {
   const { state, dispatch } = useGame();
@@ -247,8 +253,8 @@ export default function DockLateral({
   // Versión compacta para pantallas móviles
   return (
     <div className="rounded-t-2xl border-t border-line bg-panel/95 select-none shadow-[0_-12px_28px_rgba(0,0,0,.25)]">
-      <Btn small variant="ghost" className="w-full" onClick={() => setMovilAbierto(true)}><I n="phone" />Panel del club{hayPendientes ? " · Asuntos pendientes" : ""}</Btn>
-      {movilAbierto && <Modal title="Panel del club" icon="phone" onClose={() => setMovilAbierto(false)}>
+      {!accesoEnNavegacion && <Btn small variant="ghost" className="w-full" onClick={() => setMovilAbierto(true)}><I n="phone" />Panel del club{hayPendientes ? " · Asuntos pendientes" : ""}</Btn>}
+      {(abierto || movilAbierto) && <Modal title="Panel del club" icon="phone" onClose={() => { setMovilAbierto(false); onCerrar?.(); }}>
           <select aria-label="Canal del panel del club" value={pestana} onChange={e => setPestana(e.target.value as PestanaDock)} className="mb-2 min-h-11 w-full rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">
             {tabs.map(t => <option key={t.id} value={t.id}>{t.nombre}{t.badge ? ` · ${t.badge} pendientes` : ""}</option>)}
           </select>

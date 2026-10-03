@@ -1,21 +1,41 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { COMUNITARIOS, GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
 import { fmt, rankingMundial, sucursales } from "../game/engine";
 import { useGame } from "../game/state";
 import type { PropiedadId } from "../game/types";
 import { BotonBrillante, Btn, I, Modal } from "./ui";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import { useMessages } from "../i18n";
 
 interface CityMapProps {
   onIrAPestaña?: (pestana: string) => void;
 }
 
 export function CityMap({ onIrAPestaña }: CityMapProps) {
+  const { t } = useMessages();
   const { state, dispatch, nivel } = useGame();
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const [rankingPagina, setRankingPagina] = useState(0);
   const [salonAbierto, setSalonAbierto] = useState(false);
+  const [inspectorAbierto, setInspectorAbierto] = useState(false);
+  const [seccionInmueble, setSeccionInmueble] = useState("detalle");
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
+  const mapaRef = useRef<SVGSVGElement>(null);
+  const [radioAccion, setRadioAccion] = useState(36);
+  useEffect(() => {
+    const svg = mapaRef.current;
+    if (!svg) return;
+    const ajustar = () => {
+      const scale = Math.min(svg.clientWidth / 1000, svg.clientHeight / 600);
+      if (scale > 0) setRadioAccion(Math.max(22, 24 / scale));
+    };
+    const observer = new ResizeObserver(ajustar);
+    observer.observe(svg);
+    ajustar();
+    return () => observer.disconnect();
+  }, []);
 
   const nSuc = sucursales(state);
   const ranking = rankingMundial(state);
@@ -38,18 +58,102 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
     Object.keys(PROPIEDADES) as PropiedadId[]
   ).map(id => ({ id, data: PROPIEDADES[id] }));
 
+  const inspector = (
+        <div className="city-property-details min-h-0 bg-panel border border-line rounded-3xl p-2.5 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
+          {propActual ? (
+            <>
+              <div className="city-inspector-copy shrink-0 space-y-1 text-[11px]">
+                {seccionInmueble === "detalle" && <><div className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-line pb-1">
+                  <span className="max-w-[70%] break-words text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2 py-1 rounded border border-gold/40">
+                    {propActual.distrito || "Distrito Metropolitano"}
+                  </span>
+                  <span className="shrink-0 text-sm font-black text-gold font-mono-data">
+                    {fmt(propActual.costo)}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] text-sand font-cond leading-tight">
+                    {propActual.desc}
+                  </p>
+                  {requisitoPropiedad && !esPropiedadMia && (
+                    <p className="text-[10px] font-cond font-bold text-gold" role="status">
+                      {requisitoPropiedad}
+                    </p>
+                  )}
+                </div></>}
+
+                {seccionInmueble === "beneficio" && <div className="p-1.5 rounded-xl bg-panel2 border border-line space-y-0.5 text-[10px]">
+                  <span className="text-[10px] font-black uppercase text-emerald-400 font-mono-data">
+                    BENEFICIO ESTRATÉGICO
+                  </span>
+                  <p className="font-cond font-bold text-cream leading-tight">
+                    {propActual.beneficio || "Incrementa el patrimonio y reputación del club."}
+                  </p>
+                  {!esPropiedadMia && (
+                    <p className="pt-1 font-cond text-mut">
+                      Caja después de comprar: <b className={puedeComprar ? "text-cream" : "text-blood"}>{fmt(state.dinero - propActual.costo)}</b>
+                    </p>
+                  )}
+                  {propiedadSeleccionada === "sucursal" && (
+                    <p className="pt-1 font-cond text-mut">
+                      Recuperación estimada: <b className="text-gold">{state.personal.some(p => p.tipo === "gerente") ? "aprox. 2 semanas" : "primero necesitás un gerente"}</b>
+                    </p>
+                  )}
+                </div>}
+
+                {seccionInmueble === "compra" && <div className="p-2 rounded-xl bg-ink/70 border border-line items-center text-[10px] font-mono-data font-bold">
+                  <span className="text-mut">Estado Jurídico:</span>
+                  <span className={esPropiedadMia ? "text-emerald-400" : "text-amber-400"}>
+                    {esPropiedadMia ? "✓ Escriturada a tu Nombre" : "Disponible para Compra"}
+                  </span>
+                </div>}
+              </div>
+
+              {/* ACCIÓN DE ADQUISICIÓN */}
+              {seccionInmueble === "compra" && <div className="space-y-2">
+                {requisitoPropiedad && !esPropiedadMia && <p className="text-sm text-gold">{requisitoPropiedad}</p>}
+                <BotonBrillante
+                  onClick={() => comprar(propiedadSeleccionada)}
+                  disabled={!puedeComprar}
+                  variante={esPropiedadMia ? "secundario" : "dorado"}
+                  className="w-full py-2 text-xs font-black"
+                >
+                  {esPropiedadMia
+                    ? "✓ Inmueble en Posesión"
+                    : requisitoPropiedad
+                    ? "Requisito pendiente"
+                    : puedeComprar
+                    ? `Comprar por ${fmt(propActual.costo)}`
+                    : "Fondos Insuficientes"}
+                </BotonBrillante>
+
+                {propiedadSeleccionada === "sucursal" && (
+                  <p className="text-[10px] font-cond text-mut text-center">
+                    Sucursales activas: {nSuc} · Requiere Gerente en el plantel para rendir ingresos pasivos semanales.
+                  </p>
+                )}
+              </div>}
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-xs text-mut text-center font-cond">
+              Selecciona cualquier edificio o icono en el plano urbanístico para inspeccionar sus características.
+            </div>
+          )}
+        </div>
+  );
   return (
     <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
       
       {/* CABECERA URBANÍSTICA */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-2">
+      <div className="city-header flex flex-wrap items-center justify-between gap-4 border-b border-line pb-2">
         <div>
-          <div className="flex items-center gap-2.5">
+          {!compacto && <div className="flex items-center gap-2.5">
             <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-gold/10 text-gold border border-gold/40 font-mono-data">
               PLANO URBANÍSTICO DE LA METRÓPOLI
             </span>
             <span className="text-xs text-mut font-cond">Distritos, Bienes Inmuebles & Clubes Rivales</span>
-          </div>
+          </div>}
           <h2 className="text-xl sm:text-2xl font-display uppercase tracking-wide text-cream mt-1">
             Ciudad de Campeones
           </h2>
@@ -58,11 +162,11 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
       </div>
 
       {/* PLANO URBANÍSTICO VECTORIAL ISOMÉTRICO 1000x600 + PANEL LATERAL */}
-      <div className="grid min-h-0 grid-cols-1 md:grid-cols-12 gap-2 items-stretch overflow-hidden">
+      <div className={`city-map-area grid min-h-0 gap-2 items-stretch overflow-hidden ${compacto ? "grid-cols-1" : "md:grid-cols-12"}`}>
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
-        <div className="md:col-span-8 h-full min-h-0 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2">
-          <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        <div className={`${compacto ? "" : "md:col-span-8"} h-full min-h-0 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2`}>
+          <svg ref={mapaRef} viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet" role={compacto ? "img" : undefined} aria-label={compacto ? "Mapa de la ciudad. Elegí inmuebles y acciones desde Gestión de ciudad e inmuebles." : undefined}>
             <defs>
               <linearGradient id="gradRioRetro" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#0369a1" />
@@ -177,19 +281,20 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                 <g
                   key={id}
                   transform={`translate(${coords.x}, ${coords.y})`}
-                  onClick={() => setPropiedadSeleccionada(id)}
+                  onClick={compacto ? undefined : () => setPropiedadSeleccionada(id)}
                   onKeyDown={event => {
-                    if (event.key === "Enter" || event.key === " ") {
+                    if (!compacto && (event.key === "Enter" || event.key === " ")) {
                       event.preventDefault();
                       setPropiedadSeleccionada(id);
                     }
                   }}
-                  role="button"
-                  tabIndex={0}
+                  role={compacto ? undefined : "button"}
+                  tabIndex={compacto ? undefined : 0}
                   aria-label={`${data.nombre}, ${esMio ? "propiedad del club" : `disponible por ${fmt(data.costo)}`}`}
-                  aria-pressed={esSeleccionado}
-                  className="cursor-pointer group outline-none"
+                  aria-pressed={compacto ? undefined : esSeleccionado}
+                  className={`${compacto ? "" : "cursor-pointer"} group outline-none`}
                 >
+                  {!compacto && <circle r={radioAccion} fill="transparent" />}
                   {/* Halo animado de selección */}
                   {esSeleccionado && (
                     <circle cx="0" cy="0" r="32" fill="#e8b23a" opacity="0.25" className="animate-ping" />
@@ -250,90 +355,10 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* COLUMNA DERECHA: INSPECTOR DE PROPIEDAD SELECCIONADA (4 COLS) */}
-        <div className="md:col-span-4 h-full min-h-0 bg-panel border border-line rounded-3xl p-2.5 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
-          {propActual ? (
-            <>
-              <div className="city-inspector-copy shrink-0 space-y-1 text-[11px]">
-                <div className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-line pb-1">
-                  <span className="max-w-[70%] break-words text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2 py-1 rounded border border-gold/40">
-                    {propActual.distrito || "Distrito Metropolitano"}
-                  </span>
-                  <span className="shrink-0 text-sm font-black text-gold font-mono-data">
-                    {fmt(propActual.costo)}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <h3 className="text-base font-display uppercase tracking-wide text-cream">
-                    {propActual.nombre}
-                  </h3>
-                  <p className="text-[10px] text-sand font-cond leading-tight">
-                    {propActual.desc}
-                  </p>
-                  {requisitoPropiedad && !esPropiedadMia && (
-                    <p className="text-[10px] font-cond font-bold text-gold" role="status">
-                      {requisitoPropiedad}
-                    </p>
-                  )}
-                </div>
-
-                <div className="hidden p-1.5 rounded-xl bg-panel2 border border-line space-y-0.5 text-[10px]">
-                  <span className="text-[10px] font-black uppercase text-emerald-400 font-mono-data">
-                    BENEFICIO ESTRATÉGICO
-                  </span>
-                  <p className="font-cond font-bold text-cream leading-tight">
-                    {propActual.beneficio || "Incrementa el patrimonio y reputación del club."}
-                  </p>
-                  {!esPropiedadMia && (
-                    <p className="pt-1 font-cond text-mut">
-                      Caja después de comprar: <b className={puedeComprar ? "text-cream" : "text-blood"}>{fmt(state.dinero - propActual.costo)}</b>
-                    </p>
-                  )}
-                  {propiedadSeleccionada === "sucursal" && (
-                    <p className="pt-1 font-cond text-mut">
-                      Recuperación estimada: <b className="text-gold">{state.personal.some(p => p.tipo === "gerente") ? "aprox. 2 semanas" : "primero necesitás un gerente"}</b>
-                    </p>
-                  )}
-                </div>
-
-                <div className="hidden p-2 rounded-xl bg-ink/70 border border-line items-center text-[10px] font-mono-data font-bold">
-                  <span className="text-mut">Estado Jurídico:</span>
-                  <span className={esPropiedadMia ? "text-emerald-400" : "text-amber-400"}>
-                    {esPropiedadMia ? "✓ Escriturada a tu Nombre" : "Disponible para Compra"}
-                  </span>
-                </div>
-              </div>
-
-              {/* ACCIÓN DE ADQUISICIÓN */}
-              <div className="space-y-2">
-                <BotonBrillante
-                  onClick={() => comprar(propiedadSeleccionada)}
-                  disabled={!puedeComprar}
-                  variante={esPropiedadMia ? "secundario" : "dorado"}
-                  className="w-full py-2 text-xs font-black"
-                >
-                  {esPropiedadMia
-                    ? "✓ Inmueble en Posesión"
-                    : requisitoPropiedad
-                    ? "Requisito pendiente"
-                    : puedeComprar
-                    ? `Comprar por ${fmt(propActual.costo)}`
-                    : "Fondos Insuficientes"}
-                </BotonBrillante>
-
-                {propiedadSeleccionada === "sucursal" && (
-                  <p className="text-[10px] font-cond text-mut text-center">
-                    Sucursales activas: {nSuc} · Requiere Gerente en el plantel para rendir ingresos pasivos semanales.
-                  </p>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-xs text-mut text-center font-cond">
-              Selecciona cualquier edificio o icono en el plano urbanístico para inspeccionar sus características.
-            </div>
-          )}
-        </div>
+        {!compacto && <div className="md:col-span-4 panel min-h-0 flex flex-col justify-between gap-2 p-3 text-sm">
+          <div className="space-y-2"><h3 className="font-display text-lg text-gold">{propActual.nombre}</h3><p>{fmt(propActual.costo)}</p><p>{propActual.desc}</p>{requisitoPropiedad && !esPropiedadMia && <p className="text-gold">{requisitoPropiedad}</p>}</div>
+          <Btn small variant="gold" onClick={() => setInspectorAbierto(true)}>Ver inmueble · Detalles y compra</Btn>
+        </div>}
       </div>
 
       <section className="hidden min-h-0 overflow-hidden rounded-2xl border border-gold2/40 bg-panel p-2.5 shadow-lg">
@@ -436,12 +461,33 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
       </div>
       <div className="flex min-h-0 flex-wrap justify-center gap-1.5 border-t border-line pt-2">
+        {compacto ? <select aria-label="Gestión de ciudad e inmuebles" value="" onChange={e => {
+          e.currentTarget.focus();
+          const value = e.target.value;
+          if (value === "ranking") { setRankingPagina(0); setRankingAbierto(true); }
+          else if (value === "salon") setSalonAbierto(true);
+          else if (value === "talentos") dispatch({ type: "SCOUT" });
+          else if (value) { setPropiedadSeleccionada(value as PropiedadId); setInspectorAbierto(true); }
+        }} className="r4-select">
+          <option value="" disabled>Inmuebles, ranking y talentos</option>
+          <optgroup label="Inmuebles">{propiedadesList.map(p => <option value={p.id} key={p.id}>{p.data.nombre} · {fmt(p.data.costo)}</option>)}</optgroup>
+          <option value="ranking">Ranking mundial</option><option value="salon">Salón de la fama</option><option value="talentos" disabled={state.ultimaSemanaScout === state.semana}>{state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}</option>
+        </select> : <>
         <Btn small className="w-fit" variant="gold" onClick={() => { setRankingPagina(0); setRankingAbierto(true); }}>Ranking mundial</Btn>
         <Btn small className="w-fit" variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la fama</Btn>
         <Btn small className="w-fit" variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
           {state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}
         </Btn>
+        </>}
       </div>
+      {inspectorAbierto && <Modal title={propActual.nombre} icon="house" onClose={() => setInspectorAbierto(false)} wide fit className="settings-dialog">
+        <div className="city-property-screen">
+          <select aria-label={t("city.propertySection")} value={seccionInmueble} onChange={e => setSeccionInmueble(e.target.value)} className="mb-2 r4-select">
+            <option value="detalle">{t("city.propertyDetail")}</option><option value="beneficio">{t("city.propertyBenefit")}</option><option value="compra">{t("city.propertyOwnership")}</option>
+          </select>
+          {inspector}
+        </div>
+      </Modal>}
       {rankingAbierto && (
         <Modal wide fit title="Ranking Mundial" icon="trophy" onClose={() => setRankingAbierto(false)}>
           <div className="space-y-1.5">

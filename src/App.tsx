@@ -25,8 +25,9 @@ export type Pestana = "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" |
 function PantallaPrincipal() {
   const { state, dispatch } = useGame();
   const { t } = useMessages();
-  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 650px)");
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 950px)");
   const [planificacionAbierta, setPlanificacionAbierta] = useState(false);
+  const [panelClubAbierto, setPanelClubAbierto] = useState(false);
   const [pestana, setPestana] = useState<Pestana>("gimnasio");
   const [pestanaDock, setPestanaDock] = useState<PestanaDock>("mensajes");
   const [fichaId, setFichaId] = useState<string | null>(null);
@@ -191,8 +192,22 @@ function PantallaPrincipal() {
           {/* NAVEGACIÓN PRINCIPAL ENTRE LAS 6 PESTAÑAS */}
           <nav className="app-nav relative z-30 mb-3 flex shrink-0 flex-wrap gap-1.5 border border-gold2/20 bg-ink/82 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,.22)] backdrop-blur-xl rounded-2xl">
             {compacto ? (
-              <select aria-label="Pestaña del juego" value={pestana} onChange={event => setPestana(event.target.value as Pestana)} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-3 text-sm text-cream">
+              <select aria-label={t("nav.choose")} value={pestana} onChange={event => {
+                event.currentTarget.focus();
+                const value = event.target.value;
+                if (value === "contexto-plan") setPlanificacionAbierta(true);
+                else if (value === "contexto-club") setPanelClubAbierto(true);
+                else if (value === "contexto-ofertas") setSelectorAbierto(true);
+                else if (value === "contexto-cartelera") setCarteleraAbierta(true);
+                else setPestana(value as Pestana);
+              }} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-3 text-sm text-cream">
                 {pestanas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                <optgroup label={t("club.management")}>
+                  <option value="contexto-plan">{t("plan.access", { completed: guiaInicial.filter(h => h.hecho).length, total: 4 })}</option>
+                  <option value="contexto-club">{t("club.panel")}</option>
+                  {state.ofertas.length > 0 && state.ofertasPara && <option value="contexto-ofertas">{t("offers.reopen")}</option>}
+                  {state.dia === 6 && state.pendientes.length > 0 && <option value="contexto-cartelera">{t("schedule.pending", { count: state.pendientes.length })}</option>}
+                </optgroup>
               </select>
             ) : pestanas.map(p => (
               <button
@@ -215,12 +230,12 @@ function PantallaPrincipal() {
               </button>
             ))}
 
-            {state.ofertas.length > 0 && state.ofertasPara && (
+            {!compacto && state.ofertas.length > 0 && state.ofertasPara && (
               <Btn small variant="ghost" onClick={() => setSelectorAbierto(true)}>{t("offers.reopen")}</Btn>
             )}
 
             {/* AVISO / BOTÓN DE CARTELERA DEL SÁBADO */}
-            {state.dia === 6 && state.pendientes.length > 0 && (
+            {!compacto && state.dia === 6 && state.pendientes.length > 0 && (
               <button
                 onClick={() => setCarteleraAbierta(true)}
                 className="btn-poster guia-luminica ml-auto border border-blood bg-blood px-4 py-1 text-sm sm:text-base text-cream rounded-lg cursor-pointer"
@@ -231,14 +246,13 @@ function PantallaPrincipal() {
               </button>
             )}
 
-            {state.dia === 6 && state.pendientes.length === 0 && (
+            {!compacto && state.dia === 6 && state.pendientes.length === 0 && (
               <span className="ml-auto flex items-center gap-2 px-3 font-cond text-sm uppercase tracking-wide text-sand">
                 <I n="check" className="h-4 w-4 text-win" /> Cartelera resuelta · pasá al balance
               </span>
             )}
           </nav>
 
-          {compacto && state.dia <= 5 && <Btn small variant="ghost" className="mb-2 w-full" onClick={() => setPlanificacionAbierta(true)}>Objetivos y previsión · {guiaInicial.filter(h => h.hecho).length}/4</Btn>}
           {!compacto && siguientePaso && state.dia <= 5 && (
             <div className="action-banner mb-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-2 py-1.5 shadow-sm">
               <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-sm text-ink font-bold">→</div>
@@ -304,14 +318,14 @@ function PantallaPrincipal() {
 
       {/* DOCK COMPACTO EN DISPOSITIVOS MÓVILES */}
       <div className="z-30 xl:hidden">
-        <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
+        <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" abierto={panelClubAbierto} onCerrar={() => setPanelClubAbierto(false)} accesoEnNavegacion={compacto} onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
       </div>
 
-      <footer className="app-footer shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-[10px] uppercase tracking-[0.28em] text-mut">
+      <footer data-text-role="secondary" className="app-footer shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-xs uppercase tracking-[0.28em] text-mut">
         MadArt Studios
       </footer>
 
-      {planificacionAbierta && <Modal title="Objetivos y previsión" icon="calendar" onClose={() => setPlanificacionAbierta(false)}>
+      {planificacionAbierta && <Modal title={t("plan.title")} icon="calendar" onClose={() => setPlanificacionAbierta(false)}>
         <div className="space-y-2 text-sm text-cream">
           {siguientePaso && <p>{siguientePaso.texto}</p>}
           {guiaInicial.map((h, i) => <Btn key={h.texto} small variant={h.hecho ? "dark" : "gold"} disabled={h.hecho} className="w-full" onClick={() => { setPestana(h.tab); setPlanificacionAbierta(false); }}>{h.hecho ? "✓" : i + 1} {h.texto}</Btn>)}

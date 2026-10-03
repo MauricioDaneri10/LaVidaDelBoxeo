@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { translate, type Arguments, type MessageKey } from "./catalog";
+import { catalogs, translate, type Arguments, type MessageKey } from "./catalog";
 export type Locale = "es" | "en" | "pt-BR";
 
 // Do not enable incomplete UI/content. Expand only after global coverage verification.
@@ -25,7 +25,7 @@ export function cargarIdioma(): Locale {
 }
 
 export function guardarIdioma(locale: Locale) {
-  if (!IDIOMAS_HABILITADOS.includes(locale)) return false;
+  if (!IDIOMAS_HABILITADOS.includes(locale) || !catalogs[locale]) return false;
   try {
     localStorage.setItem(CLAVE_IDIOMA, locale);
     window.dispatchEvent(new Event(CAMBIO_IDIOMA));

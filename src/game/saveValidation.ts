@@ -36,6 +36,12 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
   const versionAntigua = s.version === 1;
   const inicial = s.schemaVersion === undefined ? 1 : s.schemaVersion;
   if (typeof inicial !== "number" || !Number.isInteger(inicial) || inicial < 1 || inicial > SCHEMA_ACTUAL) throw new ErrorGuardado("Schema incompatible: original protegido.", "incompatible");
+  // A damaged guide cannot be replaced by an empty optional value: that would
+  // erase reliable milestones and allow autosave to invent a restarted guide.
+  if (inicial === SCHEMA_ACTUAL && "guiaClub" in s) {
+    const issues: string[] = [];
+    if (guiaClub(s.guiaClub, "guiaClub", issues) === BAD || issues.length) throw new ErrorGuardado("Progreso de la guía dañado: original protegido; recuperá ese registro antes de guardar.", "ambiguous");
+  }
   if (evidenciaCobroDanada(s.consejos)) throw new ErrorGuardado("Evidencia de cobro de un hito dañada: original protegido; se necesita recuperar ese registro antes de habilitar nuevos pagos.", "ambiguous");
   // Stable legacy identity: repeated migration of the same bytes is identical.
   const migraciones: Record<number, (x: Obj) => Obj> = {
@@ -200,6 +206,7 @@ const activeCombat: Rule = (v, p, i) => {
 const result = fields({ miId: optional(id), rivalNombre: optional(str), gane: bool, empate: bool, metodo: oneOf(["Nocaut", "Nocaut Técnico", "Decisión Unánime", "Decisión Dividida", "Decisión Mayoritaria", "Empate"]), tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])), caidasA: count, caidasB: count, registroA: compubox, registroB: compubox, bolsa: num(0), fama: num(), tituloGanado: title, resumen: str }, {}, ["gane", "empate", "metodo", "tarjetas", "caidasA", "caidasB", "registroA", "registroB", "bolsa", "fama", "tituloGanado", "resumen"]);
 const ledger = list(fields({ concepto: str, monto: num(0) }, {}, ["concepto", "monto"]));
 const carreraArchivada = fields({ id, pugilista: boxer, club: str, semanaSalida: num(1, Infinity, true), motivo: str, historial: list(result) }, {}, ["id", "pugilista", "club", "semanaSalida", "motivo", "historial"]);
+const guiaClub = fields({ alumnosIniciales: list(id), enfoquesConfirmados: list(id), enfoques: bool, equipo: bool, guanteos: bool, licencia: bool }, {}, ["alumnosIniciales", "enfoquesConfirmados", "enfoques", "equipo", "guanteos", "licencia"]);
 const action = fields({ tipo: oneOf(["dinero", "fama", "nuevoAlumno", "programarComunitario", "aceptarPatrocinio", "exhibicion", "mantenimiento", "entrevista", "recaudacion", "nada"]), monto: optional(num()), costo: optional(num(0)), fama: optional(num()), nombre: optional(str), semanas: optional(count), comunitario: optional(oneOf(Object.keys(COMUNITARIOS))) }, {}, ["tipo"]);
 
 /** No random generation, population padding, sorting or gameplay normalisation on load. */
@@ -212,7 +219,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
     version: oneOf([2]), schemaVersion: oneOf([SCHEMA_ACTUAL]), creado: bool, nombreJugador: str, nombreGimnasio: str,
     combateActivo: activeCombat,
     contratosTitularesHistoricos: optional(list(id)),
-    guiaClub: optional(fields({ alumnosIniciales: list(id), enfoquesConfirmados: list(id), enfoques: bool, equipo: bool, guanteos: bool, licencia: bool }, {}, ["alumnosIniciales", "enfoquesConfirmados", "enfoques", "equipo", "guanteos", "licencia"])),
+    guiaClub: optional(guiaClub),
     dinero: num(), fama: num(0, 100), seguidores: count, recreativos: count, dia: num(1, 7, true), semana: num(1, Infinity, true), ultimaSemanaScout: count,
     mes: num(1, 12, true), anio: num(1, Infinity, true), plantel: list(boxer, "id"), rivales: list(boxer, "id"),
     ofertas: list(fields({ id, rival: boxer, nivel: oneOf(["accesible", "parejo", "desafio"]), bolsa: num(0), etiqueta: str, detalle: str, esTitulo: title }, {}, ["id", "rival", "nivel", "bolsa", "etiqueta", "detalle", "esTitulo"]), "id"),

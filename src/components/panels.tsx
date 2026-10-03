@@ -11,6 +11,7 @@ import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
 import { calcularCapacidadPlantel, ordenarPlantel, type DimensionesLayoutPlantel, type OrdenPlantel } from "../game/plantelLayout";
 import ArchivoCarreras from "./CareerArchive";
+import { useMessages } from "../i18n";
 
 interface PanelPlantelProps {
   onAbrir?: (id: string) => void;
@@ -20,6 +21,7 @@ interface PanelPlantelProps {
 
 // ==================== PLANTEL DE ATLETAS ====================
 export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: PanelPlantelProps) {
+  const { t } = useMessages();
   const { state, dispatch } = useGame();
   const alumnos = alumnosActivos(state);
   const alumnosEspera = alumnosEnEspera(state);
@@ -31,8 +33,14 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   const profesionales = boxeadores.filter(p => p.circuito === "pro").length;
   const [filtroGrupo, setFiltroGrupo] = useState<"todos" | "alumnos" | "federados" | "espera">("todos");
   const [pagina, setPagina] = useState(0);
+  const paginacionRef = useRef<HTMLDivElement>(null);
+  const [altoPaginacion, setAltoPaginacion] = useState(52);
   const [orden, setOrden] = useState<OrdenPlantel>("recientes");
   const [archivoAbierto, setArchivoAbierto] = useState(false);
+  const [gestionAbierta, setGestionAbierta] = useState(false);
+  const [bajaPendiente, setBajaPendiente] = useState<Pugilista | null>(null);
+  const compactoPlantel = useResponsiveCapacity("(max-width: 700px), (max-height: 650px)");
+  const plantelApaisado = useResponsiveCapacity("(max-height: 450px)");
 
   // Lista según filtro
   const listaAtletasSinPrioridad = filtroGrupo === "todos"
@@ -66,8 +74,15 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     return () => ro.disconnect();
   }, []);
 
-  const layout = calcularCapacidadPlantel(dims, listaAtletas.length, pagina);
+  const layout = calcularCapacidadPlantel(dims, listaAtletas.length, pagina, { cardMinH: 170, cardMinW: 300, altoPaginacion: plantelApaisado ? 0 : altoPaginacion });
   const { columnas, filas, porPagina, totalPaginas, estiloGrilla, obtenerAtletasVisibles } = layout;
+  useEffect(() => {
+    const el = paginacionRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setAltoPaginacion(Math.ceil(el.getBoundingClientRect().height) + 8));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [totalPaginas > 1]);
 
   useEffect(() => {
     setPagina(0);
@@ -84,7 +99,9 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     if (onSeleccionarBoxeador) onSeleccionarBoxeador(p);
   };
 
-  const Tarjeta = ({ p }: { p: Pugilista }) => {
+  // Render helper, not a component type recreated on every panel render:
+  // keeping the keyed article mounted also preserves the dialog trigger.
+  const renderTarjeta = (p: Pugilista) => {
     const agendada = state.pendientes.some(x => x.miId === p.id);
     const listoSabado = puedeHabilitar(p, state);
     const paseProfesional = p.rol === "boxeador" ? puedeProfesionalizar(p, state) : { ok: false };
@@ -92,7 +109,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
     return (
       <motion.article
-        layout
+        key={p.id}
         whileHover={{ y: -2 }}
         className={`roster-card panel flex h-full min-h-0 w-full flex-col justify-between p-1.5 sm:p-2 text-left transition-colors hover:border-gold2 overflow-hidden ${
           agendada
@@ -106,7 +123,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           <button
             type="button"
             onClick={() => seleccionarAtleta(p)}
-            className="flex items-center gap-2 min-w-0 text-left cursor-pointer group focus:outline-none"
+            className="roster-open flex min-h-11 items-center gap-2 min-w-0 text-left cursor-pointer group focus-visible:outline-2 focus-visible:outline-gold"
             title={`Abrir ficha técnica de ${p.nombre}`}
           >
             <RostroBoxeador atleta={p} className="roster-avatar h-8 w-8 shrink-0 rounded-lg group-hover:ring-1 group-hover:ring-gold transition-all" />
@@ -114,20 +131,20 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
               <div className="font-display text-sm sm:text-base leading-tight tracking-wide text-cream truncate group-hover:text-gold transition-colors">
                 {p.nombre}
               </div>
-              <div className="font-cond text-[10px] sm:text-[11px] uppercase tracking-wider text-mut truncate">
+              <div data-text-role="secondary" className="font-cond text-xs uppercase tracking-wider text-mut truncate">
                 {p.edad} años · {p.division} · {p.rol === "boxeador" ? (p.circuito === "pro" ? "Profesional" : "Amateur") : "Alumno"}
               </div>
-              {recienIngresado && (
+              {(recienIngresado || (p.rol === "alumno" && !p.enEspera && !state.guiaClub?.enfoquesConfirmados.includes(p.id))) && (
                 tieneDT ? (
-                  <span className="mt-0.5 inline-flex items-center gap-1 rounded border border-neonc/40 bg-neonc/10 px-1.5 py-0.5 font-cond text-[9px] uppercase tracking-wide text-neonc" title="Enfoque táctico asignado automáticamente por tu Director Técnico">
+                  <span data-text-role="secondary" className="mt-0.5 inline-flex items-center gap-1 rounded border border-neonc/40 bg-neonc/10 px-1.5 py-0.5 font-cond text-xs uppercase tracking-wide text-neonc" title="Enfoque táctico asignado automáticamente por tu Director Técnico">
                     ✨ Nuevo · Enfoque auto ({COMBOS[p.combo]?.corto ?? "Asignado"})
                   </span>
                 ) : (
                   <span
-                    className="mt-0.5 inline-flex items-center gap-1 rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 font-cond text-[9px] uppercase tracking-wide text-gold"
+                    className="mt-0.5 inline-flex items-center gap-1 rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 font-cond text-sm uppercase tracking-wide text-gold"
                     title="Talento nuevo: abrí su ficha para asignar su enfoque semanal"
                   >
-                    ✨ Nuevo · Asignar enfoque
+                    {recienIngresado ? "✨ Nuevo · " : ""}{t("roster.focus")}
                   </span>
                 )
               )}
@@ -190,7 +207,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
               {p.enEspera && (
                 <button
                   type="button"
-                  onClick={() => { if (window.confirm(`¿Retirar a ${p.nombre} de la lista de espera?`)) dispatch({ type: "RETIRAR_ATLETA", id: p.id }); }}
+                  onClick={() => setBajaPendiente(p)}
                   className="ml-auto rounded-lg border border-line2 px-2 py-0.5 font-cond text-[10px] uppercase tracking-wide text-mut hover:border-blood/60 hover:text-blood cursor-pointer shrink-0"
                 >
                   Retirar
@@ -218,7 +235,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
                 )}
                 <button
                   type="button"
-                  onClick={() => { if (window.confirm(`¿Transferir a ${p.nombre} fuera del club?`)) dispatch({ type: "RETIRAR_ATLETA", id: p.id }); }}
+                  onClick={() => setBajaPendiente(p)}
                   className="rounded-lg border border-line2 px-2 py-0.5 font-cond text-[10px] uppercase tracking-wide text-mut hover:border-blood/60 hover:text-blood cursor-pointer"
                 >
                   Transferir
@@ -231,9 +248,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     );
   };
 
-  return (
-    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
-      {/* CABECERA COMPACTA DE PLANTEL */}
+  const cabeceraPlantel = (
       <div className="panel flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 py-1 shrink-0">
         <h2 className="font-display text-base sm:text-lg tracking-wide text-gold mr-1">Plantel</h2>
         <Chip tone={alumnosEspera.length ? "blood" : "gold"}><I n="users" className="h-3 w-3" /> Alumnos {alumnos.length}/{cupoAlumnos}{alumnosEspera.length ? ` · ${alumnosEspera.length} espera` : ""}</Chip>
@@ -252,77 +267,42 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           </Btn>
         </div>
       </div>
+  );
+  return (
+    <div className="roster-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+      {/* CABECERA COMPACTA DE PLANTEL */}
+      {compactoPlantel ? <Btn small variant="ghost" onClick={() => setGestionAbierta(true)}>{t("roster.management")}</Btn> : cabeceraPlantel}
+      {gestionAbierta && <Modal title={t("roster.dialog")} onClose={() => setGestionAbierta(false)}>{cabeceraPlantel}<p className="mt-2 text-sm text-sand">Para habilitar a un boxeador: obtené la Licencia de Entrenador en Mi Perfil, completá sus 10 guanteos y tramitá su licencia amateur.</p></Modal>}
 
       {/* RECORRER GRUPOS */}
       {archivoAbierto && <ArchivoCarreras onClose={() => setArchivoAbierto(false)} />}
-      <div className="flex flex-wrap items-center gap-1 border-b border-line pb-1 font-cond text-xs uppercase tracking-wider shrink-0">
-        <button
-          type="button"
-          onClick={() => setFiltroGrupo("todos")}
-          aria-pressed={filtroGrupo === "todos"}
-          className={`px-3 py-1 rounded-lg border transition-colors cursor-pointer ${
-            filtroGrupo === "todos"
-              ? "bg-gold text-ink border-gold font-bold shadow-sm"
-              : "border-line bg-panel text-mut hover:text-cream"
-          }`}
-        >
-          Todos ({state.plantel.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltroGrupo("alumnos")}
-          aria-pressed={filtroGrupo === "alumnos"}
-          className={`px-3 py-1 rounded-lg border transition-colors cursor-pointer ${
-            filtroGrupo === "alumnos"
-              ? "bg-gold text-ink border-gold font-bold shadow-sm"
-              : "border-line bg-panel text-mut hover:text-cream"
-          }`}
-        >
-          Alumnos ({alumnos.length}/{cupoAlumnos})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltroGrupo("federados")}
-          aria-pressed={filtroGrupo === "federados"}
-          className={`px-3 py-1 rounded-lg border transition-colors cursor-pointer ${
-            filtroGrupo === "federados"
-              ? "bg-gold text-ink border-gold font-bold shadow-sm"
-              : "border-line bg-panel text-mut hover:text-cream"
-          }`}
-        >
-          Federados ({boxeadores.length})
-        </button>
-        {alumnosEspera.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setFiltroGrupo("espera")}
-            aria-pressed={filtroGrupo === "espera"}
-            className={`px-3 py-1 rounded-lg border transition-colors cursor-pointer ${
-              filtroGrupo === "espera"
-                ? "bg-blood text-cream border-blood font-bold shadow-sm"
-                : "border-line bg-panel text-mut hover:text-blood"
-            }`}
-          >
-            En espera ({alumnosEspera.length})
-          </button>
-        )}
-        <label className="ml-auto flex items-center gap-1.5 font-cond text-[10px] uppercase tracking-wide text-mut">
-          <span>Orden</span>
-          <select
-            aria-label="Ordenar boxeadores y alumnos"
-            value={orden}
-            onChange={event => setOrden(event.target.value as OrdenPlantel)}
-            className="max-w-40 rounded-lg border border-line bg-panel px-2 py-1 font-cond text-[11px] uppercase text-sand outline-none focus:border-gold2"
-          >
-            <option value="recientes">Nuevos esta semana</option>
-            <option value="valoracion-desc">Mayor valoración</option>
-            <option value="valoracion-asc">Menor valoración</option>
-          </select>
-        </label>
+      {bajaPendiente && <Modal title={t(bajaPendiente.enEspera ? "waiting.removeTitle" : "transfer.title")} onClose={() => setBajaPendiente(null)} fit>
+        <p className="text-sm">{t(bajaPendiente.enEspera ? "waiting.removeMessage" : "transfer.message", { name: bajaPendiente.nombre })}</p>
+        <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setBajaPendiente(null)}>{t("action.cancel")}</Btn><Btn variant="blood" onClick={() => { dispatch({ type: "RETIRAR_ATLETA", id: bajaPendiente.id }); setBajaPendiente(null); }}>{t(bajaPendiente.enEspera ? "waiting.remove" : "transfer.action")}</Btn></div>
+      </Modal>}
+      <div className="roster-filters flex items-center gap-2 border-b border-line pb-1 shrink-0">
+        {plantelApaisado ? <select aria-label={`${t("roster.group")} · ${t("roster.sort")}`} value="actual" onChange={e => {
+          const [tipo, valor] = e.target.value.split(":");
+          if (tipo === "grupo") setFiltroGrupo(valor as typeof filtroGrupo);
+          if (tipo === "orden") setOrden(valor as OrdenPlantel);
+        }} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 text-sm text-sand">
+          <option value="actual">{filtroGrupo === "todos" ? t("roster.all", { count: state.plantel.length }) : filtroGrupo === "alumnos" ? t("roster.students", { count: alumnos.length, capacity: cupoAlumnos }) : filtroGrupo === "federados" ? t("roster.competitors", { count: boxeadores.length }) : t("roster.waiting", { count: alumnosEspera.length })} · {orden === "recientes" ? t("roster.newest") : orden === "valoracion-desc" ? t("roster.highest") : t("roster.lowest")}</option>
+          <optgroup label={t("roster.group")}><option value="grupo:todos">{t("roster.all", { count: state.plantel.length })}</option><option value="grupo:alumnos">{t("roster.students", { count: alumnos.length, capacity: cupoAlumnos })}</option><option value="grupo:federados">{t("roster.competitors", { count: boxeadores.length })}</option>{alumnosEspera.length > 0 && <option value="grupo:espera">{t("roster.waiting", { count: alumnosEspera.length })}</option>}</optgroup>
+          <optgroup label={t("roster.sort")}><option value="orden:recientes">{t("roster.newest")}</option><option value="orden:valoracion-desc">{t("roster.highest")}</option><option value="orden:valoracion-asc">{t("roster.lowest")}</option></optgroup>
+        </select> : <><select aria-label={t("roster.group")} value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value as typeof filtroGrupo)} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 text-sm text-sand">
+          <option value="todos">{t("roster.all", { count: state.plantel.length })}</option>
+          <option value="alumnos">{t("roster.students", { count: alumnos.length, capacity: cupoAlumnos })}</option>
+          <option value="federados">{t("roster.competitors", { count: boxeadores.length })}</option>
+          {alumnosEspera.length > 0 && <option value="espera">{t("roster.waiting", { count: alumnosEspera.length })}</option>}
+        </select>
+        <select aria-label={t("roster.sort")} value={orden} onChange={e => setOrden(e.target.value as OrdenPlantel)} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 text-sm text-sand">
+          <option value="recientes">{t("roster.newest")}</option><option value="valoracion-desc">{t("roster.highest")}</option><option value="valoracion-asc">{t("roster.lowest")}</option>
+        </select>
+        </>}
       </div>
 
-      {/* GUÍA INFORMATIVA COMPACTA (oculta en altura baja para priorizar tarjetas y footer visible) */}
-      {!tieneLicenciaDT && dims.altoDisponible >= 200 && (
+      {/* La composición no depende de una altura que ella misma modifica. */}
+      {!tieneLicenciaDT && !compactoPlantel && (
         <div className="border border-gold2/50 bg-gold/5 px-2.5 py-1 font-cond text-[11px] text-sand rounded-xl shrink-0">
           <b className="text-gold">Cómo habilitar a tu primer boxeador:</b> obtené la Licencia de Entrenador en Mi Perfil,
           completá sus <b>10 guanteos (sparring)</b> y luego tramitá su licencia amateur.
@@ -330,10 +310,10 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
       )}
 
       {/* GRILLA PRINCIPAL DE ATLETAS (DISTRIBUCIÓN RIGUROSA DE 2 FILAS SIN SCROLL) */}
-      <div ref={contenedorRef} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+      <div ref={contenedorRef} className="roster-content flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
         {atletasVisibles.length > 0 ? (
           <div className="plantel-grid roster-cards flex-1 min-h-0 w-full overflow-hidden" style={estiloGrilla}>
-            {atletasVisibles.map(p => <Tarjeta key={p.id} p={p} />)}
+            {atletasVisibles.map(renderTarjeta)}
           </div>
         ) : (
           <div className="panel p-6 text-center font-cond text-sm text-mut my-auto">
@@ -347,7 +327,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
         {/* PAGINACIÓN COMPACTA INFERIOR */}
         {totalPaginas > 1 && (
-          <div className="mt-1 flex items-center justify-center gap-2 font-cond text-xs text-mut shrink-0 pt-1 border-t border-line/40">
+          <div ref={paginacionRef} className="roster-pagination mt-1 flex items-center justify-center gap-2 font-cond text-xs text-mut shrink-0 pt-1 border-t border-line/40">
             <Btn
               small
               variant="dark"
@@ -374,6 +354,8 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
 
 // ==================== MERCADO EN 4 CATEGORÍAS ====================
 export function PanelMercado() {
+  const { t } = useMessages();
+  const [resumenMercadoAbierto, setResumenMercadoAbierto] = useState(false);
   const { state, dispatch } = useGame();
   const [cat, setCat] = useState<CategoriaMercado>("equipamiento");
   const [pagina, setPagina] = useState(0);
@@ -387,17 +369,18 @@ export function PanelMercado() {
   const items = Object.entries(EQUIPOS)
     .filter(([, v]) => v.cat === cat)
     .sort(([a], [b]) => (a === recomendadoId ? -1 : b === recomendadoId ? 1 : 0));
+  const cabeceraMercado = <div className="market-header panel flex flex-wrap items-center gap-2 p-2.5">
+    <h2 className="font-display text-xl tracking-wide text-gold">Mercado del Gimnasio</h2>
+    <span className="font-cond text-sm text-sand">Instalado: <b className="text-cream">{state.equipamiento.length}/{Object.keys(EQUIPOS).length}</b></span>
+  </div>;
 
   return (
-    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
-      <div className="panel flex flex-wrap items-center gap-2 p-2.5">
-        <h2 className="font-display text-xl tracking-wide text-gold">Mercado del Gimnasio</h2>
-        <span className="font-cond text-xs text-sand">Instalado: <b className="text-cream">{state.equipamiento.length}/{Object.keys(EQUIPOS).length}</b></span>
-        {recomendadoId && <span className="rounded-full border border-neonc/50 bg-neonc/10 px-2.5 py-1 font-cond text-xs text-neonc">Prioridad sugerida: {EQUIPOS[recomendadoId].nombre}</span>}
-      </div>
+    <div className="market-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+      {canvasEstrecho ? <Btn small variant="ghost" className="market-header" onClick={() => setResumenMercadoAbierto(true)}>Mercado · Instalaciones</Btn> : cabeceraMercado}
+      {resumenMercadoAbierto && <Modal title="Mercado del Gimnasio" onClose={() => setResumenMercadoAbierto(false)}>{cabeceraMercado}</Modal>}
 
-      <div className="flex flex-wrap gap-2">
-        {canvasEstrecho ? <select aria-label="Categoría del mercado" value={cat} onChange={e => { setCat(e.target.value as typeof cat); setPagina(0); }} className="min-h-11 w-full rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">{CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select> : CATEGORIAS.map(c => (
+      <div className="market-categories flex shrink-0 flex-wrap gap-2">
+        {canvasEstrecho ? <select aria-label={t("market.category")} value={cat} onChange={e => { setCat(e.target.value as typeof cat); setPagina(0); }} className="r4-select">{CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select> : CATEGORIAS.map(c => (
           <button
             key={c.id}
             onClick={() => { setCat(c.id); setPagina(0); }}
@@ -410,7 +393,7 @@ export function PanelMercado() {
         ))}
       </div>
 
-      <div className={`market-items-grid grid min-h-0 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${canvasAmplio && items.length >= 8 ? "market-items-grid-expanded flex-1" : "shrink-0"}`}>
+      <div className={`market-items-grid grid min-h-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${canvasAmplio && items.length >= 8 ? "market-items-grid-expanded" : ""}`}>
         {items.slice(pagina * porPagina, pagina * porPagina + porPagina).map(([id, eq]) => {
           const comprado = state.equipamiento.includes(id as never);
           const bloqueado = id === "zonaElite" && !state.cursos.includes("altoRendimiento");
@@ -464,7 +447,7 @@ export function PanelMercado() {
         })}
       </div>
       {items.length > porPagina && (
-        <div className="flex items-center justify-center gap-2 font-cond text-xs text-mut">
+        <div className="market-pagination flex items-center justify-center gap-2 font-cond text-xs text-mut">
           <Btn small variant="dark" disabled={pagina === 0} onClick={() => setPagina(p => Math.max(0, p - 1))}>Anterior</Btn>
           <span>{pagina + 1} / {Math.ceil(items.length / porPagina)}</span>
           <Btn small variant="gold" disabled={(pagina + 1) * porPagina >= items.length} onClick={() => setPagina(p => p + 1)}>Más</Btn>
@@ -476,6 +459,7 @@ export function PanelMercado() {
 
 // ==================== MI PERFIL: CURSOS, PROPIEDADES, LEGADO ====================
 export function PanelPerfil() {
+  const { t } = useMessages();
   const { state, dispatch } = useGame();
   const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
   const [ramaActiva, setRamaActiva] = useState<RamaCurso>("deportiva");
@@ -486,6 +470,7 @@ export function PanelPerfil() {
   const cursosDeRama = (Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === ramaActiva).sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel);
   const [socialAbierto, setSocialAbierto] = useState(false);
   const [confirmarCierre, setConfirmarCierre] = useState(false);
+  const [confirmarLegado, setConfirmarLegado] = useState(false);
   const ramas: { id: RamaCurso; nombre: string; icono: string; color: string }[] = [
     { id: "deportiva", nombre: "Rama Deportiva", icono: "glove", color: "text-blood" },
     { id: "promotora", nombre: "Rama Promotora", icono: "ring", color: "text-gold" },
@@ -516,11 +501,7 @@ export function PanelPerfil() {
           <Btn
             variant={puedeLegado ? "gold" : "dark"}
             disabled={!puedeLegado}
-            onClick={() => {
-              if (window.confirm("¿Iniciar el Sistema de Legado? Renacerás como tu mejor alumno con bonificaciones de prestigio.")) {
-                dispatch({ type: "LEGADO" });
-              }
-            }}
+            onClick={() => setConfirmarLegado(true)}
           >
             <I n="medal" className="h-4 w-4" /> Sistema de Legado
           </Btn>
@@ -536,23 +517,28 @@ export function PanelPerfil() {
 
   );
   return (
-    <div className="game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
-      {compacto ? <Btn small variant="ghost" onClick={() => setResumenAbierto(true)}>Perfil del coach · Detalles y legado</Btn> : resumenPerfil}
+    <div className="profile-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+      {!compacto && resumenPerfil}
       {resumenAbierto && <Modal wide title="Perfil del coach" icon="user" onClose={() => setResumenAbierto(false)}>{resumenPerfil}</Modal>}
       <div className="profile-subnav flex flex-wrap items-center justify-center gap-2">
-        {compacto ? <select aria-label="Sección del perfil" value={seccionPerfil} onChange={e => setSeccionPerfil(e.target.value as "cursos" | "bienes")} className="min-h-11 min-w-0 rounded-lg border border-line bg-panel2 px-2 text-sm text-cream"><option value="cursos">Cursos</option><option value="bienes">Bienes raíces</option></select> : (
+        {compacto ? <select aria-label={t("profile.section")} value={seccionPerfil} onChange={e => {
+          e.currentTarget.focus();
+          if (e.target.value === "resumen") setResumenAbierto(true);
+          else if (e.target.value === "actividades") setSocialAbierto(true);
+          else setSeccionPerfil(e.target.value as "cursos" | "bienes");
+        }} className="r4-select min-w-0"><option value="cursos">{t("profile.courses")}</option><option value="bienes">{t("profile.properties")}</option><option value="resumen">{t("profile.details")}</option><option value="actividades">{t("profile.activities")}</option></select> : (
         <div className="flex w-fit justify-center gap-2 rounded-xl border border-line bg-panel2 p-1">
           <button onClick={() => setSeccionPerfil("cursos")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "cursos" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Cursos</button>
           <button onClick={() => setSeccionPerfil("bienes")} className={`w-fit rounded-lg px-4 py-1.5 font-cond text-sm uppercase tracking-wide cursor-pointer ${seccionPerfil === "bienes" ? "bg-gold text-ink" : "text-sand hover:text-cream"}`}>Bienes raíces</button>
         </div>)}
-        <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}><I n="calendar" className="h-3.5 w-3.5" /> Actividades del club</Btn>
+        {!compacto && <Btn small variant="ghost" onClick={() => setSocialAbierto(true)}><I n="calendar" className="h-3.5 w-3.5" /> Actividades del club</Btn>}
       </div>
 
       {/* CURSOS */}
       {seccionPerfil === "cursos" && <section className="profile-courses flex min-h-0 w-full flex-1 flex-col">
         {!compacto && <h3 className="mb-2 text-center font-display text-lg tracking-wide text-cream">Cursos del Coach · elegí una rama</h3>}
-        <div className="mb-2 flex flex-wrap justify-center gap-1.5">
-          {compacto ? <select aria-label="Rama de cursos" value={ramaActiva} onChange={e => setRamaActiva(e.target.value as RamaCurso)} className="min-h-11 w-full rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">{ramas.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select> : ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`profile-branch-tab inline-flex min-h-8 w-fit items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="h-3.5 w-3.5 shrink-0" />{rama.nombre.replace("Rama ", "")}</button>)}
+        <div className="profile-branches mb-2 flex shrink-0 flex-wrap justify-center gap-1.5">
+          {compacto ? <select aria-label={t("profile.branch")} value={ramaActiva} onChange={e => setRamaActiva(e.target.value as RamaCurso)} className="r4-select">{ramas.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select> : ramas.map(rama => <button key={rama.id} onClick={() => setRamaActiva(rama.id)} className={`profile-branch-tab inline-flex min-h-8 w-fit items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 font-cond text-xs uppercase tracking-wide ${ramaActiva === rama.id ? `border-gold bg-gold/15 ${rama.color}` : "border-line bg-panel2 text-mut"}`}><I n={rama.icono} className="h-3.5 w-3.5 shrink-0" />{rama.nombre.replace("Rama ", "")}</button>)}
         </div>
         <div className="profile-branch-panel grid min-h-0 flex-1 gap-2">
           {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
@@ -589,7 +575,7 @@ export function PanelPerfil() {
             </div>
           ))}
         </div>
-        {compacto && <div className="flex shrink-0 items-center justify-center gap-2 py-1"><Btn small variant="ghost" disabled={paginaCursos === 0} onClick={() => setPaginaCursos(p => p - 1)}>Anterior</Btn><span className="text-xs text-sand">{paginaCursos + 1}/{cursosDeRama.length}</span><Btn small variant="ghost" disabled={paginaCursos + 1 >= cursosDeRama.length} onClick={() => setPaginaCursos(p => p + 1)}>Siguiente</Btn></div>}
+        {compacto && <div className="profile-pagination flex shrink-0 items-center justify-center gap-2 py-1"><Btn small variant="ghost" disabled={paginaCursos === 0} onClick={() => setPaginaCursos(p => p - 1)}>Anterior</Btn><span className="text-xs text-sand">{paginaCursos + 1}/{cursosDeRama.length}</span><Btn small variant="ghost" disabled={paginaCursos + 1 >= cursosDeRama.length} onClick={() => setPaginaCursos(p => p + 1)}>Siguiente</Btn></div>}
       </section>}
 
       {socialAbierto && (
@@ -652,30 +638,40 @@ export function PanelPerfil() {
           </div>
         </Modal>
       )}
+      {confirmarLegado && <Modal title={t("legacy.title")} onClose={() => setConfirmarLegado(false)} fit>
+        <p className="text-sm">{t("legacy.confirm")}</p>
+        <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setConfirmarLegado(false)}>{t("action.cancel")}</Btn><Btn variant="gold" onClick={() => { dispatch({ type: "LEGADO" }); setConfirmarLegado(false); }}>{t("legacy.start")}</Btn></div>
+      </Modal>}
     </div>
   );
 }
 
 // ==================== PERSONAL TÉCNICO ====================
 export function PanelPersonal() {
+  const { t: mensaje } = useMessages();
   const { state, dispatch } = useGame();
   const tipos = Object.keys(PERSONAL_INFO) as PersonalId[];
   const [pagina, setPagina] = useState(0);
   const [contratacionPendiente, setContratacionPendiente] = useState<PersonalId | null>(null);
+  const [nominaAbierta, setNominaAbierta] = useState(false);
   const capacidadEscritorio = useResponsiveCapacity("(min-width: 1100px) and (min-height: 650px)");
   const canvasEstrecho = useResponsiveCapacity("(max-width: 639px), (max-height: 650px)");
   const porPagina = canvasEstrecho ? 1 : capacidadEscritorio ? 4 : 2;
   useEffect(() => setPagina(p => Math.min(p, Math.max(0, Math.ceil(tipos.length / porPagina) - 1))), [porPagina, tipos.length]);
   const flujoActual = proyeccionSemanalRecurrente(state).total;
-
-  return (
-    <div className="staff-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+  const cabecera = (
       <div className="staff-header panel flex shrink-0 flex-wrap items-center gap-3 p-3">
         <h2 className="font-display text-2xl tracking-wide text-gold">Cuerpo Técnico & Empleados</h2>
         <span className="font-cond text-sm text-sand">Contratados: <b className="text-cream">{state.personal.length}</b></span>
         <span className="font-cond text-sm text-sand">Costo nómina semanal: <b className="text-blood">{fmt(state.personal.reduce((ac, p) => ac + PERSONAL_INFO[p.tipo].sueldo, 0))}</b></span>
         <span className="font-cond text-sm text-sand" title="Excluye ayuda inicial, eventos y patrocinios temporales.">Flujo recurrente (sin temporales): <b className={flujoActual < 0 ? "text-blood" : "text-win"}>{flujoActual < 0 ? `En contra ${fmt(Math.abs(flujoActual))}` : `A favor ${fmt(flujoActual)}`}/semana</b><span className="sr-only"> Excluye ayuda inicial, eventos y patrocinios temporales.</span></span>
       </div>
+  );
+
+  return (
+    <div className="staff-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+      {canvasEstrecho ? <Btn small variant="ghost" onClick={() => setNominaAbierta(true)}>{mensaje("staff.summary")}</Btn> : cabecera}
+      {nominaAbierta && <Modal title={mensaje("staff.payroll")} onClose={() => setNominaAbierta(false)}>{cabecera}</Modal>}
 
       <div className="staff-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {tipos.slice(pagina * porPagina, pagina * porPagina + porPagina).map(t => {
@@ -698,7 +694,8 @@ export function PanelPersonal() {
               </div>
               <p className="staff-desc mt-2 min-h-[42px] font-cond text-xs text-sand" title={info.desc}><span className="text-cream">Aporta:</span> {info.desc}</p>
               {contratacionPendiente === t && disponibilidad.ok && requiereConfirmacionFinanciera && (
-                <div className="mt-2 border border-blood/60 bg-blood/10 p-2" role="status" aria-live="polite">
+                <Modal title={mensaje("staff.review")} onClose={() => setContratacionPendiente(null)}>
+                <div className="border border-blood/60 bg-blood/10 p-2">
                   <p className="font-cond text-xs text-cream">Flujo recurrente después de contratar: <b className="text-blood">En contra {fmt(Math.abs(previsionTrasContratar))}/semana</b>.</p>
                   <p className="mt-1 font-cond text-[11px] text-sand">No cuenta subsidios, eventos ni patrocinios temporales. Podés asumir el costo, pero revisá cómo cubrirlo.</p>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -710,6 +707,7 @@ export function PanelPersonal() {
                     <Btn small variant="dark" onClick={() => setContratacionPendiente(null)}>Cancelar</Btn>
                   </div>
                 </div>
+                </Modal>
               )}
               {contratados.length > 0 && (
                 <div className="mt-3 border-t border-line pt-2">
@@ -760,9 +758,17 @@ function leerPreferencia(clave: string): boolean {
 }
 export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: () => void; atajos: Atajos; onCambiarAtajos: (atajos: Atajos) => void }) {
   const { state, dispatch } = useGame();
+  const { t } = useMessages();
+  const etiquetasAtajos = { gimnasio: t("nav.gym"), ciudad: t("nav.city"), plantel: t("nav.roster"), mercado: t("nav.market"), perfil: t("nav.profile"), personal: t("nav.staff"), calendario: t("nav.calendar"), avanzar: t("action.advance"), semanaRapida: t("action.quickWeek"), cerrar: t("action.closeWindows") };
+  const [seccion, setSeccion] = useState("partida");
+  const [paginaAtajos, setPaginaAtajos] = useState(0);
+  const [confirmarReinicio, setConfirmarReinicio] = useState(false);
+  const compacto = useResponsiveCapacity("(max-width: 639px), (max-height: 650px)");
+  const cantidadAtajos = compacto ? 1 : 3;
+  const totalPaginasAtajos = Math.ceil(ATAJOS_LABELS.length / cantidadAtajos);
   const [sonido, setSonido] = useState(audioHabilitado);
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const [nombrePartida, setNombrePartida] = useState(state.nombrePartida || state.nombreGimnasio || "Mi carrera");
+  const [nombrePartida, setNombrePartida] = useState(state.nombrePartida || state.nombreGimnasio || t("settings.defaultName"));
   const [textoGrande, setTextoGrande] = useState(() => leerPreferencia("vida-del-boxeo:textoGrande"));
   const [altoContraste, setAltoContraste] = useState(() => leerPreferencia("vida-del-boxeo:altoContraste"));
   const [movimientoReducido, setMovimientoReducido] = useState(() => leerPreferencia("vida-del-boxeo:movimientoReducido"));
@@ -778,116 +784,123 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
       localStorage.setItem("vida-del-boxeo:altoContraste", altoContraste ? "1" : "0");
       localStorage.setItem("vida-del-boxeo:movimientoReducido", movimientoReducido ? "1" : "0");
     } catch {
-      setMensaje("Almacenamiento no disponible: las preferencias solo se aplican a esta sesión.");
+      setMensaje(t("settings.preferenceError"));
     }
   }, [textoGrande, altoContraste, movimientoReducido]);
 
   const guardarAhora = () => {
-    const nombre = nombrePartida.trim() || "Mi carrera";
+    const nombre = nombrePartida.trim() || t("settings.defaultName");
     dispatch({ type: "RENOMBRAR_PARTIDA", nombre });
     const guardada = guardarEnRanura({ ...state, nombrePartida: nombre }, nombre);
     if (guardada) {
-      setMensaje("Partida guardada. Podés continuarla desde el inicio.");
+      setMensaje(t("settings.saved"));
       dispatch({ type: "TOAST", texto: "Partida guardada correctamente.", tono: "ok" });
     } else {
-      setMensaje("No se pudo guardar. Se conservaron los datos anteriores; revisá el aviso de almacenamiento.");
+      setMensaje(t("settings.saveError"));
     }
   };
 
   return (
-    <Modal title="Configuración y Partida" icon="gear" onClose={onCerrar} fit>
-      <div className="space-y-2 text-sm">
-        <div className="border border-line bg-panel2 p-2.5 rounded-xl">
-          <div className="font-display text-base text-cream">Guardar y cargar</div>
-          <p className="font-cond text-xs text-sand">La partida se guarda sola después de cada acción. Poné un nombre para encontrarla en “Continuar partida”.</p>
-          <input value={nombrePartida} onChange={e => setNombrePartida(e.target.value)} maxLength={32} aria-label="Nombre de la partida"
-            className="mt-2 w-full rounded-lg border border-line bg-ink px-2 py-1.5 font-cond text-sm text-cream outline-none focus:border-gold" placeholder="Nombre de la partida" />
+    <Modal title={t("settings.title")} icon="gear" onClose={onCerrar} fit wide className="settings-dialog">
+      <div className="settings-screen space-y-2 text-sm">
+        <select aria-label={t("settings.section")} value={seccion} onChange={e => setSeccion(e.target.value)} className="r4-select">
+          <option value="partida">{t("settings.save")}</option><option value="lectura">{t("settings.reading")}</option><option value="sonido">{t("settings.sound")}</option><option value="atajos">{t("settings.shortcuts")}</option><option value="atajos-guardar">{t("settings.shortcutSave")} / {t("settings.shortcutRestore")}</option><option value="riesgo">{t("settings.reset")}</option>
+        </select>
+        {seccion === "partida" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <p className="font-cond text-xs text-sand">{t("settings.saveHelp")}</p>
+          <input value={nombrePartida} onChange={e => setNombrePartida(e.target.value)} maxLength={32} aria-label={t("settings.saveName")}
+            className="mt-2 min-h-11 w-full rounded-lg border border-line bg-ink px-2 py-1.5 font-cond text-sm text-cream outline-none focus:border-gold" placeholder={t("settings.saveName")} />
           <div className="mt-2 flex flex-wrap gap-2">
-            <Btn small variant="gold" onClick={guardarAhora}><I n="check" className="h-3.5 w-3.5" /> Guardar ahora</Btn>
+            <Btn small variant="gold" onClick={guardarAhora}><I n="check" className="h-3.5 w-3.5" /> {t("settings.saveNow")}</Btn>
           </div>
           {mensaje && <div className="mt-2 rounded-lg border border-gold2/40 bg-gold/10 px-2.5 py-1.5 font-cond text-xs text-gold">{mensaje}</div>}
-        </div>
+        </div>}
 
-        <div className="border border-line bg-panel2 p-2.5 rounded-xl">
-          <div className="font-display text-base text-cream">Comodidad de lectura</div>
-          <p className="font-cond text-xs text-sand">Estas opciones se guardan en este navegador y no cambian las reglas del juego.</p>
+        {seccion === "lectura" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <p className="font-cond text-xs text-sand">{t("settings.readingHelp")}</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
             <Btn small variant={textoGrande ? "gold" : "dark"} onClick={() => setTextoGrande(v => !v)}>
-              {textoGrande ? "✓ " : ""}Texto grande
+              {textoGrande ? "✓ " : ""}{t("settings.largeText")}
             </Btn>
             <Btn small variant={altoContraste ? "gold" : "dark"} onClick={() => setAltoContraste(v => !v)}>
-              {altoContraste ? "✓ " : ""}Alto contraste
+              {altoContraste ? "✓ " : ""}{t("settings.contrast")}
             </Btn>
             <Btn small variant={movimientoReducido ? "gold" : "dark"} onClick={() => setMovimientoReducido(v => !v)}>
-              {movimientoReducido ? "✓ " : ""}Menos movimiento
+              {movimientoReducido ? "✓ " : ""}{t("settings.motion")}
             </Btn>
           </div>
-          <div className="mt-2 flex items-center justify-between border-t border-line pt-2">
-            <span className="font-cond text-xs text-sand">Sonido de campana, golpes y notificaciones</span>
+        </div>}
+        {seccion === "sonido" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="font-cond text-xs text-sand">{t("settings.soundHelp")}</span>
             <Btn small variant={sonido ? "gold" : "dark"} onClick={() => {
               const siguiente = !sonido;
               setSonido(siguiente);
               setAudioHabilitado(siguiente);
             }}>
-              <I n={sonido ? "volume" : "x"} className="h-3.5 w-3.5" /> {sonido ? "Activado" : "Silenciado"}
+              <I n={sonido ? "volume" : "x"} className="h-3.5 w-3.5" /> {sonido ? t("settings.soundOn") : t("settings.soundOff")}
             </Btn>
           </div>
-        </div>
+        </div>}
 
-        <div className="border border-blood/40 bg-blood/5 p-2.5 rounded-xl">
-          <div className="font-display text-base text-[#ff8a7e]">Zona de riesgo</div>
-          <p className="font-cond text-xs text-sand">Borra la carrera actual (los legados también). No se puede deshacer.</p>
+        {seccion === "riesgo" && <div className="border border-blood/40 bg-blood/5 p-2.5 rounded-xl">
+          <p className="font-cond text-xs text-sand">{t("settings.resetHelp")}</p>
           <Btn
             small
             variant="blood"
             className="mt-2"
-            onClick={() => {
-              if (window.confirm("¿Seguro? Se borrará toda la carrera actual.")) {
-                dispatch({ type: "REINICIAR" });
-                onCerrar();
-              }
-            }}
+            onClick={() => setConfirmarReinicio(true)}
           >
-            <I n="x" className="h-3.5 w-3.5" /> Reiniciar carrera
+            <I n="x" className="h-3.5 w-3.5" /> {t("settings.reset")}
           </Btn>
-        </div>
+        </div>}
 
-        <div className="border border-line bg-panel2 p-2.5 rounded-xl">
-          <div className="font-display text-base text-cream">Atajos de teclado</div>
-          <p className="mt-1 font-cond text-xs text-sand">Elegí una tecla por acción. Podés escribir <b>Esc</b> o <b>Espacio</b>; los cambios quedan guardados en este navegador.</p>
+        {seccion === "atajos" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <p className="mt-1 font-cond text-xs text-sand">{t("settings.shortcutHelp")}</p>
           <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
-            {ATAJOS_LABELS.map(([id, label]) => (
-              <label key={id} className="grid gap-1 font-cond text-[11px] uppercase tracking-wide text-mut">
-                {label}
+            {ATAJOS_LABELS.slice(Math.min(paginaAtajos, totalPaginasAtajos - 1) * cantidadAtajos, (Math.min(paginaAtajos, totalPaginasAtajos - 1) + 1) * cantidadAtajos).map(([id]) => (
+              <label key={id} className="grid gap-1 font-cond text-sm uppercase tracking-wide text-mut">
+                {etiquetasAtajos[id]}
                 <input
                   value={atajosEditados[id] === " " ? "Espacio" : atajosEditados[id]}
                   onChange={e => setAtajosEditados(prev => ({ ...prev, [id]: e.target.value }))}
                   onBlur={() => setAtajosEditados(prev => ({ ...prev, [id]: normalizarTecla(prev[id], ATAJOS_DEFAULT[id]) }))}
                   maxLength={10}
-                  className="w-full rounded-lg border border-line bg-panel px-2 py-1.5 font-mono-data text-sm uppercase text-cream outline-none focus:border-gold"
-                  aria-label={`Atajo para ${label}`}
+                  className="min-h-11 w-full rounded-lg border border-line bg-panel px-2 py-1.5 font-mono-data text-sm uppercase text-cream outline-none focus:border-gold"
+                  aria-label={t("settings.shortcutLabel", { action: etiquetasAtajos[id] })}
                 />
               </label>
             ))}
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Btn small variant="gold" disabled={conflictos.length > 0} onClick={() => { onCambiarAtajos(atajosEditados); setMensaje("Atajos guardados."); }}>
-              Guardar atajos
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <Btn small disabled={paginaAtajos === 0} onClick={() => setPaginaAtajos(v => Math.max(0, v - 1))}>{t("action.previous")}</Btn>
+            <span className="text-xs">{Math.min(paginaAtajos, totalPaginasAtajos - 1) + 1}/{totalPaginasAtajos}</span>
+            <Btn small disabled={paginaAtajos >= totalPaginasAtajos - 1} onClick={() => setPaginaAtajos(v => Math.min(totalPaginasAtajos - 1, v + 1))}>{t("action.next")}</Btn>
+          </div>
+        </div>}
+        {seccion === "atajos-guardar" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
+          <div className="flex flex-wrap gap-2">
+            <Btn small variant="gold" disabled={conflictos.length > 0} onClick={() => { onCambiarAtajos(atajosEditados); setMensaje(t("settings.shortcutSaved")); }}>
+              {t("settings.shortcutSave")}
             </Btn>
-            <Btn small variant="dark" onClick={() => { setAtajosEditados({ ...ATAJOS_DEFAULT }); onCambiarAtajos({ ...ATAJOS_DEFAULT }); setMensaje("Atajos restaurados."); }}>
-              Restaurar predeterminados
+            <Btn small variant="dark" onClick={() => { setAtajosEditados({ ...ATAJOS_DEFAULT }); onCambiarAtajos({ ...ATAJOS_DEFAULT }); setMensaje(t("settings.shortcutRestored")); }}>
+              {t("settings.shortcutRestore")}
             </Btn>
           </div>
           {conflictos.length > 0 && <div className="mt-2 rounded-lg border border-blood/50 bg-blood/10 px-2.5 py-1.5 font-cond text-xs text-[#ff8a7e]">
-            Hay teclas repetidas. Asigná una tecla distinta a cada acción antes de guardar.
+            {t("settings.shortcutConflict")}
           </div>}
-          <div className="mt-2 grid gap-1.5 font-cond text-xs text-sand sm:grid-cols-2">
+          {!compacto && <div className="mt-2 grid gap-1.5 font-cond text-xs text-sand sm:grid-cols-2">
             <span><kbd className="keycap">{atajos.gimnasio}</kbd> Gimnasio · <kbd className="keycap">{atajos.ciudad}</kbd> Ciudad · <kbd className="keycap">{atajos.plantel}</kbd> Plantel</span>
             <span><kbd className="keycap">{atajos.avanzar === " " ? "Espacio" : atajos.avanzar}</kbd> Avanzar día · <kbd className="keycap">{atajos.semanaRapida}</kbd> Semana rápida · <kbd className="keycap">{atajos.cerrar}</kbd> Cerrar</span>
-          </div>
-        </div>
+          </div>}
+        </div>}
 
       </div>
+      {confirmarReinicio && <Modal title={t("settings.reset")} icon="warning" onClose={() => setConfirmarReinicio(false)} fit>
+        <p className="text-sm text-sand">{t("settings.resetConfirm")}</p>
+        <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setConfirmarReinicio(false)}>{t("action.cancel")}</Btn><Btn variant="blood" onClick={() => { dispatch({ type: "REINICIAR" }); onCerrar(); }}>{t("settings.reset")}</Btn></div>
+      </Modal>}
     </Modal>
   );
 }

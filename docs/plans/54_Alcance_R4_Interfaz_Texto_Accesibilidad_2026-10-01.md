@@ -1,6 +1,7 @@
 # Plan 54 — R4: interfaz, texto y accesibilidad
 
 **Estado:** aprobado; implementación EN CURSO, todavía sin cierre. 2026-10-01.
+**Continuación2026-10-03:** informe55 amplía evidencia a410 tests y184 claves, pero el detector de rangos de texto mantiene46/210 casos RED y el catálogo global sigue incompleto. PR #6 permanece borrador/NO APTO; no pedir una nueva autorización para continuar el alcance vigente ni confundir resultados parciales con cierre.
 **Baseline:** main `8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3`, R3 integrado sin publicación.
 **Alcance:** A18, A19, A20, A23, A26 de auditoría44 y cierre pendiente del selector documentado en informes52/53.
 **Salida:** pestañas y decisiones utilizables en escritorio/móvil/zoom; texto legible y veraz; foco/idioma completos para el alcance expresamente habilitado. No certifica el juego completo.
@@ -114,3 +115,5 @@ Decisión adicional aprobada: si todos los alumnos iniciales salen antes de conf
 Avance parcial en `feature/r4-interface-accessibility`: selector con cierre/reapertura de presentación; gestión de foco de Modal; progreso persistente y migración 7→8. Véase informe 55 para evidencia y faltantes. No hay aceptación ni cierre de R4: falta la matriz completa, el catálogo es/en/pt-BR y demás controles necesarios del alcance.
 
 Continuación: inventario AST, catálogo tipado inicial y locales incompletos deshabilitados; composición compacta de shell/Perfil/Panel del Club; paginación de Mercado/Personal en ventanas estrechas; matriz de diagnóstico ejecutada con fallos registrados. No marcar esas familias como aceptadas por las pruebas aisladas de dominio.
+
+Seguimiento2026-10-02: las120 ejecuciones fallidas se agrupan por pantalla/viewport/causa en informe55. Correcciones responsive compartidas, persistencia operacional de guía y notificaciones con RED→GREEN. Verify392/392 es evidencia de su build, no cierre global. El diagnóstico se endureció para incluir inputs, selectores y SVG; aparecieron nuevos puntos ciegos que también deben resolverse. Ajustes/plantel rápido con matriz de portales y pseudo; se amplía a inmuebles. Continúan obligatorios catálogo global, historia fiable/contabilidad no textual, ficha/combate/otros overlays, todos los estados extremos y legibilidad de texto no interactivo. PR#6 sigue en borrador. Sin decisiones nuevas ni relajación de mínimos.

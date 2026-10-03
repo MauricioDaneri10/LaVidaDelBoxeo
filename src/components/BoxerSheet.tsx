@@ -6,35 +6,33 @@ import { useGame } from "../game/state";
 import type { ComboId, Pugilista } from "../game/types";
 import { Figura } from "./GymView";
 import { BarraEnergia, Btn, Chip, FilaStat, I, Modal, RadarCapacidades } from "./ui";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
 
-const PILARES: { titulo: string; color: string; stats: { k: keyof import("../game/types").Atributos; n: string }[] }[] = [
+const PILARES: { color: string; stats: { k: keyof import("../game/types").Atributos }[] }[] = [
   {
-    titulo: "Pilar Físico",
     color: "text-blood",
     stats: [
-      { k: "fuerza", n: "Fuerza" },
-      { k: "velocidad", n: "Velocidad" },
-      { k: "potencia", n: "Potencia" },
-      { k: "resistencia", n: "Resistencia" },
+      { k: "fuerza" },
+      { k: "velocidad" },
+      { k: "potencia" },
+      { k: "resistencia" },
     ],
   },
   {
-    titulo: "Pilar Técnico",
     color: "text-gold",
     stats: [
-      { k: "ataque", n: "Ataque" },
-      { k: "defensa", n: "Defensa" },
-      { k: "tecnica", n: "Técnica" },
-      { k: "eficacia", n: "Eficacia" },
+      { k: "ataque" },
+      { k: "defensa" },
+      { k: "tecnica" },
+      { k: "eficacia" },
     ],
   },
   {
-    titulo: "Pilar Mental",
     color: "text-neonc",
     stats: [
-      { k: "inteligencia", n: "Inteligencia" },
-      { k: "mentalidad", n: "Mentalidad" },
-      { k: "talento", n: "Talento" },
+      { k: "inteligencia" },
+      { k: "mentalidad" },
+      { k: "talento" },
     ],
   },
 ];
@@ -51,8 +49,18 @@ export interface BoxerSheetProps {
 export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBuscarRival, onIrAPestana }: BoxerSheetProps) {
   const { state, dispatch } = useGame();
   const { t } = useMessages();
+  const nombreEnfoque = (combo: ComboId) => t(`combo.${combo}`);
+  const descripcionEnfoque = (combo: ComboId) => t(`combo.${combo}.desc`);
+  const nombrePilar = (index: number) => t((["sheet.physical", "sheet.technical", "sheet.mental"] as const)[index]);
   const inicialId = id || boxeadorId || state.plantel[0]?.id || "";
   const [activoId, setActivoId] = useState<string>(inicialId);
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 900px)");
+  const [apartado, setApartado] = useState("enfoque");
+  const [pilar, setPilar] = useState(0);
+  const [enfoquePrevio, setEnfoquePrevio] = useState<ComboId>("acondicionamiento");
+  const [accionGestion, setAccionGestion] = useState("ofertas");
+  const [confirmarTransferencia, setConfirmarTransferencia] = useState(false);
+  const [paginaHistorial, setPaginaHistorial] = useState(0);
 
   useEffect(() => {
     if (id || boxeadorId) {
@@ -62,6 +70,8 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
 
   const indexActual = state.plantel.findIndex(p => p.id === activoId);
   const p = (indexActual >= 0 ? state.plantel[indexActual] : state.plantel[0]) as Pugilista | undefined;
+  useEffect(() => { if (p) { setEnfoquePrevio(p.combo); setPaginaHistorial(0); } }, [p?.id, p?.combo]);
+  useEffect(() => { setAccionGestion("ofertas"); setConfirmarTransferencia(false); }, [p?.id]);
 
   const irAnterior = () => {
     if (state.plantel.length <= 1) return;
@@ -115,25 +125,96 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
     // ficha cuando el resultado está identificado de forma segura.
     return h.miId === p.id;
   }).slice(0, 5);
+  const dialogoTransferencia = confirmarTransferencia && <Modal title={t("transfer.title")} onClose={() => setConfirmarTransferencia(false)} fit><p className="text-sm">{t("transfer.message", { name: p.nombre })}</p><div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setConfirmarTransferencia(false)}>{t("action.cancel")}</Btn><Btn variant="blood" onClick={() => { dispatch({ type: "RETIRAR_ATLETA", id: p.id }); onCerrar(); }}>{t("transfer.action")}</Btn></div></Modal>;
+
+  if (compacto) return <Modal wide fit className="boxer-sheet-modal" title={t("sheet.heading")} icon="user" onClose={onCerrar}>
+    <div className="boxer-sheet-compact text-sm">
+      <div className="space-y-2">
+        <select aria-label={t("sheet.boxer")} value={p.id} onChange={e => { setActivoId(e.target.value); onCambiarBoxeador?.(e.target.value); }} className="r4-select">
+          {state.plantel.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+        </select>
+        <select aria-label={t("sheet.section")} value={apartado} onChange={e => setApartado(e.target.value)} className="r4-select">
+          <option value="nombre">{t("sheet.name")}</option><option value="identidad">{t("sheet.identity")}</option><option value="figura">{t("sheet.figure")}</option><option value="record">{t("sheet.record")}</option><option value="rasgo">{t("sheet.trait")}</option><option value="radar">{t("sheet.radar")}</option><option value="atributos">{t("sheet.attributes")}</option><option value="enfoque">{t("sheet.focus")}</option><option value="confirmacion">{t("sheet.confirm")}</option><option value="consejo">{t("sheet.corner")}</option><option value="practicas">{t("sheet.practice")}</option><option value="gestion">{t("sheet.management")}</option><option value="historial">{t("sheet.history")}</option>
+        </select>
+      </div>
+      <div className="min-w-0 space-y-2 rounded-xl border border-line bg-panel p-2.5">
+        {apartado === "nombre" && <p>{p.nombre}</p>}
+        {apartado === "identidad" && <>
+          <p>Valoración general: <b className="text-gold">{vg}</b></p>
+          <p>{p.edad} años · {p.genero === "M" ? "Masculino" : "Femenino"} · {p.division}</p>
+          <p>{p.rol === "boxeador" ? (p.circuito === "pro" ? "Licencia Profesional" : "Licencia Amateur") : "Pugil en formación"}{p.elite && " · Zona Élite"}</p>
+          <p>Energía: {Math.round(p.energia)}</p>
+          {p.titulo > 0 && <p>{TITULOS[p.titulo as 1 | 2 | 3 | 4].nombre}</p>}
+          <p>{t("focus.assigned")}: {nombreEnfoque(p.combo)}</p>
+        </>}
+        {apartado === "figura" && <div className="flex justify-center"><Figura p={p} escala={1} /></div>}
+        {apartado === "record" && <>
+          <p>Récord: {p.record.v}-{p.record.d}-{p.record.e ?? 0} · {p.record.ko} KO · {totalPeleas(p)} peleas</p>
+          <p>{categoriaRecord.etiqueta}{p.bonusDebut && " · Bono de Madurez"}</p>
+          <p>Amateur: {p.peleasAmateur} · Profesional: {p.peleasProfesionales} ({p.victoriasProfesionales}-{p.derrotasProfesionales}-{p.empatesProfesionales}, {p.kosProfesionales} KO)</p>
+          <p>{p.circuito === "amateur" ? p.peleasAmateur >= 50 ? "Trayectoria amateur completa: el pase profesional queda a decisión del jugador." : `Camino profesional: ${50 - p.peleasAmateur} peleas amateurs restantes.` : "Títulos: Nacional desde 10 peleas pro · Regional/Mundial desde 25."}</p>
+        </>}
+        {apartado === "rasgo" && <><p className="text-gold">{rasgo?.nombre ?? "Sin rasgo especial"}</p>{rasgo && <p>{rasgo.desc}</p>}</>}
+        {apartado === "radar" && <RadarCapacidades atributos={atributosSeguros} className="max-w-[160px]" />}
+        {apartado === "atributos" && <>
+          <select aria-label={t("sheet.pillar")} value={pilar} onChange={e => setPilar(Number(e.target.value))} className="r4-select">{PILARES.map((pil, i) => <option key={pil.color} value={i}>{nombrePilar(i)}</option>)}</select>
+          {PILARES[pilar].stats.map(s => <FilaStat key={s.k} label={t(`stat.${s.k}`)} v={p.atrib[s.k]} />)}
+        </>}
+        {apartado === "enfoque" && <>
+          <select aria-label={t("focus.review")} value={enfoquePrevio} onChange={e => setEnfoquePrevio(e.target.value as ComboId)} className="r4-select">
+            {(Object.keys(COMBOS) as ComboId[]).map(cid => <option key={cid} value={cid}>{nombreEnfoque(cid)}{p.combo === cid ? ` · ${t("focus.assigned")}` : ""}</option>)}
+          </select>
+          <p>{descripcionEnfoque(enfoquePrevio)}</p>
+          <Btn small variant="gold" onClick={() => cambiarCombo(enfoquePrevio)}>{t("focus.assign")}</Btn>
+        </>}
+        {apartado === "confirmacion" && (necesitaEnfoque ? <><p>{t("focus.pending")}</p><p>{t("focus.assigned")}: {nombreEnfoque(p.combo)}</p><Btn small onClick={() => cambiarCombo(p.combo)}>{t("focus.confirm")}</Btn></> : <p>{t("focus.confirmed")}</p>)}
+        {apartado === "consejo" && <><p>{t("focus.recommended", { focus: nombreEnfoque(consejo) })}</p>{aspirable > 0 && <p>Posibilidad de disputa: {TITULOS[aspirable as 1 | 2 | 3 | 4].nombre}.</p>}</>}
+        {apartado === "practicas" && <>
+          <p>{p.guanteosRealizados}/10 guanteos (sparring)</p>
+          <div className="stat-bar"><i style={{ width: `${Math.min(100, p.guanteosRealizados / 10 * 100)}%`, background: "var(--color-gold)" }} /></div>
+          <p>{p.enEspera ? "Está en lista de espera: cuando se libere una plaza podrá continuar." : p.guanteosRealizados >= 10 ? "¡Pugil listo para tramitar su licencia!" : `Requiere ${10 - p.guanteosRealizados} guanteos más para tramitar la licencia.`}</p>
+          <p>Las prácticas de combate se completan los sábados.</p>
+        </>}
+        {apartado === "gestion" && (p.rol === "alumno" ? <>
+          <p>{p.enEspera ? "Está en lista de espera y todavía no puede entrenar ni competir." : !state.cursos.includes("dt") ? "Obtené la Licencia de Entrenador para federar boxeadores del club." : p.guanteosRealizados >= 10 ? "Prácticas completas: tramitá la licencia amateur para competir." : "Completá las prácticas de los sábados para habilitar la competencia amateur."}</p>
+          {!state.cursos.includes("dt") && onIrAPestana && <Btn small variant="ghost" onClick={() => onIrAPestana("perfil")}>Obtener Licencia de Entrenador</Btn>}
+          {puedeLicenciar && <Btn small variant="gold" onClick={() => dispatch({ type: "LICENCIAR", id: p.id })}>Tramitar licencia del pugil ({fmt(200)})</Btn>}
+        </> : <>
+          <select aria-label="Acción de gestión del boxeador" value={accionGestion} onChange={e => setAccionGestion(e.target.value)} className="r4-select">
+            <option value="ofertas">Ofertas de combate</option><option value="elite">Zona Élite</option><option value="transferencia">Transferencia</option>{p.circuito === "amateur" && p.peleasAmateur >= 50 && <option value="profesional">Pase profesional</option>}
+          </select>
+          {accionGestion === "ofertas" && <><p>{peleaAgendada ? `Pelea pactada vs ${peleaAgendada.rival.nombre}: respetá el descanso y la recuperación.` : p.lesion ? `Lesión ${p.lesion.gravedad}: ${p.lesion.semanas} semana(s) de recuperación.` : p.energia < 70 ? "Necesita descansar antes de pactar una pelea." : "Disponible para pactar una pelea."}</p>{!peleaAgendada && <Btn small onClick={() => { if (onBuscarRival) onBuscarRival(p.id); else dispatch({ type: "BUSCAR_RIVAL", id: p.id }); onCerrar(); }}>Buscar Ofertas de Combate</Btn>}</>}
+          {accionGestion === "elite" && <Btn small variant={p.elite ? "gold" : "ghost"} onClick={() => dispatch({ type: "ALTERNAR_ELITE", id: p.id })}>{p.elite ? "✓ En Zona Élite" : "+ Promover a Zona Élite"}</Btn>}
+          {accionGestion === "transferencia" && <><p>Su récord se conserva en esta partida y deja de ocupar un lugar en el plantel.</p><Btn small variant="ghost" onClick={() => setConfirmarTransferencia(true)}>Transferir fuera del club</Btn></>}
+          {accionGestion === "profesional" && p.circuito === "amateur" && p.peleasAmateur >= 50 && <><p>{paseProfesional.ok ? "Puede aceptar el pase; conserva su récord amateur." : paseProfesional.motivo === "cupo" ? "Cupo profesional completo: seguirá amateur hasta que liberes una plaza." : "Resuelve la pelea agendada antes de cambiar de circuito."}</p><Btn small variant="gold" disabled={!paseProfesional.ok} onClick={() => dispatch({ type: "PROMOVER_PRO", id: p.id })}>Aceptar pase profesional</Btn></>}
+        </>)}
+        {apartado === "historial" && (historialAtleta.length ? <>
+          <select aria-label="Combate del historial" value={Math.min(paginaHistorial, historialAtleta.length - 1)} onChange={e => setPaginaHistorial(Number(e.target.value))} className="r4-select">{historialAtleta.map((h, i) => <option key={i} value={i}>{i + 1} · {h.rivalNombre}</option>)}</select>
+          {historialAtleta.slice(Math.min(paginaHistorial, historialAtleta.length - 1), Math.min(paginaHistorial, historialAtleta.length - 1) + 1).map((h, i) => <div key={i}><p>{h.empate ? "EMPATE" : h.gane ? "VICTORIA" : "DERROTA"} · {h.metodo}</p><p>{h.resumen}</p><p>Bolsa: {fmt(h.bolsa)}</p></div>)}
+        </> : <p>Aún no registra combates oficiales en su historial.</p>)}
+      </div>
+    </div>
+    {dialogoTransferencia}
+  </Modal>;
 
   return (
     <Modal
       wide
       fit
       className="boxer-sheet-modal"
-      title={`Ficha Técnica · ${p.nombre}`}
+      title={t("sheet.title", { name: p.nombre })}
       icon="user"
       onClose={onCerrar}
     >
       <div className="boxer-sheet-content space-y-1.5 select-none text-[.96em]">
         
         {/* BARRA DE NAVEGACIÓN ANTERIOR / SIGUIENTE ENTRE ATLETAS */}
-        <div className="flex items-center justify-between border-b border-line pb-1.5">
+        <div className="boxer-sheet-nav flex flex-wrap items-center justify-between gap-2 border-b border-line pb-1.5">
           <div className="flex items-center gap-2">
             <button
               onClick={irAnterior}
               disabled={state.plantel.length <= 1}
-              className="px-3 py-1 rounded border border-line bg-panel2 text-xs font-cond uppercase text-sand hover:text-gold hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
+              className="r4-sheet-nav"
             >
               ← Anterior
             </button>
@@ -143,7 +224,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
             <button
               onClick={irSiguiente}
               disabled={state.plantel.length <= 1}
-              className="px-3 py-1 rounded border border-line bg-panel2 text-xs font-cond uppercase text-sand hover:text-gold hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
+              className="r4-sheet-nav"
             >
               Siguiente →
             </button>
@@ -243,16 +324,16 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
             
             {/* LOS 3 PILARES CANÓNICOS (11 ATRIBUTOS) */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {PILARES.map(pil => (
-                <div key={pil.titulo} className="panel p-2 rounded-2xl space-y-1">
+              {PILARES.map((pil, index) => (
+                <div key={pil.color} className="panel p-2 rounded-2xl space-y-1">
                   <div className={`font-display text-base tracking-wide border-b border-line pb-1 ${pil.color}`}>
-                    {pil.titulo}
+                    {nombrePilar(index)}
                   </div>
                   <div className="space-y-1">
                     {pil.stats.map(s => (
                       <FilaStat
                         key={s.k}
-                        label={s.n}
+                        label={t(`stat.${s.k}`)}
                         v={p.atrib[s.k]}
                       />
                     ))}
@@ -268,7 +349,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
                   <I n="glove" className="h-4 w-4" /> {t("focus.title")}
                 </span>
                 <span className="min-w-[120px] text-center font-cond text-xs leading-tight text-mut">
-                  <span className="block">{t("focus.assigned")}</span><b className="block text-cream">{COMBOS[p.combo]?.nombre || "Libre"}</b>
+                  <span className="block">{t("focus.assigned")}</span><b className="block text-cream">{nombreEnfoque(p.combo)}</b>
                 </span>
               </div>
 
@@ -280,21 +361,20 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
               )}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
                 {(Object.keys(COMBOS) as ComboId[]).map(cid => {
-                  const cb = COMBOS[cid];
                   const esActivo = p.combo === cid;
                   return (
                     <button
                       key={cid}
                       onClick={() => cambiarCombo(cid)}
-                      title={cb.desc}
+                      title={descripcionEnfoque(cid)}
                       className={`min-h-[56px] p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
                         esActivo
-                          ? "border-gold bg-gold/15 text-gold shadow-md scale-[1.02]"
+                          ? "border-gold bg-gold/15 text-gold shadow-md"
                           : "border-line bg-panel2 text-sand hover:border-line2"
                       }`}
                     >
-                      <div className="font-display text-xs leading-tight text-cream">{cb.nombre}</div>
-                      <div className="font-cond text-[10px] leading-tight text-mut line-clamp-2">{cb.desc}</div>
+                      <div className="font-display text-sm leading-tight text-cream">{nombreEnfoque(cid)}</div>
+                      <div className="font-cond text-sm leading-tight text-mut">{descripcionEnfoque(cid)}</div>
                     </button>
                   );
                 })}
@@ -306,7 +386,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
               <I n="target" className="h-5 w-5 text-gold shrink-0 mt-0.5" />
               <div className="space-y-0.5 text-xs font-cond">
                 <span className="font-bold uppercase tracking-wider text-gold">Consejo de Esquina:</span>
-                <p className="text-cream leading-relaxed">Enfoque recomendado: <b>{COMBOS[consejo]?.nombre ?? "Descanso"}</b></p>
+                <p className="text-cream leading-relaxed">{t("focus.recommended", { focus: nombreEnfoque(consejo) })}</p>
                 {aspirable > 0 && (
                   <p className="text-neonc text-[11px] pt-1">
                     • Posibilidad de disputa: <b>{TITULOS[aspirable as 1 | 2 | 3 | 4].nombre}</b>.
@@ -415,12 +495,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
                     <Btn
                       small
                       variant="ghost"
-                      onClick={() => {
-                        if (window.confirm(`¿Transferir a ${p.nombre} fuera del club? Su récord se conservará en esta partida, pero dejará de ocupar un lugar en el plantel.`)) {
-                          dispatch({ type: "RETIRAR_ATLETA", id: p.id });
-                          onCerrar();
-                        }
-                      }}
+                      onClick={() => setConfirmarTransferencia(true)}
                     >
                       Transferir fuera del club
                     </Btn>
@@ -444,7 +519,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
                     >
                       <div className="flex items-center gap-2">
                         <span className={`font-black ${h.gane ? "text-emerald-400" : "text-blood"}`}>
-                          {h.gane ? "VICTORIA" : "DERROTA"}
+                          {h.empate ? "EMPATE" : h.gane ? "VICTORIA" : "DERROTA"}
                         </span>
                         <span className="text-sand">{h.metodo}</span>
                         <span className="text-mut font-mono-data">({h.resumen})</span>
@@ -464,6 +539,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
         </div>
 
       </div>
+      {dialogoTransferencia}
     </Modal>
   );
 }
