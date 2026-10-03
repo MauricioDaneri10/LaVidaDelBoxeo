@@ -16,15 +16,23 @@ import { fmt, puedeHabilitar, proyeccionSemanal, valoracion, peleasVencidas } fr
 import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/shortcuts";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
+import { dialogOpen } from "./ui/dialogs";
+import { useMessages } from "./i18n";
+import { useResponsiveCapacity } from "./components/useResponsiveCapacity";
 
 export type Pestana = "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal" | "calendario";
 
 function PantallaPrincipal() {
   const { state, dispatch } = useGame();
+  const { t } = useMessages();
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 950px)");
+  const [planificacionAbierta, setPlanificacionAbierta] = useState(false);
+  const [panelClubAbierto, setPanelClubAbierto] = useState(false);
   const [pestana, setPestana] = useState<Pestana>("gimnasio");
   const [pestanaDock, setPestanaDock] = useState<PestanaDock>("mensajes");
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [ajustes, setAjustes] = useState(false);
+  const [selectorAbierto, setSelectorAbierto] = useState(false);
   const [carteleraAbierta, setCarteleraAbierta] = useState(false);
   const [atajos, setAtajos] = useState<Atajos>(() => cargarAtajos());
   const diaAnterior = useRef(state.dia);
@@ -62,6 +70,7 @@ function PantallaPrincipal() {
 
   useEffect(() => {
     const manejarAtajo = (event: KeyboardEvent) => {
+      if (dialogOpen()) return;
       const objetivo = event.target as HTMLElement | null;
       if (objetivo && ["INPUT", "TEXTAREA", "SELECT"].includes(objetivo.tagName)) return;
       if (teclaCoincide(event.key, atajos.cerrar)) {
@@ -101,6 +110,10 @@ function PantallaPrincipal() {
   };
 
   const resolverOferta = (ofertaId: string) => dispatch({ type: "ELEGIR_OFERTA", ofertaId });
+  const buscarRival = (id: string) => {
+    dispatch({ type: "BUSCAR_RIVAL", id });
+    setSelectorAbierto(true);
+  };
 
   const primerAlumnoListo = state.plantel.find(p => puedeHabilitar(p, state));
   const proyeccion = proyeccionSemanal(state);
@@ -108,34 +121,34 @@ function PantallaPrincipal() {
   const adicionalesEstimados = proyeccion.estimados.reduce((total, l) => total + l.mean, 0);
   const gastosEstimados = proyeccion.gastos.reduce((total, l) => total + l.monto, 0);
   const balanceEstimado = proyeccion.total;
-  const alumnosActivosIniciales = state.plantel.filter(p => p.rol === "alumno" && !p.enEspera);
-  const tieneEnfoqueInicial = alumnosActivosIniciales.length > 0 && alumnosActivosIniciales.every(p => p.combo !== "acondicionamiento");
+  const progresoGuia = state.guiaClub;
+  const tieneEnfoqueInicial = progresoGuia?.enfoques ?? false;
   const guiaInicial = [
     { texto: "Elegir enfoque para cada boxeador", hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
-    { texto: "Equipar el gimnasio", hecho: state.equipamiento.length > 0, tab: "mercado" as Pestana },
-    { texto: "Completar 10 guanteos", hecho: state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.guanteosRealizados >= 10)), tab: "plantel" as Pestana },
-    { texto: "Habilitar al primer boxeador", hecho: state.plantel.some(p => p.rol === "boxeador"), tab: "plantel" as Pestana },
+    { texto: "Equipar el gimnasio", hecho: progresoGuia?.equipo ?? false, tab: "mercado" as Pestana },
+    { texto: "Completar 10 guanteos", hecho: progresoGuia?.guanteos ?? false, tab: "plantel" as Pestana },
+    { texto: "Habilitar al primer boxeador", hecho: progresoGuia?.licencia ?? false, tab: "plantel" as Pestana },
   ];
   const siguientePaso = !tieneEnfoqueInicial
     ? { texto: "Elegí un enfoque de entrenamiento para cada boxeador.", boton: "Abrir Plantel", tab: "plantel" as Pestana }
-    : !state.equipamiento.length
+    : !progresoGuia?.equipo
       ? { texto: "Equipá el gimnasio para activar sus estaciones y beneficios.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
-      : !state.plantel.some(p => p.rol === "boxeador" || (p.rol === "alumno" && p.guanteosRealizados >= 10))
+      : !progresoGuia?.guanteos
         ? { texto: "Completá 10 guanteos para preparar al primer boxeador.", boton: "Ver Plantel", tab: "plantel" as Pestana }
         : !state.cursos.includes("dt")
           ? { texto: "Obtené la Licencia de Entrenador para tramitar licencias de boxeadores.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
-          : state.plantel.some(p => p.rol === "boxeador")
+          : progresoGuia?.licencia
             ? { texto: "Revisá el calendario para organizar la semana.", boton: "Abrir Calendario", tab: "calendario" as Pestana }
             : primerAlumnoListo
               ? { texto: `${primerAlumnoListo.nombre} está listo: tramitá su licencia.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
               : null;
 
   const pestanas: { id: Pestana; nombre: string; icono: string; pulso: boolean }[] = [
-    { id: "gimnasio", nombre: "Gimnasio", icono: "ring", pulso: false },
-    { id: "ciudad", nombre: "Ciudad", icono: "map", pulso: false },
+    { id: "gimnasio", nombre: t("nav.gym"), icono: "ring", pulso: false },
+    { id: "ciudad", nombre: t("nav.city"), icono: "map", pulso: false },
     {
       id: "plantel",
-      nombre: "Plantel",
+      nombre: t("nav.roster"),
       icono: "glove",
       pulso:
         state.dia <= 5 &&
@@ -143,10 +156,10 @@ function PantallaPrincipal() {
           p => puedeHabilitar(p, state)
         ),
     },
-    { id: "mercado", nombre: "Mercado", icono: "cart", pulso: false },
-    { id: "perfil", nombre: "Mi Perfil", icono: "cap", pulso: false },
-    { id: "personal", nombre: "Personal", icono: "users", pulso: false },
-    { id: "calendario", nombre: "Calendario", icono: "calendar", pulso: state.pendientes.length > 0 },
+    { id: "mercado", nombre: t("nav.market"), icono: "cart", pulso: false },
+    { id: "perfil", nombre: t("nav.profile"), icono: "cap", pulso: false },
+    { id: "personal", nombre: t("nav.staff"), icono: "users", pulso: false },
+    { id: "calendario", nombre: t("nav.calendar"), icono: "calendar", pulso: state.pendientes.length > 0 },
   ];
 
   return (
@@ -178,7 +191,25 @@ function PantallaPrincipal() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* NAVEGACIÓN PRINCIPAL ENTRE LAS 6 PESTAÑAS */}
           <nav className="app-nav relative z-30 mb-3 flex shrink-0 flex-wrap gap-1.5 border border-gold2/20 bg-ink/82 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,.22)] backdrop-blur-xl rounded-2xl">
-            {pestanas.map(p => (
+            {compacto ? (
+              <select aria-label={t("nav.choose")} value={pestana} onChange={event => {
+                event.currentTarget.focus();
+                const value = event.target.value;
+                if (value === "contexto-plan") setPlanificacionAbierta(true);
+                else if (value === "contexto-club") setPanelClubAbierto(true);
+                else if (value === "contexto-ofertas") setSelectorAbierto(true);
+                else if (value === "contexto-cartelera") setCarteleraAbierta(true);
+                else setPestana(value as Pestana);
+              }} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-3 text-sm text-cream">
+                {pestanas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                <optgroup label={t("club.management")}>
+                  <option value="contexto-plan">{t("plan.access", { completed: guiaInicial.filter(h => h.hecho).length, total: 4 })}</option>
+                  <option value="contexto-club">{t("club.panel")}</option>
+                  {state.ofertas.length > 0 && state.ofertasPara && <option value="contexto-ofertas">{t("offers.reopen")}</option>}
+                  {state.dia === 6 && state.pendientes.length > 0 && <option value="contexto-cartelera">{t("schedule.pending", { count: state.pendientes.length })}</option>}
+                </optgroup>
+              </select>
+            ) : pestanas.map(p => (
               <button
                 key={p.id}
                 onClick={() => setPestana(p.id)}
@@ -199,8 +230,12 @@ function PantallaPrincipal() {
               </button>
             ))}
 
+            {!compacto && state.ofertas.length > 0 && state.ofertasPara && (
+              <Btn small variant="ghost" onClick={() => setSelectorAbierto(true)}>{t("offers.reopen")}</Btn>
+            )}
+
             {/* AVISO / BOTÓN DE CARTELERA DEL SÁBADO */}
-            {state.dia === 6 && state.pendientes.length > 0 && (
+            {!compacto && state.dia === 6 && state.pendientes.length > 0 && (
               <button
                 onClick={() => setCarteleraAbierta(true)}
                 className="btn-poster guia-luminica ml-auto border border-blood bg-blood px-4 py-1 text-sm sm:text-base text-cream rounded-lg cursor-pointer"
@@ -211,14 +246,14 @@ function PantallaPrincipal() {
               </button>
             )}
 
-            {state.dia === 6 && state.pendientes.length === 0 && (
+            {!compacto && state.dia === 6 && state.pendientes.length === 0 && (
               <span className="ml-auto flex items-center gap-2 px-3 font-cond text-sm uppercase tracking-wide text-sand">
                 <I n="check" className="h-4 w-4 text-win" /> Cartelera resuelta · pasá al balance
               </span>
             )}
           </nav>
 
-          {siguientePaso && state.dia <= 5 && (
+          {!compacto && siguientePaso && state.dia <= 5 && (
             <div className="action-banner mb-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-2 py-1.5 shadow-sm">
               <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-sm text-ink font-bold">→</div>
               <div className="min-w-0 flex-1">
@@ -228,13 +263,13 @@ function PantallaPrincipal() {
               <Btn small variant="gold" onClick={() => setPestana(siguientePaso.tab)}>{siguientePaso.boton}</Btn>
             </div>
           )}
-          {state.semana === 1 && !guiaInicial.every(h => h.hecho) && (
+          {!compacto && !guiaInicial.every(h => h.hecho) && (
             <div className="mb-2 shrink-0 rounded-xl border border-line bg-panel/80 px-2 py-1.5">
               <div className="mb-1 flex items-center justify-between gap-3">
                 <span className="font-display text-xs uppercase tracking-wide text-cream">Primeros pasos del club</span>
                 <span className="font-cond text-xs text-mut">{guiaInicial.filter(h => h.hecho).length}/4 completados</span>
               </div>
-              <div className="grid gap-1 sm:grid-cols-4">
+              <div className="guide-steps grid gap-1 sm:grid-cols-4">
                 {guiaInicial.map((h, i) => (
                   <button key={h.texto} onClick={() => !h.hecho && setPestana(h.tab)} disabled={h.hecho}
                     className={`rounded-lg border px-2 py-1.5 text-left font-cond text-[11px] leading-tight transition-colors ${h.hecho ? "border-win/40 bg-win/5 text-win" : "border-line2 bg-panel2 text-sand hover:border-gold2 hover:text-gold"}`}>
@@ -244,7 +279,7 @@ function PantallaPrincipal() {
               </div>
             </div>
           )}
-          {state.dia <= 5 && (
+          {!compacto && state.dia <= 5 && (
             <div className="forecast-strip mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-panel/70 px-4 py-2.5 font-cond text-sm">
               <span className="font-display uppercase tracking-wide text-sand">Previsión del domingo</span>
               <span className="text-win" title="Importes deterministas con el plantel, contratos y estado actuales; pueden cambiar antes del domingo.">Ingresos previstos {fmt(ingresosEstimados)}</span>
@@ -264,7 +299,7 @@ function PantallaPrincipal() {
               {pestana === "plantel" && (
                 <PanelPlantel
                   onAbrir={setFichaId}
-                  onBuscarRival={(id) => dispatch({ type: "BUSCAR_RIVAL", id })}
+                  onBuscarRival={buscarRival}
                   onSeleccionarBoxeador={(b) => setFichaId(b.id)}
                 />
               )}
@@ -283,12 +318,22 @@ function PantallaPrincipal() {
 
       {/* DOCK COMPACTO EN DISPOSITIVOS MÓVILES */}
       <div className="z-30 xl:hidden">
-        <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
+        <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" abierto={panelClubAbierto} onCerrar={() => setPanelClubAbierto(false)} accesoEnNavegacion={compacto} onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
       </div>
 
-      <footer className="app-footer shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-[10px] uppercase tracking-[0.28em] text-mut">
+      <footer data-text-role="secondary" className="app-footer shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-xs uppercase tracking-[0.28em] text-mut">
         MadArt Studios
       </footer>
+
+      {planificacionAbierta && <Modal title={t("plan.title")} icon="calendar" onClose={() => setPlanificacionAbierta(false)}>
+        <div className="space-y-2 text-sm text-cream">
+          {siguientePaso && <p>{siguientePaso.texto}</p>}
+          {guiaInicial.map((h, i) => <Btn key={h.texto} small variant={h.hecho ? "dark" : "gold"} disabled={h.hecho} className="w-full" onClick={() => { setPestana(h.tab); setPlanificacionAbierta(false); }}>{h.hecho ? "✓" : i + 1} {h.texto}</Btn>)}
+          <p>Ingresos previstos: {fmt(ingresosEstimados)} · Gastos previstos: {fmt(gastosEstimados)} · Neto: {fmt(balanceEstimado)}</p>
+          {proyeccion.estimados.map((l, i) => <p key={i}>{l.concepto}: {fmt(l.min)}–{fmt(l.max)} · media {fmt(l.mean)}</p>)}
+          <p>Las actividades variables son estimaciones, no cobros garantizados.</p>
+        </div>
+      </Modal>}
 
       {/* PANTALLA DE COMBATE EN VIVO */}
       {enCartelera && peleaActual && (
@@ -300,18 +345,12 @@ function PantallaPrincipal() {
       )}
 
       {/* MODAL MATCHMAKING: SELECCIÓN DE RIVAL (3 OFERTAS DEL PROMOTOR) */}
-      {state.ofertas.length > 0 && state.ofertasPara && (
+      {selectorAbierto && state.ofertas.length > 0 && state.ofertasPara && (
         <Modal
           wide
           title="Selección de Rival · 3 ofertas del promotor"
           icon="target"
-          onClose={() =>
-            dispatch({
-              type: "TOAST",
-              texto: "Ofertas retiradas. Podés volver a buscar cuando quieras.",
-              tono: "info",
-            })
-          }
+          onClose={() => setSelectorAbierto(false)}
         >
           <button className="btn-poster mb-3 self-center border border-line px-3 py-2 text-sand" onClick={() => dispatch({ type: "BUSCAR_RIVAL", id: state.ofertasPara! })}>Volver a buscar rival</button>
           <p className="mb-3 font-cond text-sm text-sand">
@@ -473,6 +512,7 @@ function PantallaPrincipal() {
           id={fichaId}
           onCerrar={() => setFichaId(null)}
           onCambiarBoxeador={setFichaId}
+          onBuscarRival={buscarRival}
           onIrAPestana={(tab) => { setFichaId(null); setPestana(tab); }}
         />
       )}

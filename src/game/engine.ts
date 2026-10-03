@@ -837,6 +837,7 @@ export function crearEstadoBase(opciones: { sinPoblacion?: boolean } = {}): Esta
   return {
     version: 2,
     schemaVersion: SCHEMA_ACTUAL,
+    guiaClub: { alumnosIniciales: alumnos.map(p => p.id), enfoquesConfirmados: [], enfoques: false, equipo: false, guanteos: false, licencia: false },
     creado: false,
     nombreJugador: "", nombreGimnasio: "",
     dinero: 900, fama: 4, seguidores: 480, recreativos: 0,

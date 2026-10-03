@@ -225,3 +225,9 @@ Un asset no se incorpora solo porque “se ve lindo”. Debe:
 - tener fallback;
 - estar documentado;
 - pasar revisión visual y técnica.
+
+## 16. Contrato R4 aprobado (2026-10-01; implementación pendiente de aceptación)
+
+Texto de decisión mínimo 14px, detalle secundario mínimo 12px; acciones de escritorio al menos 36px de alto, táctiles 44px. Cambiar composición/paginación/detalle antes de reducir esos pisos. En canvas reducido, navegación y contexto pueden usar selectores y diálogos explícitos, conservando decisiones y acceso a información. No usar contenido duplicado para rellenar espacio. Diez viewports, zoom CSS equivalente documentado, pseudo+40%, nombres largos y estados extremos se verifican con bounds/hit-testing más inspección visual; un footer visible no demuestra acceso al contenido. Véanse plan54/informe55: R4 sigue sin aceptación y no autoriza renovar arte ni publicar.
+
+Continuación R4 (2026-10-02): presupuestar el alto real de barras inferiores y paginación, no una constante que suponga una sola línea. El número de estaciones depende del ancho neto legible; dos figuras comparten columnas simétricas, no offsets porcentuales que superpongan etiquetas. Los contextos compactos se acceden explícitamente mediante selectores/detalles; evitar títulos duplicados que roben canvas. En mapa compacto, utilizar la alternativa nativa completa para selección, sin fingir pequeñas zonas táctiles accesibles; el mapa amplio mide sus áreas de acción según escala real. Ninguna de estas composiciones autoriza recortar decisiones, miniaturizar textos o crear contenido de relleno.

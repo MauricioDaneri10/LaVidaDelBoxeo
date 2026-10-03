@@ -185,7 +185,16 @@ export interface ResumenSemanal { ingresos: LineaLibro[]; gastos: LineaLibro[]; 
 
 export type PropiedadId = "local" | "terreno" | "sucursal" | "apartamento" | "mansion" | "arena";
 
+export interface GuiaClub {
+  alumnosIniciales: string[];
+  enfoquesConfirmados: string[];
+  enfoques: boolean;
+  equipo: boolean;
+  guanteos: boolean;
+  licencia: boolean;
+}
 export interface EstadoJuego {
+  guiaClub?: GuiaClub;
   combateActivo: import("./engine").EstadoPelea | null;
   contratosTitularesHistoricos?: string[];
   version: number;

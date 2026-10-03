@@ -4,7 +4,7 @@ import { alumnosActivos, fmt, puedeHabilitar } from "../game/engine";
 import { notificacion } from "../game/audio";
 import { useGame } from "../game/state";
 import type { EventoJuego } from "../game/types";
-import { I } from "./ui";
+import { Btn, I, Modal } from "./ui";
 import { objetivoConsejo } from "../game/consejos";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
 
@@ -53,6 +53,9 @@ interface DockLateralProps {
   lado?: "escritorio" | "movil";
   onNavegarPestana?: (p: "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal") => void;
   onSeleccionarBoxeador?: (id: string) => void;
+  abierto?: boolean;
+  onCerrar?: () => void;
+  accesoEnNavegacion?: boolean;
 }
 
 export default function DockLateral({
@@ -60,6 +63,9 @@ export default function DockLateral({
   setPestana = () => {},
   lado = "escritorio",
   onNavegarPestana,
+  abierto,
+  onCerrar,
+  accesoEnNavegacion = false,
   onSeleccionarBoxeador,
 }: DockLateralProps) {
   const { state, dispatch } = useGame();
@@ -161,11 +167,11 @@ export default function DockLateral({
 
           {/* Banner Táctico Proactivo: Alumno listo para Federar (Aporte Local) */}
           {alumnoListoParaFederar && (
-            <div
+            <button type="button"
               onClick={() => {
                 if (onSeleccionarBoxeador) onSeleccionarBoxeador(alumnoListoParaFederar.id);
               }}
-              className="border-2 border-gold bg-gold/15 p-3 shadow-md transition-all hover:bg-gold/25 cursor-pointer"
+              className="w-full text-left border-2 border-gold bg-gold/15 p-3 shadow-md transition-all hover:bg-gold/25 cursor-pointer"
             >
               <div className="flex items-center gap-1.5 font-cond text-[11px] uppercase tracking-wider text-gold font-bold">
                 <I n="spark" className="h-3.5 w-3.5" /> ¡10/10 Guanteos Completados!
@@ -176,7 +182,7 @@ export default function DockLateral({
               <p className="font-cond text-xs text-sand mt-0.5 leading-tight">
                 Abrí su ficha técnica para tramitar su licencia amateur ($200).
               </p>
-            </div>
+            </button>
           )}
 
           {/* Alerta Financiera Táctica (Aporte Local) */}
@@ -236,18 +242,9 @@ export default function DockLateral({
             <span className="font-display text-lg tracking-wide text-cream">Panel del Club</span>
           {hayPendientes && <span className="ml-auto h-2 w-2 rounded-full bg-blood" title="Hay asuntos pendientes" />}
         </div>
-        <div className="grid grid-cols-4 border-b border-line">
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setPestana(t.id)}
-            aria-label={`${t.nombre}${t.badge > 0 ? `, ${t.badge} ${t.badge === 1 ? "pendiente" : "pendientes"}` : ""}`}
-            title={t.badge > 0 ? `${t.badge} ${t.badge === 1 ? "asunto pendiente" : "asuntos pendientes"}` : t.nombre}
-            className={`relative flex flex-col items-center gap-0.5 rounded-t-lg border-b-2 px-1 py-2 transition-colors cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut hover:text-sand"}`}>
-              <I n={t.icono} className="h-4 w-4" />
-              <span className="font-cond text-[10px] uppercase tracking-wide">{t.nombre}</span>
-              {t.badge > 0 && <span className="absolute right-1.5 top-1 grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}
-            </button>
-          ))}
-        </div>
+        <select aria-label="Canal del panel del club" value={pestana} onChange={e => setPestana(e.target.value as PestanaDock)} className="m-2 min-h-11 rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">
+          {tabs.map(t => <option key={t.id} value={t.id}>{t.nombre}{t.badge ? ` · ${t.badge} pendientes` : ""}</option>)}
+        </select>
         {contenido}
       </aside>
     );
@@ -256,27 +253,13 @@ export default function DockLateral({
   // Versión compacta para pantallas móviles
   return (
     <div className="rounded-t-2xl border-t border-line bg-panel/95 select-none shadow-[0_-12px_28px_rgba(0,0,0,.25)]">
-      <div className="grid grid-cols-4">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => {
-            if (movilAbierto && pestana === t.id) setMovilAbierto(false);
-            else { setPestana(t.id); setMovilAbierto(true); }
-          }}
-            aria-label={`${t.nombre}${t.badge > 0 ? `, ${t.badge} ${t.badge === 1 ? "pendiente" : "pendientes"}` : ""}`}
-            aria-expanded={movilAbierto && pestana === t.id}
-            title={t.badge > 0 ? `${t.badge} ${t.badge === 1 ? "asunto pendiente" : "asuntos pendientes"}` : t.nombre}
-            className={`relative flex items-center justify-center gap-1.5 border-t-2 px-2 py-2 cursor-pointer ${pestana === t.id ? "border-gold bg-gold/10 text-gold" : "border-transparent text-mut"}`}>
-            <I n={t.icono} className="h-4 w-4" />
-            <span className="font-cond text-[11px] uppercase">{t.nombre}</span>
-            {t.badge > 0 && <span className="grid h-4 min-w-4 place-items-center bg-blood px-0.5 font-cond text-[10px] text-cream">{t.badge}</span>}
-          </button>
-        ))}
-      </div>
-      <AnimatePresence>
-        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: movilAbierto ? 220 : 0, opacity: movilAbierto ? 1 : 0 }} className="overflow-hidden border-t border-line">
+      {!accesoEnNavegacion && <Btn small variant="ghost" className="w-full" onClick={() => setMovilAbierto(true)}><I n="phone" />Panel del club{hayPendientes ? " · Asuntos pendientes" : ""}</Btn>}
+      {(abierto || movilAbierto) && <Modal title="Panel del club" icon="phone" onClose={() => { setMovilAbierto(false); onCerrar?.(); }}>
+          <select aria-label="Canal del panel del club" value={pestana} onChange={e => setPestana(e.target.value as PestanaDock)} className="mb-2 min-h-11 w-full rounded-lg border border-line bg-panel2 px-2 text-sm text-cream">
+            {tabs.map(t => <option key={t.id} value={t.id}>{t.nombre}{t.badge ? ` · ${t.badge} pendientes` : ""}</option>)}
+          </select>
           {contenido}
-        </motion.div>
-      </AnimatePresence>
+      </Modal>}
     </div>
   );
 }

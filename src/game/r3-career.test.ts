@@ -6,7 +6,11 @@ import { RepositorioPartidas, CLAVE_GUARDADO } from "./saveRepository";
 import { conFuenteAzar } from "./random";
 import { objetivoConsejoCumplido } from "./consejos";
 
-const fixture = () => ({ ...crearEstadoBase({ sinPoblacion: true }), creado: true, partidaId: "r3-synthetic", nombreJugador: "QA", nombreGimnasio: "QA", semana: 5 });
+const fixture = () => {
+  const s = { ...crearEstadoBase({ sinPoblacion: true }), creado: true, partidaId: "r3-synthetic", nombreJugador: "QA", nombreGimnasio: "QA", semana: 5 };
+  delete s.guiaClub; // R3 fixtures model schema6/7; R4 metadata is covered independently.
+  return s;
+};
 const counsel = (id: string, reclamado = false) => ({ id, texto: "Histórico", fama: 1, dinero: 60, cumplido: true, reclamado });
 
 describe("R3 — hitos, compatibilidad y veladas", () => {

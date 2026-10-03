@@ -1,7 +1,9 @@
 import { DIAS, LOGOS_DISPONIBLES, MESES } from "../game/data";
+import { useState } from "react";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
 import { fechaDelJuego, fmt, peleasVencidas } from "../game/engine";
 import { useGame } from "../game/state";
-import { Btn, I } from "./ui";
+import { Btn, I, Modal, TextoPaginado } from "./ui";
 
 interface TopBarProps {
   onAjustes?: () => void;
@@ -10,6 +12,8 @@ interface TopBarProps {
 
 export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps) {
   const { state, dispatch } = useGame();
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 950px)");
+  const [estadoAbierto, setEstadoAbierto] = useState(false);
   const finDeSemana = state.dia >= 6;
   const fechaActual = fechaDelJuego(state.semana, state.dia);
   const carteleraPendiente = peleasVencidas(state).length > 0;
@@ -25,6 +29,31 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
     state.equipamiento.includes("botiquin") && "Botiquín · +6 energía semanal",
     state.patrocinio && `${state.patrocinio.nombre} · patrocinio activo`,
   ].filter(Boolean) as string[];
+
+  if (compacto) return (
+    <header className="shrink-0 border-b border-line bg-ink/90 p-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <button onClick={() => setEstadoAbierto(true)} aria-label="Ver estado del club" className="min-h-11 min-w-0 flex-1 rounded-lg border border-line px-2 py-1 text-left">
+          <span className="block font-cond text-sm text-cream">{`${DIAS[state.dia - 1].slice(0, 3)} ${fechaActual.getDate()} · ${fmt(state.dinero)}`}</span>
+        </button>
+        <button onClick={onAjustes} title="Configuración y partidas" aria-label="Configuración y partidas" className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-line text-gold"><I n="gear" /></button>
+        <Btn small variant="gold" onClick={() => state.dia === 7 ? dispatch({ type: "CERRAR_DOMINGO" }) : avanzar()} disabled={carteleraPendiente}>
+          {state.dia === 7 ? "Nueva semana" : carteleraPendiente ? "Cartelera pendiente" : "Avanzar día"}
+        </Btn>
+      </div>
+      {estadoAbierto && <Modal title="Estado del club" icon="ring" onClose={() => setEstadoAbierto(false)}>
+        <div className="space-y-3 text-sm text-cream">
+          <TextoPaginado capacidad={40} texto={[
+            `${state.nombreGimnasio} · Coach ${state.nombreJugador}`,
+            `${DIAS[state.dia - 1]} ${fechaActual.getDate()} · Semana ${state.semana} · ${MESES[fechaActual.getMonth()]} ${fechaActual.getFullYear()}`,
+            `Cuenta del club: ${fmt(state.dinero)} · Fama: ${Math.round(state.fama)} · Seguidores: ${state.seguidores.toLocaleString("es-AR")}`,
+            `${logoActual.nombre} · ${logoActual.lema}`, ...mejoras, `Legados: ${state.legados}`,
+          ].join("\n\n")} />
+          {state.dia < 6 && <Btn small variant="ghost" onClick={() => { semanaRapida(); setEstadoAbierto(false); }}>Semana rápida</Btn>}
+        </div>
+      </Modal>}
+    </header>
+  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-ink/90 shadow-[0_12px_32px_rgba(0,0,0,.28)] backdrop-blur-xl select-none">
