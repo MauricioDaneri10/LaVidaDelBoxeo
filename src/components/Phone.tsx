@@ -8,18 +8,19 @@ import { EventDetail } from "./EventDetail";
 import { objetivoConsejo } from "../game/consejos";
 import { useMessages } from "../i18n";
 import { presentarConsejo } from "../i18n/advice";
+import { presentarEvento } from "../i18n/events";
 
 export type PestanaDock = "mensajes" | "patrocinios" | "prensa" | "consejos";
 
 function ListaEventos({ events }: { events: EventoJuego[] }) {
-  const { t } = useMessages();
+  const { t, locale } = useMessages();
   const [selected, setSelected] = useState("");
   const [open, setOpen] = useState(false);
   const event = events.find(e => e.id === selected) ?? events[0];
   useEffect(() => { if (open && !events.some(e => e.id === selected)) setOpen(false); }, [open, events, selected]);
   if (!event) return null;
   return <div className="space-y-2">
-    <select aria-label={t("event.picker")} className="r4-select" value={event.id} onChange={e => setSelected(e.target.value)}>{events.map((e, i) => <option key={e.id} value={e.id}>{i + 1}/{events.length} · {e.titulo}</option>)}</select>
+    <select aria-label={t("event.picker")} className="r4-select" value={event.id} onChange={e => setSelected(e.target.value)}>{events.map((e, i) => <option key={e.id} value={e.id}>{i + 1}/{events.length} · {presentarEvento(e,locale).titulo}</option>)}</select>
     <Btn onClick={() => { setSelected(event.id); setOpen(true); }}>{t("event.open")}</Btn>
     {open && event.id === selected && <Modal fit title={t("event.title")} onClose={() => setOpen(false)}><EventDetail key={event.id} event={event} /></Modal>}
   </div>;

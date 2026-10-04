@@ -3,7 +3,7 @@
 // títulos y simulación de combate con jueces y Registro Oficial.
 // ============================================================
 
-import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, CURSOS, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
+import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, CURSOS, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, OFERTAS_CONTENIDO, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
 import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
   OfertaRival, Pelea, PersonalId, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
@@ -11,6 +11,7 @@ import type {
 import { conFuenteAzar, numeroAleatorio } from "./random";
 import { ATRIBUTOS_BASE, SCHEMA_ACTUAL, validarEstado } from "./saveValidation";
 import { socialActivityRange, weeklyEconomy } from "./economy";
+import { CONTENIDO_COMISION, contenidoProspecto, contenidoExhibicion, contenidoPatrocinio } from "./eventContent";
 import type { EstimatedIncome, WeeklyEconomy } from "./economy";
 
 // ==================== UTILIDADES ====================
@@ -395,17 +396,17 @@ export function generarOfertas(p: Pugilista, permiteTitulosInternacionales = tru
     {
       id: uid(), nivel: "accesible", bolsa: bolsa(250), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg - 5, 22, 95), p.division, azar(40, 70), p.genero, p.circuito),
-      etiqueta: "Rival Accesible", detalle: "Nivel menor (−5), con experiencia cercana a la tuya.",
+      ...OFERTAS_CONTENIDO.accesible,
     },
     {
       id: uid(), nivel: "parejo", bolsa: bolsa(600), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg + azar(-2, 2), 22, 96), p.division, azar(45, 75), p.genero, p.circuito),
-      etiqueta: "Rival Parejo", detalle: "Nivel idéntico (±2). Combate equilibrado para subir en el ranking.",
+      ...OFERTAS_CONTENIDO.parejo,
     },
     {
       id: uid(), nivel: "desafio", bolsa: bolsa(1800), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg + azar(6, 10), 25, 97), p.division, azar(50, 80), p.genero, p.circuito),
-      etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking.",
+      ...OFERTAS_CONTENIDO.desafio,
     },
   ];
   // Comparar trayectorias dentro del circuito actual. El récord general es
@@ -779,16 +780,12 @@ export function generarEventos(e: EstadoJuego): EventoJuego[] {
   const eventos: EventoJuego[] = [];
   if (chance(0.55)) {
     const tipo = elegir(["reparacion", "entrevista", "colecta"] as const);
-    const info = {
-      reparacion: { titulo: "Revisión del saco de entrenamiento", texto: "La comisión detectó desgaste y propone una reparación preventiva. Podés asumir el costo ahora o posponerlo; esperar no cambia el entrenamiento.", tipoEvento: "mantenimiento" as const, opciones: [{ texto: "Reparar por $120", accion: { tipo: "mantenimiento" as const, costo: 120 } }, { texto: "Posponer el gasto", accion: { tipo: "nada" as const } }] },
-      entrevista: { titulo: "Entrevista en Radio Guante", texto: "La prensa quiere conocer tu proyecto. Elegí cómo responder: una declaración puede mejorar o perjudicar la imagen del club.", tipoEvento: "entrevista" as const, opciones: [{ texto: "Hablar del proyecto · +2 fama, +80 seguidores", accion: { tipo: "entrevista" as const, fama: 2, monto: 80 } }, { texto: "Provocar al rival · −2 fama, −40 seguidores", accion: { tipo: "entrevista" as const, fama: -2, monto: -40 } }, { texto: "Declinar la entrevista", accion: { tipo: "nada" as const } }] },
-      colecta: { titulo: "Colecta solidaria del barrio", texto: "La comisión propone una colecta puntual para sostener el gimnasio. No es un bingo ni una actividad social: vence en pocos días.", tipoEvento: "recaudacion" as const, opciones: [{ texto: "Aportar $80 y organizarla", accion: { tipo: "recaudacion" as const, costo: 80, monto: 180 } }, { texto: "No organizarla", accion: { tipo: "nada" as const } }] },
-    }[tipo];
+    const info = CONTENIDO_COMISION[tipo];
     eventos.push({
       id: uid(), tipo: info.tipoEvento, de: "Comisión del Club", titulo: info.titulo,
       texto: info.texto,
       venceEn: 4,
-      opciones: info.opciones,
+      opciones: info.opciones.map(o => ({ ...o, accion: { ...o.accion } })),
     });
   }
   if (e.fama >= 10 && !e.patrocinio && chance(0.4)) {
@@ -796,35 +793,20 @@ export function generarEventos(e: EstadoJuego): EventoJuego[] {
     const semanal = Math.round(60 + e.fama * 3.2 + e.legados * 20);
     const semanas = azar(4, 8);
     eventos.push({
-      id: uid(), tipo: "patrocinio", de: nombre, titulo: "Propuesta de patrocinio",
-      texto: `${nombre} ofrece ${fmt(semanal)} por semana durante ${semanas} semanas a cambio de lucir su logo en el ring.`,
+      id: uid(), ...contenidoPatrocinio(nombre, semanal, semanas, fmt(semanal)),
       venceEn: 3,
-      opciones: [
-        { texto: "Firmar contrato", accion: { tipo: "aceptarPatrocinio", nombre, monto: semanal, semanas } },
-        { texto: "Rechazar la oferta", accion: { tipo: "nada" } },
-      ],
     });
   }
   if (chance(0.3)) {
     eventos.push({
-      id: uid(), tipo: "prospecto", de: elegir(GIMNASIOS_RIVALES), titulo: "Un talento pide probarse",
-      texto: "Un pibe del barrio dejó su club rival y quiere entrenar con vos. Nadie cobra por mirar talento.",
+      id: uid(), ...contenidoProspecto(elegir(GIMNASIOS_RIVALES)),
       venceEn: 4,
-      opciones: [
-        { texto: "Abrirle la puerta", accion: { tipo: "nuevoAlumno" } },
-        { texto: "Cupo completo, no", accion: { tipo: "nada" } },
-      ],
     });
   }
   if (e.plantel.some(b => b.rol === "boxeador") && chance(0.28)) {
     eventos.push({
-      id: uid(), tipo: "desafio", de: "Federación Regional", titulo: "Exhibición benéfica",
-      texto: "La federación invita a uno de tus boxeadores a una exhibición: paga poco, pero suma fama y roce.",
+      id: uid(), ...contenidoExhibicion(),
       venceEn: 3,
-      opciones: [
-        { texto: "Mandar al ring", accion: { tipo: "exhibicion" } },
-        { texto: "Declinar con respeto", accion: { tipo: "nada" } },
-      ],
     });
   }
   return eventos;

@@ -1,5 +1,13 @@
 # Continuidad operativa R4 — 2026-10-04
 
+## Estado actualizado prioritario
+
+Checkpoint posterior a4f507, R4 ABIERTO/NO APTO. Suite464/464 (18archivos,4,14s); todavía falta verify/matriz finales. Optimización real sin split/límites mayores: JS550365/573440 y CSS86857/92160, margen23075/5303bytes. Inicial638505bytes; total con catálogos745145bytes. Artefacto JS3zXq4ElU SHA256c37b604a8d8bf176bb961d7c3da223e007d08862f75ffcc7a3c53198ed94ce27; CSSwm-Tb5LT SHA256bbab0dc85371e04e121fa95b8ad638a5f1bbc562ee0abf18731c72d924276970.959claves/slots en es/en/pt-BR; SOLO es habilitado, global incompleto.
+
+Implementados en esta tanda: LazyMotion síncrono/dedup CSS/JSX oculto, combate bounded con simulación intacta, nombres históricos de mercado, contratos múltiples de Personal, propiedades/actividades/cursos, texto veraz de sucursal, plantillas exactas de eventos sin RNG, Plantel y gestión compacta, WeeklyBalance24líneas. Firma/regeneración explícita móviles PASS3,784/3,820s; ajustes4,252s y balance horizontal26,958s sobre build identificado. Suite dominio/persistencia294 y catálogo63 focales pasan. Informe55 contiene detalle RED→GREEN y límites. Las evidencias antiguas abajo son históricas, no actualizarlas por simple suma.
+
+Siguiente: global errores/toasts/prensa/libros/historia; Planificación; densidad Plantel y revisión óptica; KO/cuenta/empate/reduced-motion y extremos faltantes; finalmente build estable+matriz completa+verify. No habilitar en/pt-BR ni declarar aceptación todavía. No matrices completas por ajuste. Mantener todos los cambios; dos PNG r1 ajenos e inventarios/logs locales NO versionar. No rebuild concurrente con browser. PR6 permanece draft; no nueva autorización para pendientes vigentes.
+
 ## Alcance y límites vigentes
 
 Repositorio: https://github.com/MauricioDaneri10/LaVidaDelBoxeo. PR6 en borrador, rama feature/r4-interface-accessibility, workspace E:/AI Factory/projects/la-vida-del-boxeo/workspaces/r3-scope. Base aprobada8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3. Continuar R4 A18/A19/A20/A23/A26 y selector; autorización para commits/push permanece vigente. No pedir otro permiso para tareas aprobadas. Sin merge, despliegue/Pages, R5/BOX15 ni acceso a partida real/origen3000. Conservar ramas.

@@ -43,7 +43,7 @@ EXPAND = """() => {
 MEASURE = """() => {
  const r=e=>{const v=e.getBoundingClientRect();return {x:v.x,y:v.y,w:v.width,h:v.height,bottom:v.bottom,right:v.right};};
  const screen=document.querySelector('.game-screen,.gym-scene');
- const footer=document.querySelector('footer');
+ const footer=[...document.querySelectorAll('footer')].find(e=>!e.closest('[inert]')) ?? document.querySelector('footer');
  const failures=[];
  const touch=matchMedia('(pointer:coarse)').matches;
  const buttons=[...document.querySelectorAll('button,input,select,[role="button"]')].filter(e=>e.getClientRects().length && getComputedStyle(e).visibility!=='hidden' && !e.closest('[inert]'));
@@ -105,6 +105,8 @@ def run():
     parser.add_argument('--zoom',action='store_true')
     parser.add_argument('--pseudo',action='store_true',help='DOM text stress +40%%; not a certificate of catalog completeness')
     parser.add_argument('--port',type=int,choices=range(5236,5241),default=5236)
+    parser.add_argument('--viewport',type=int,nargs=2,metavar=('WIDTH','HEIGHT'),help='Focused case only; omit for all ten required sizes')
+    parser.add_argument('--tab',choices=TABS,help='Focused screen only; omit for all seven screens')
     args=parser.parse_args()
     URL=f'http://127.0.0.1:{args.port}/'
     started=time.perf_counter()
@@ -130,7 +132,7 @@ def run():
             page=context.new_page();page.goto(URL,wait_until='domcontentloaded')
             page.wait_for_function("localStorage.getItem('vida-del-boxeo-v2')!==null")
             base=state(page);context.close()
-            for w,h in SIZES:
+            for w,h in ([tuple(args.viewport)] if args.viewport else SIZES):
                 states=['normal','empty','maximum'] if args.all_states else ['normal']
                 for mode in states:
                     fixture=copy.deepcopy(base)
@@ -158,7 +160,7 @@ def run():
                         assert len(loaded['plantel'])==30, 'Maximum fixture lost pupils or competitors'
                         assert sum(p.get('rol')=='boxeador' and p.get('circuito')=='pro' for p in loaded['plantel'])==10, 'Maximum fixture must retain ten professionals'
                     page.evaluate('document.fonts.ready')
-                    for tab in TABS:
+                    for tab in ([args.tab] if args.tab else TABS):
                         case={'size':[w,h],'mode':mode,'tab':tab}
                         try:
                             navigation=page.locator('.app-nav')

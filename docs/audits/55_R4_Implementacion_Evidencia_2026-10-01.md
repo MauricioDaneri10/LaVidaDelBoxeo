@@ -1,5 +1,52 @@
 # R4 — Registro de implementación y evidencia parcial
 
+## Checkpoint ampliado 2026-10-04 — sin aceptación
+
+Se continúa desde4f507da8debc55ce286bab40a792a9834476cc56. El código de esta tanda queda identificado por el commit que contiene esta adenda y por los hashes del build; no convertir una subida en aceptación. PR6 sigue borrador/NO APTO.
+
+### Presupuesto y eliminación real de duplicación
+
+- LazyMotion síncrono con domAnimation y m conserva animaciones/gestos utilizados y elimina drag/proyección de layout no usados. No hay nuevos chunks ni traslado de recursos fuera de assets para aparentar ahorro.
+- Se eliminaron dos bloques JSX de Ciudad siempre ocultos y duplicados de accesos vigentes; se comparte la regla de estaciones no visibles y se retiran overrides tipográficos obsoletos. Funciones activas conservadas.
+- Primer build después de la optimización: JS529860, CSS90527; contra checkpoint573312/91796, ahorro43452/1269bytes. Catálogo y composición añadidos después consumen parte del margen.
+- Build actual: JS550365/573440, CSS86857/92160, márgenes23075/5303bytes. Carga estática inicial (JS+CSS+HTML+favicon)638505bytes; total incluyendo catálogos externos preexistentes745145bytes. Inglés51782/pt-BR54858bytes. No aumentó ningún límite.
+- JS index-3zXq4ElU.js SHA256 c37b604a8d8bf176bb961d7c3da223e007d08862f75ffcc7a3c53198ed94ce27; CSS index-wm-Tb5LT.css SHA256 bbab0dc85371e04e121fa95b8ad638a5f1bbc562ee0abf18731c72d924276970.
+- No atribuir todos esos bytes a una única técnica: la diferencia final incluye composición y catálogo. Advertencia informativa chunk>500kB permanece.
+
+### Reproducciones y evidencia focal
+
+| Causa | RED | Solución/evidencia |
+|---|---|---|
+| Combate acumula escena, tablas, táctica y CTA fuera del canvas | Controles de asalto/final recortados del diseño anterior | Vistas explícitas de esquina/identidad/ring/estadísticas/tarjetas/relato; controles esenciales separados. Simulación, RNG y checkpoints no cambiaron. Pruebas previas de esta tanda de recarga/pago único no sustituyen matriz final. |
+| Nombre histórico de marca invade acción en móvil | Mercado con marca extensa | Detalle paginado conserva cada grafema y monto; contratación/compra con guardas existentes. |
+| Contratos antiguos múltiples comprimidos o perdidos en tarjeta | Personal con tres coordinadores históricos | Selección individual de contrato, salarios y baja por ID; conserva excesos. Se conserva la assertion fuente de disponibilidad del reducer R3. |
+| Propiedades y actividades exceden modal horizontal | Seis propiedades, todas adquiridas, nombres/textos extensos | Selector/vistas explícitas; precios, requisitos, riesgo, ownership y RNG intactos. |
+| Ingreso prometido de sucursal no coincide con fórmula | Tres tests de locales fallan por +$800 fijo | Copia variable veraz, no cambio económico: con fama0/gerente el cálculo es650. Tres idiomas conservan +10cupos y no prometen ingreso fijo. |
+| Avisos nuevos y antiguos no tienen identidad de presentación fiable | Tests de comisión/prospecto/exhibición/patrocinio inicialmente fallan | Plantillas fuente compartidas; se traduce solo tipo+origen+texto+acciones exactos. Desconocidos literalmente históricos. Seis tests nuevos, generación determinista150iteraciones y metadatos adicionales preservados. |
+| Balance largo corta Continuar | Fixture12ingresos+12gastos: CTA/texto fuera de bounds | WeeklyBalance separa conciliación, libros y momento de cobro. Todas24líneas accesibles literalmente; recarga y Continuar no duplican dinero. Portrait16,089s/horizontal28,828s antes de último color; horizontal26,958s en artefacto actual, captura inspeccionada. |
+| Medición del selector durante animación | Nuevos casos firma/regeneración fallan antes de estabilizar | Espera observable data-animation-ready, sin tolerancia adicional. Firma3,784s/regeneración3,820s PASS, 390×667 CSS125%/pseudo+40%; contratos/caja/ofertas/RNG exactos tras recarga. |
+
+El fallo transitorio de medición no se presenta como bug corregido de producción. Se corrigieron también dos errores del nuevo harness: envelope.state al leer ofertas y RNG reiniciado del contexto de recarga (comparación contra stream inicial, no contra stream ya consumido antes de recargar).
+
+### Qué está probado y qué no
+
+- Suite actual completa:464/464,18archivos,4,14s. Typecheck/build/presupuesto focales PASS del artefacto señalado. No se declara una nueva ejecución npm run verify completa en este checkpoint; auditoría estructural final pendiente.
+- R1–R3 y seis escenarios exactos siguen pasando; no se ajustaron expectativas económicas ni reglas. Suite focal de dominio/persistencia294/294,3,86s, y catálogo63tests/7archivos402ms de esta tanda.
+-959claves y slots iguales es/en/pt-BR. NO es cobertura global: solo español habilitado; faltan mensajes persistidos, errores de almacenamiento, prensa y conceptos contables, entre otras ramas.
+- Se inspeccionaron capturas de balance portrait/horizontal y Plantel máximo. Plantel puede conservar espacio vertical desaprovechado: los bounds verdes no cierran densidad/simetría.
+- Focales actuales de ajustes horizontal4,252s y balance horizontal26,958s corresponden al JS3zXq4ElU. Focales anteriores de Ciudad/Gym/Plantel/Panel/compras corresponden a builds intermedios; no sumarlos como matriz final del artefacto actual.
+- GPU RX7600XT ANGLE D3D11, driver32.0.31036.15; firma/regeneración en paralelo con perfiles/puertos independientes. No comparación causal GPU vs software.
+- No nueva migración en esta tanda. Schema9/protecciones originales/backups siguen vigentes. Historia desconocida no se elimina ni se traduce por aproximación.
+
+### Pendientes agrupados y siguiente secuencia
+
+1. Catálogo global: errores/toasts/prensa/libros/historia con identidad y parámetros fiables; conservar literales desconocidos y lógica no textual. Idiomas extranjeros siguen bloqueados hasta cobertura.
+2. Composición: Planificación, densidad Plantel, controles y lectura completa en máximos; comprobar ópticamente iconos/alineación y Gym.
+3. Estados: KO/cuenta/empate/movimiento reducido; compras positivas, todas categorías, contratación/bajas/excesos, cursos completos/bloqueados, actividades pactadas, cierres/legados y ranuras.
+4. Build estable final → diez tamaños, CSS125%, pseudo+40%, overlays/extremos, bounds+hit-testing+foco y capturas inspeccionadas → npm run verify y regresiones R1–R3 → diff completo.
+5. Mantener checkpoint actualizado y continuar, no detener por resultados parciales. Sin merge, Pages, publicación, partida real, localhost3000, R5 ni BOX15.
+
+
 Estado: EN CURSO, no apto para aceptación final todavía. Base: `8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3`. Rama: `feature/r4-interface-accessibility`. Los checkpoints versionables no equivalen al código final de cierre de R4. El hash de revisión de cada checkpoint corresponde al commit/PR, no a una certificación de alcance completo.
 
 ## Selector y diálogos

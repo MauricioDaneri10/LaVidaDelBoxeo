@@ -1,5 +1,9 @@
 # Plan 54 — R4: interfaz, texto y accesibilidad
 
+## Estado de continuidad prioritario — 2026-10-04
+
+Continúa abierto en PR6. Checkpoint ampliado: suite464/464 (18archivos);959claves verificadas por catálogo, no cobertura global. Optimización real recupera margen: JS550365/573440, CSS86857/92160. No split nuevo ni límites mayores. Informe55 detalla artefactos, tiempos focales y RED→GREEN de combate, libros extensos, contratos, propiedades, avisos y texto veraz de sucursal. Matriz final/verify global de cierre todavía pendientes; conteos históricos posteriores en este documento no certifican este checkpoint. Solo es habilitado. Próximo: mensajes/errores/prensa/contabilidad global, Planificación/densidad y estados extremos restantes; build final inmutable, matriz obligatoria más inspección y regresiones. No detener por checkpoint ni empezar otros gates.
+
 **Estado:** aprobado; implementación EN CURSO, todavía sin cierre. 2026-10-01.
 **Continuación2026-10-04:** informe55 y contexto operativo distinguen evidencia actual de la histórica. Checkpoint433 tests/15 archivos,298 claves por idioma y focales de aviso vencido/Panel/cobro exacto. Matrices anteriores corresponden a otros builds, no al nuevo artefacto. Matriz final pendiente: runner17 familias×10 tamaños más estados restantes. Continúan catálogo global y cobertura obligatoria; solo es habilitado, presupuestos intactos. PR6 permanece borrador/NO APTO. No pedir otra autorización para pendientes vigentes.
 **Baseline:** main `8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3`, R3 integrado sin publicación.

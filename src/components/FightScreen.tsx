@@ -1,6 +1,11 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import { TITULOS } from "../game/data";
+import { AnimatePresence, m as motion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { mountDialog } from "../ui/dialogs";
+import { useMessages } from "../i18n";
+import type { MessageKey } from "../i18n/catalog";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import { presentarDivision, presentarResultadoActual, presentarTitulo } from "../i18n/presentation";
 import {
   cerrarAsalto,
   crearEstadoPelea,
@@ -27,7 +32,7 @@ import { useGame } from "../game/state";
 import { hashTexto } from "../game/saveValidation";
 import type { Pelea, ResultadoPelea } from "../game/types";
 import { Figura } from "./GymView";
-import { BotonBrillante, Btn, Chip, I } from "./ui";
+import { Btn, TextoPaginado } from "./ui";
 
 type FasePelea = "cartelera" | "esquina" | "asalto" | "conteo" | "final";
 
@@ -61,6 +66,16 @@ function playMonedas() { try { sndMonedas(); } catch {} }
 
 export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps) {
   const { state, dispatch } = useGame();
+  const { t, locale } = useMessages();
+  const horizontal = useResponsiveCapacity("(max-height: 450px)");
+  const [section, setSection] = useState("decision");
+  const [fighter, setFighter] = useState<"a" | "b">("a");
+  const fightLayer = useRef<HTMLDivElement>(null);
+  const fightDialog = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    if (fightLayer.current && fightDialog.current) return mountDialog(fightLayer.current, fightDialog.current, () => {});
+  }, []);
   const mio = state.plantel.find(p => p.id === pelea.miId) || state.plantel[0];
 
   const estado = useRef<EstadoPelea | null>(null);
@@ -76,6 +91,12 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
 
   const [fase, setFase] = useState<FasePelea>(state.combateActivo?.pelea.id === pelea.id ? (combateTerminado ? "final" : "esquina") : "cartelera");
   const [plan, setPlan] = useState<PlanId>(state.combateActivo?.pelea.id === pelea.id ? e.A.plan : planSugerido(e));
+  useEffect(() => {
+    if (fase === "esquina" || fase === "final") setSection("decision");
+    if (fightDialog.current && !fightDialog.current.contains(document.activeElement)) {
+      fightDialog.current.querySelector<HTMLSelectElement>("select")?.focus({ preventScroll: true });
+    }
+  }, [fase]);
   const [, setTick] = useState(0);
 
   const colaRef = useRef<IntercambioVisual[]>([]);
@@ -263,100 +284,79 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
   const nombreB = pelea.rival.nombre.split(" ")[0];
   const esTitulo = pelea.esTitulo > 0;
 
-  return (
-    <div className="fondo-app fight-screen-overlay fixed inset-0 z-50 overflow-y-auto overscroll-contain select-none p-2 sm:p-3">
-      <div className="fight-screen-content mx-auto flex min-h-full w-full max-w-5xl flex-col gap-2 sm:gap-2.5">
-        
-        {/* ENCABEZADO DE CARTELERA OFICIAL */}
-        <div className="fight-heading shrink-0 text-center space-y-0.5">
-          <div className="font-cond text-xs uppercase tracking-[0.35em] text-sand">
-            {esTitulo
-              ? `${TITULOS[pelea.esTitulo as 1 | 2 | 3 | 4].cinturon} EN JUEGO`
-              : pelea.velada
-              ? "VELADA DE GALA DEL CLUB · COMBATE ESTELAR"
-              : "COMBATE OFICIAL FEDERADO"}
+  const round = t("fight.round", { round: Math.min(e.asalto, e.totalAsaltos), total: e.totalAsaltos });
+  const bout = (p: typeof mio) => [t("fight.bout", { name: p.nombre, rating: valoracion(p.atrib), wins: p.record.v, losses: p.record.d, draws: p.record.e ?? 0, kos: p.record.ko }), t(p.circuito === "pro" ? "licence.pro" : "licence.amateur"), presentarDivision(p.division, locale)].join("\n");
+  const resultCopy = resultado ? presentarResultadoActual(resultado, e.asalto, e.ko !== null, locale) : null;
+  const outcome = resultado ? t(resultado.gane ? "fight.won" : resultado.empate ? "fight.draw" : "fight.lost") : "";
+  const story = fase === "cartelera" ? t("fight.before")
+    : fase === "esquina" ? t("fight.rest", { round: Math.min(e.asalto, e.totalAsaltos) })
+    : fase === "asalto" ? t("fight.running", { a: nombreA, b: nombreB, plan: t(`plan.${vista.A.plan}`) })
+    : fase === "conteo" ? t("fight.counting", { name: ladoCaida === "a" ? nombreA : nombreB })
+    : resultado && resultCopy ? resultado.empate ? t("fight.tie", { method: resultCopy.method })
+      : t("fight.winner", { method: resultCopy.method, name: resultado.gane ? nombreA : nombreB }) : "";
+  const selectedFighter = fighter === "a" ? vista.A : vista.B;
+  const identity = [bout(mio), bout(pelea.rival), t("fight.purse", { purse: fmt(pelea.bolsa) }),
+    esTitulo ? t("fight.titleAtStake", { title: presentarTitulo(pelea.esTitulo as 1 | 2 | 3 | 4, locale).nombre }) : ""].filter(Boolean).join("\n");
+  const stats = [selectedFighter.p.nombre,
+    t("fight.health", { current: Math.round(selectedFighter.hp), total: selectedFighter.hpMax }),
+    t("fight.energy", { energy: Math.round(selectedFighter.energia), falls: selectedFighter.caidas }),
+    selectedFighter.aturdido > 0 ? t("fight.stunned") : "",
+    t("fight.jabs", { landed: selectedFighter.registro.jab.conectados, thrown: selectedFighter.registro.jab.lanzados, percent: eficaciaPct(selectedFighter.registro.jab.conectados, selectedFighter.registro.jab.lanzados) }),
+    t("fight.power", { landed: selectedFighter.registro.poder.conectados, thrown: selectedFighter.registro.poder.lanzados, percent: eficaciaPct(selectedFighter.registro.poder.conectados, selectedFighter.registro.poder.lanzados) }),
+  ].filter(Boolean).join("\n");
+  const cards = [ ...e.tarjetas.map((card, index) => t("fight.judge", { judge: index + 1, a: card.a, b: card.b })),
+    ...desgloseRounds.map(card => t("fight.roundCards", { round: card.asalto, a1: card.juez1.a, b1: card.juez1.b, a2: card.juez2.a, b2: card.juez2.b, a3: card.juez3.a, b3: card.juez3.b })),
+  ].join("\n");
+  const verdict = resultado && resultCopy ? [outcome, resultCopy.method, resultCopy.summary,
+    t("fight.resultPurse", { purse: fmt(resultado.bolsa) }), t("fight.fame", { fame: resultado.fama }),
+    resultado.tituloGanado > 0 ? presentarTitulo(resultado.tituloGanado as 1 | 2 | 3 | 4, locale).cinturon : "",
+  ].filter(Boolean).join("\n") : "";
+
+  return createPortal(
+    <div ref={fightLayer} data-dialog-layer className="fondo-app fight-screen-overlay p-2">
+      <div ref={fightDialog} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} data-animation-ready="true"
+        className="fight-screen-content mx-auto w-full max-w-5xl">
+        <span id={titleId} className="sr-only">{t("fight.title")}</span>
+        <header className="fight-heading">
+          <h1 className="font-display text-lg text-gold">{fase === "final" ? t("fight.verdict") : round}</h1>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {[vista.A, vista.B].map((fighter, index) => <div key={index} className="min-w-0">
+              <p className="[overflow-wrap:anywhere]">{fighter.p.nombre.split(" ")[0]}</p>
+              <p>{t("fight.health", { current: Math.round(fighter.hp), total: fighter.hpMax })}</p>
+              <p>{t("fight.energy", { energy: Math.round(fighter.energia), falls: fighter.caidas })}</p>
+            </div>)}
           </div>
-
-          <h1 className="font-display text-2xl tracking-wide text-cream sm:text-4xl">
-            {fase === "final" ? "Fallo Oficial de los Jueces" : `Asalto ${Math.min(e.asalto, e.totalAsaltos)} de ${e.totalAsaltos}`}
-          </h1>
-
-          {esTitulo && fase !== "final" && (
-            <div className="mx-auto mt-1 w-fit border border-gold2/70 bg-gold/10 px-4 py-0.5 font-display text-base tracking-widest text-gold anim-cinturon rounded-full shadow-md">
-              {TITULOS[pelea.esTitulo as 1 | 2 | 3 | 4].nombre.toUpperCase()} · BOLSA: {fmt(pelea.bolsa)}
-            </div>
-          )}
+        </header>
+        <div className="fight-navigation">
+          <select className="r4-select" aria-label={t("fight.view")} value={section} onChange={event => setSection(event.target.value)}>
+            {(["decision", "identidad", "ring", "estadisticas", "tarjetas", "relato"] as const).map(view =>
+              <option key={view} value={view}>{t({ decision: "fight.decision", identidad: "fight.identity", ring: "fight.ring", estadisticas: "fight.stats", tarjetas: "fight.cards", relato: "fight.story" }[view] as MessageKey)}</option>)}
+          </select>
         </div>
-
-        {/* BARRAS DINÁMICAS DE SALUD, STAMINA Y CONDICIÓN */}
-        <div className="fight-status-grid grid shrink-0 grid-cols-2 gap-2">
-          {[
-            { l: vista.A, nombre: nombreA, pugil: mio, lado: "izq", golpes: golpeA },
-            { l: vista.B, nombre: nombreB, pugil: pelea.rival, lado: "der", golpes: golpeB },
-          ].map(({ l, nombre, pugil, lado }) => (
-            <div
-              key={nombre}
-              className={`panel fight-status-card p-2 sm:p-2.5 rounded-2xl ${lado === "der" ? "text-right" : ""}`}
-            >
-              <div className={`flex items-baseline gap-2 ${lado === "der" ? "flex-row-reverse" : ""}`}>
-                <span className="font-display text-2xl tracking-wide text-cream truncate">{nombre}</span>
-                <span className="font-cond text-xs uppercase text-mut">
-                  VG {valoracion(pugil.atrib)} · {pugil.circuito}
-                </span>
-                {l.caidas > 0 && (
-                  <span className="font-cond text-xs text-blood font-black">
-                    ({l.caidas} KD)
-                  </span>
-                )}
-              </div>
-
-              {/* Barra de Vida / Aguante */}
-              <div className="mt-1.5 flex items-center gap-2">
-                <I n="shield" className="h-3.5 w-3.5 text-blood shrink-0" />
-                <div className="stat-bar h-2.5 flex-1">
-                  <i
-                    style={{
-                      width: `${Math.max(0, Math.min(100, (l.hp / l.hpMax) * 100))}%`,
-                      background: l.hp > 40 ? "var(--color-gold)" : "var(--color-blood)",
-                    }}
-                  />
-                </div>
-                <span className="font-mono-data text-[11px] text-sand font-bold">
-                  {Math.round(l.hp)}/{l.hpMax}
-                </span>
-              </div>
-
-              {/* Barra de Stamina / Energía */}
-              <div className="mt-1 flex items-center gap-2">
-                <I n="bolt" className="h-3.5 w-3.5 text-win shrink-0" />
-                <div className="stat-bar h-2 flex-1">
-                  <i
-                    style={{
-                      width: `${Math.max(0, Math.min(100, l.energia))}%`,
-                      background: "var(--color-win)",
-                    }}
-                  />
-                </div>
-                <span className="font-mono-data text-[11px] text-mut">
-                  Aire {Math.round(l.energia)}%
-                </span>
-                {l.aturdido > 0 && (
-                  <span className="font-cond text-[11px] text-blood font-black anim-latido">
-                    ATURDIDO
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
+        <main className="fight-view panel p-2">
+          {section === "decision" && <div className="space-y-2">
+            {fase === "esquina" && <select className="r4-select" aria-label={t("fight.strategy")} value={plan} onChange={event => setPlan(event.target.value as PlanId)}>
+              {(Object.keys(PLANES) as PlanId[]).map(id => <option key={id} value={id}>{t(`plan.${id}`)}</option>)}
+            </select>}
+            <TextoPaginado capacidad={horizontal ? 20 : 40} texto={fase === "final" ? verdict : fase === "cartelera" ? `${t("fight.presentation")}\n${t("fight.purse", { purse: fmt(pelea.bolsa) })}` : `${t("fight.selected", { plan: t(`plan.${fase === "esquina" ? plan : vista.A.plan}`) })}\n${t(`plan.${fase === "esquina" ? plan : vista.A.plan}.desc`)}`} />
+          </div>}
+          {section === "identidad" && <TextoPaginado capacidad={horizontal ? 20 : 40} texto={identity} />}
+          {section === "estadisticas" && <div className="space-y-2">
+            <select className="r4-select" aria-label={t("fight.boxer")} value={fighter} onChange={event => setFighter(event.target.value as "a" | "b")}>
+              <option value="a">{mio.nombre}</option><option value="b">{pelea.rival.nombre}</option>
+            </select>
+            <TextoPaginado capacidad={horizontal ? 20 : 40} texto={stats} />
+          </div>}
+          {section === "tarjetas" && <TextoPaginado capacidad={horizontal ? 20 : 40} texto={cards} />}
+          {section === "relato" && <TextoPaginado capacidad={horizontal ? 20 : 40} texto={story} />}
+          {section === "ring" && (<>
         {/* CUADRILÁTERO VECTORIAL CON ANIMACIONES PROCEDIMENTALES Y SACUDIDA */}
         <div
           key={sacudida}
           className={`panel fight-ring relative shrink-0 overflow-hidden rounded-3xl border border-line ${
             sacudida > 0 && fase === "asalto" ? "anim-shake" : ""
           }`}
-          style={{ height: "clamp(150px, 28vh, 290px)" }}
+          style={{ height: "100%", minHeight: 0 }}
         >
           {/* Gradas y público atmosférico */}
           <div
@@ -459,11 +459,11 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
               >
                 <div className="text-center space-y-2">
                   <div className="font-cond text-xs uppercase tracking-[0.35em] text-sand font-bold">
-                    ¡Caída a la Lona! Conteo Oficial de Protección
+                    {t("fight.knockdown")}
                   </div>
                   <div
                     key={conteoNum}
-                    className="anim-conteo font-display text-9xl text-gold"
+                    className="anim-conteo font-display text-5xl text-gold"
                     style={{
                       textShadow: "0 0 30px rgba(232,178,58,0.6), 4px 4px 0 rgba(0,0,0,0.6)",
                     }}
@@ -471,244 +471,24 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
                     {Math.min(conteoNum, 10)}
                   </div>
                   <Btn small variant="ghost" onClick={() => setConteoNum(11)}>
-                    Saltar conteo
+                    {t("fight.skipCount")}
                   </Btn>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Relato y comentarios de Ringside */}
-          <div className="absolute bottom-1.5 left-1/2 w-[94%] -translate-x-1/2 border border-line bg-ink/95 px-3 py-1.5 text-center rounded-xl shadow-lg">
-            <span className="font-cond text-sm text-sand">
-              <span className="mr-1.5 font-bold uppercase tracking-widest text-gold font-mono-data">Ringside:</span>
-              {fase === "cartelera" && "Los pugilistas se desafían en el centro del cuadrilátero. ¡El público está de pie!"}
-              {fase === "esquina" && `Minuto de descanso: definí la estrategia para el asalto ${Math.min(e.asalto, e.totalAsaltos)}.`}
-              {fase === "asalto" && `${nombreA} (${PLANES[vista.A.plan].nombre.toLowerCase()}) buscando el intercambio ante ${nombreB}. ¡Alta intensidad!`}
-              {fase === "conteo" && `¡${ladoCaida === "a" ? nombreA : nombreB} ha caído a la lona! El réferi marca el conteo...`}
-              {fase === "final" && resultado && `${resultado.metodo}. ${resultado.gane ? `¡${nombreA} se consagra vencedor!` : `${nombreB} gana la noche.`}`}
-            </span>
-          </div>
         </div>
-
-        {/* REGISTRO COMPUBOX Y PANELES DE INSTRUCCIONES / FALLO OFICIAL */}
-        <div className="fight-details grid shrink-0 items-stretch gap-2 lg:grid-cols-[1fr_320px]">
-          
-          {/* ESTADÍSTICAS COMPUBOX OFICIALES */}
-          <div className="panel fight-stats-panel p-2.5 sm:p-3 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between border-b border-line pb-2">
-              <span className="font-display text-lg tracking-wide text-gold flex items-center gap-2">
-                <I n="target" className="h-4 w-4" /> Estadísticas
-              </span>
-              <span className="font-mono-data text-[10px] text-mut uppercase">Registro Computarizado</span>
-            </div>
-
-            <table className="w-full font-cond text-sm">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-widest text-mut">
-                  <th className="py-1">Pugilista</th>
-                  <th>Jabs Conectados</th>
-                  <th>% Jab</th>
-                  <th>Poder Conectados</th>
-                  <th>% Poder</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { l: vista.A, n: nombreA },
-                  { l: vista.B, n: nombreB },
-                ].map(({ l, n }) => (
-                  <tr key={n} className="border-t border-line/60">
-                    <td className="py-2 font-bold text-cream">{n}</td>
-                    <td className="text-sand">{l.registro.jab.conectados}/{l.registro.jab.lanzados}</td>
-                    <td className="text-gold font-mono-data font-bold">
-                      {eficaciaPct(l.registro.jab.conectados, l.registro.jab.lanzados)}%
-                    </td>
-                    <td className="text-sand">{l.registro.poder.conectados}/{l.registro.poder.lanzados}</td>
-                    <td className="text-blood font-mono-data font-bold">
-                      {eficaciaPct(l.registro.poder.conectados, l.registro.poder.lanzados)}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* TABLA OFICIAL ROUND-BY-ROUND DE LOS 3 JUECES (PRESERVADO DE LOCAL) */}
-            {desgloseRounds.length > 0 && (
-              <div className="pt-2 border-t border-line space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-display text-sm text-sand uppercase tracking-wider">
-                    Tarjetas Round-by-Round (Sistema 10-Point Must)
-                  </span>
-                  <span className="text-[10px] font-mono-data text-gold">3 Jueces Oficiales</span>
-                </div>
-
-                <div className="max-h-36 overflow-hidden space-y-1 pr-1">
-                  {desgloseRounds.map(dr => (
-                    <div
-                      key={dr.asalto}
-                      className="p-1.5 rounded-lg bg-panel2 border border-line text-xs font-mono-data flex items-center justify-between"
-                    >
-                      <span className="text-mut font-bold">Round {dr.asalto}</span>
-                      <span className="text-sand">J1: <b className="text-cream">{dr.juez1.a}-{dr.juez1.b}</b></span>
-                      <span className="text-sand">J2: <b className="text-cream">{dr.juez2.a}-{dr.juez2.b}</b></span>
-                      <span className="text-sand">J3: <b className="text-cream">{dr.juez3.a}-{dr.juez3.b}</b></span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* CONTROLES TÁCTICOS DE ESQUINA / FALLO OFICIAL */}
-          <div className="panel fight-controls-panel p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between">
-            {fase === "cartelera" && (
-              <div className="space-y-3">
-                <div className="font-display text-lg text-cream border-b border-line pb-1.5">
-                  Presentación de los Contendientes
-                </div>
-                <div className="font-cond text-xs text-sand space-y-1 leading-relaxed">
-                  <p><b>{nombreA}:</b> VG {valoracion(mio.atrib)} · Récord {mio.record.v}-{mio.record.d}-{mio.record.e ?? 0} ({mio.record.ko} KO)</p>
-                  <p><b>{nombreB}:</b> VG {valoracion(pelea.rival.atrib)} · Récord {pelea.rival.record.v}-{pelea.rival.record.d}-{pelea.rival.record.e ?? 0} ({pelea.rival.record.ko} KO)</p>
-                  <p className="pt-1 text-gold font-bold">Bolsa oficial en disputa: {fmt(pelea.bolsa)}</p>
-                </div>
-                <BotonBrillante
-                  onClick={() => setFase("esquina")}
-                  variante="dorado"
-                  className="w-full py-3 text-xs font-black"
-                >
-                  <I n="bell" className="h-4 w-4" /> ¡Que suene la Campana!
-                </BotonBrillante>
-              </div>
-            )}
-
-            {fase === "esquina" && (
-              <div className="fight-corner-content space-y-2">
-                <div className="font-display text-base text-gold border-b border-line pb-1">
-                  Tu Esquina · Instrucciones Tácticas
-                </div>
-                <div className="fight-plan-list space-y-1">
-                  {(Object.keys(PLANES) as PlanId[]).map(pid => {
-                    const pl = PLANES[pid];
-                    const esSeleccionado = plan === pid;
-                    return (
-                      <button
-                        key={pid}
-                        onClick={() => setPlan(pid)}
-                        className={`fight-plan-option flex w-full items-center gap-2 border p-1.5 rounded-xl text-left transition-all cursor-pointer ${
-                          esSeleccionado
-                            ? "border-gold bg-gold/15 text-gold shadow-md"
-                            : "border-line bg-panel2 text-sand hover:border-line2"
-                        }`}
-                      >
-                        <I n={pl.icono} className={`h-4 w-4 shrink-0 ${esSeleccionado ? "text-gold" : "text-sand"}`} />
-                        <div className="min-w-0">
-                          <span className="block font-display text-xs text-cream truncate">{pl.nombre}</span>
-                          <span className="block font-cond text-[9px] text-mut truncate">{pl.desc}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <Btn
-                  variant="blood"
-                  className="fight-round-button w-full mt-1"
-                  onClick={iniciarAsalto}
-                  pulso
-                >
-                  <I n="play" className="h-4 w-4" /> Salir al Asalto
-                </Btn>
-              </div>
-            )}
-
-            {(fase === "asalto" || fase === "conteo") && (
-              <div className="flex h-full flex-col justify-between gap-3">
-                <div className="space-y-2">
-                  <div className="font-display text-base text-gold">Combate en Curso</div>
-                  <div className="font-cond text-xs text-sand leading-relaxed">
-                    Estrategia en ejecución: <b className="text-cream">{PLANES[vista.A.plan].nombre}</b>
-                    <br />
-                    Asalto {Math.min(e.asalto, e.totalAsaltos)} de {e.totalAsaltos}
-                  </div>
-                </div>
-
-                <Btn variant="ghost" onClick={simularResto}>
-                  <I n="ff" className="h-4 w-4" /> Simular resto del combate
-                </Btn>
-              </div>
-            )}
-
-            {fase === "final" && resultado && (
-              <div className="space-y-3">
-                <div className="border-b border-line pb-2">
-                  <div
-                    className={`font-display text-2xl font-black ${
-                      resultado.gane ? "text-emerald-400" : resultado.empate ? "text-gold" : "text-blood"
-                    }`}
-                  >
-                    {resultado.gane ? "¡VICTORIA OFICIAL!" : resultado.empate ? "EMPATE OFICIAL" : "DERROTA"}
-                  </div>
-                  <div className="font-cond text-xs text-sand mt-0.5">
-                    {resultado.metodo} · {resultado.resumen}
-                  </div>
-                </div>
-
-                <div className="space-y-1 font-cond text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-mut">Bolsa cobrada:</span>
-                    <b className="text-gold font-mono-data">{fmt(resultado.bolsa)}</b>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-mut">Impacto en Fama:</span>
-                    <b className="text-gold font-mono-data">+{resultado.fama} pts</b>
-                  </div>
-                </div>
-
-                {resultado.tituloGanado > 0 && (
-                  <div className="anim-cinturon border border-gold bg-gold/15 p-2 rounded-xl text-center font-display text-base tracking-widest text-gold shadow-lg">
-                    🏆 ¡CAMPEÓN {TITULOS[resultado.tituloGanado as 1 | 2 | 3 | 4].cinturon.toUpperCase()}!
-                  </div>
-                )}
-
-                {/* Tarjetas Finales de los 3 Jueces */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-mut font-mono-data">
-                    Puntuación Final de los 3 Jueces
-                  </span>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {resultado.tarjetas.map((t, i) => (
-                      <div
-                        key={i}
-                        className="border border-line bg-panel2 p-1.5 rounded-lg text-center font-mono-data"
-                      >
-                        <div className="text-[9px] uppercase text-mut">Juez {i + 1}</div>
-                        <div
-                          className={`text-base font-black ${
-                            t.a > t.b ? "text-emerald-400" : t.b > t.a ? "text-blood" : "text-sand"
-                          }`}
-                        >
-                          {t.a}–{t.b}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <BotonBrillante
-                  onClick={() => callbackTerminar(resultado)}
-                  variante="dorado"
-                  className="w-full py-3 text-xs font-black"
-                >
-                  <I n="check" className="h-4 w-4" /> Continuar Velada
-                </BotonBrillante>
-              </div>
-            )}
-          </div>
+          </>)}
+        </main>
+        <div className="fight-actions">
+          {fase === "cartelera" && <Btn variant="gold" className="w-full" onClick={() => setFase("esquina")}>{t("fight.bell")}</Btn>}
+          {fase === "esquina" && <Btn variant="blood" className="w-full" onClick={iniciarAsalto}>{t("fight.start")}</Btn>}
+          {(fase === "asalto" || fase === "conteo") && <Btn variant="ghost" className="w-full" onClick={simularResto}>{t("fight.simulate")}</Btn>}
+          {fase === "final" && resultado && <Btn variant="gold" className="w-full" onClick={() => callbackTerminar(resultado)}>{t("fight.continue")}</Btn>}
         </div>
-
+        <footer className="app-footer text-center text-xs text-sand">MadArt Studios</footer>
       </div>
-    </div>
+    </div>, document.body
   );
 }
 

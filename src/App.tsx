@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as motion } from "framer-motion";
 import BoxerSheet from "./components/BoxerSheet";
 import CityMap from "./components/CityMap";
 import CalendarioView from "./components/CalendarView";
@@ -9,10 +9,11 @@ import Intro from "./components/Intro";
 import DockLateral, { type PestanaDock } from "./components/Phone";
 import { ModalAjustes, PanelMercado, PanelPerfil, PanelPersonal, PanelPlantel } from "./components/panels";
 import TopBar from "./components/TopBar";
-import { Btn, Chip, ContenedorToast, I, Modal } from "./components/ui";
+import { Btn, ContenedorToast, I, Modal } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
-import { TITULOS } from "./game/data";
-import { fmt, puedeHabilitar, proyeccionSemanal, valoracion, peleasVencidas } from "./game/engine";
+import { OfferDetail } from "./components/OfferDetail";
+import { WeeklyBalance } from "./components/WeeklyBalance";
+import { fmt, puedeHabilitar, proyeccionSemanal, peleasVencidas } from "./game/engine";
 import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/shortcuts";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
@@ -109,7 +110,6 @@ function PantallaPrincipal() {
     }
   };
 
-  const resolverOferta = (ofertaId: string) => dispatch({ type: "ELEGIR_OFERTA", ofertaId });
   const buscarRival = (id: string) => {
     dispatch({ type: "BUSCAR_RIVAL", id });
     setSelectorAbierto(true);
@@ -124,23 +124,23 @@ function PantallaPrincipal() {
   const progresoGuia = state.guiaClub;
   const tieneEnfoqueInicial = progresoGuia?.enfoques ?? false;
   const guiaInicial = [
-    { texto: "Elegir enfoque para cada boxeador", hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
-    { texto: "Equipar el gimnasio", hecho: progresoGuia?.equipo ?? false, tab: "mercado" as Pestana },
-    { texto: "Completar 10 guanteos", hecho: progresoGuia?.guanteos ?? false, tab: "plantel" as Pestana },
-    { texto: "Habilitar al primer boxeador", hecho: progresoGuia?.licencia ?? false, tab: "plantel" as Pestana },
+    { texto: t("guide.focus"), hecho: tieneEnfoqueInicial, tab: "plantel" as Pestana },
+    { texto: t("guide.gear"), hecho: progresoGuia?.equipo ?? false, tab: "mercado" as Pestana },
+    { texto: t("guide.spar"), hecho: progresoGuia?.guanteos ?? false, tab: "plantel" as Pestana },
+    { texto: t("guide.licence"), hecho: progresoGuia?.licencia ?? false, tab: "plantel" as Pestana },
   ];
   const siguientePaso = !tieneEnfoqueInicial
-    ? { texto: "Elegí un enfoque de entrenamiento para cada boxeador.", boton: "Abrir Plantel", tab: "plantel" as Pestana }
+    ? { texto: t("guide.chooseFocus"), boton: t("guide.openRoster"), tab: "plantel" as Pestana }
     : !progresoGuia?.equipo
-      ? { texto: "Equipá el gimnasio para activar sus estaciones y beneficios.", boton: "Abrir Mercado", tab: "mercado" as Pestana }
+      ? { texto: t("guide.equip"), boton: t("guide.openMarket"), tab: "mercado" as Pestana }
       : !progresoGuia?.guanteos
-        ? { texto: "Completá 10 guanteos para preparar al primer boxeador.", boton: "Ver Plantel", tab: "plantel" as Pestana }
+        ? { texto: t("guide.completeSpar"), boton: t("guide.openRoster"), tab: "plantel" as Pestana }
         : !state.cursos.includes("dt")
-          ? { texto: "Obtené la Licencia de Entrenador para tramitar licencias de boxeadores.", boton: "Ir a Mi Perfil", tab: "perfil" as Pestana }
+          ? { texto: t("guide.coachLicence"), boton: t("guide.openProfile"), tab: "perfil" as Pestana }
           : progresoGuia?.licencia
-            ? { texto: "Revisá el calendario para organizar la semana.", boton: "Abrir Calendario", tab: "calendario" as Pestana }
+            ? { texto: t("guide.calendar"), boton: t("guide.openCalendar"), tab: "calendario" as Pestana }
             : primerAlumnoListo
-              ? { texto: `${primerAlumnoListo.nombre} está listo: tramitá su licencia.`, boton: "Abrir Plantel", tab: "plantel" as Pestana }
+              ? { texto: t("guide.ready",{name:primerAlumnoListo.nombre}), boton: t("guide.openRoster"), tab: "plantel" as Pestana }
               : null;
 
   const pestanas: { id: Pestana; nombre: string; icono: string; pulso: boolean }[] = [
@@ -179,9 +179,9 @@ function PantallaPrincipal() {
             transition={{ duration: 0.22 }}
             className="pointer-events-none fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-xl border border-gold2/70 bg-panel2/95 px-5 py-2 text-center shadow-2xl backdrop-blur-md"
           >
-            <div className="font-display text-sm uppercase tracking-wide text-gold">Día actualizado</div>
+            <div className="font-display text-sm uppercase tracking-wide text-gold">{t("transition.updated")}</div>
             <div className="font-cond text-xs text-sand">
-              {state.dia === 6 ? "Sábado: guanteos y peleas programadas." : state.dia === 7 ? "Domingo: balance semanal listo para revisar." : "Preparación: revisá energía, enfoques y pendientes."}
+              {t(state.dia === 6 ? "transition.saturday" : state.dia === 7 ? "transition.sunday" : "transition.preparation")}
             </div>
           </motion.div>
         )}
@@ -241,14 +241,14 @@ function PantallaPrincipal() {
                 className="btn-poster guia-luminica ml-auto border border-blood bg-blood px-4 py-1 text-sm sm:text-base text-cream rounded-lg cursor-pointer"
               >
                 <span className="inline-flex items-center gap-1.5 anim-latido">
-                  <I n="bell" className="h-4 w-4" /> Noche de peleas · {state.pendientes.length} en cartelera
+                  <I n="bell" className="h-4 w-4" /> {t("schedule.night",{count:state.pendientes.length})}
                 </span>
               </button>
             )}
 
             {!compacto && state.dia === 6 && state.pendientes.length === 0 && (
               <span className="ml-auto flex items-center gap-2 px-3 font-cond text-sm uppercase tracking-wide text-sand">
-                <I n="check" className="h-4 w-4 text-win" /> Cartelera resuelta · pasá al balance
+                <I n="check" className="h-4 w-4 text-win" /> {t("schedule.done")}
               </span>
             )}
           </nav>
@@ -257,7 +257,7 @@ function PantallaPrincipal() {
             <div className="action-banner mb-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-gold2/60 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent px-2 py-1.5 shadow-sm">
               <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-sm text-ink font-bold">→</div>
               <div className="min-w-0 flex-1">
-                <div className="font-display text-xs uppercase tracking-wide text-gold">Siguiente paso</div>
+                <div className="font-display text-xs uppercase tracking-wide text-gold">{t("guide.next")}</div>
                 <p className="font-cond text-xs text-cream">{siguientePaso.texto}</p>
               </div>
               <Btn small variant="gold" onClick={() => setPestana(siguientePaso.tab)}>{siguientePaso.boton}</Btn>
@@ -266,8 +266,8 @@ function PantallaPrincipal() {
           {!compacto && !guiaInicial.every(h => h.hecho) && (
             <div className="mb-2 shrink-0 rounded-xl border border-line bg-panel/80 px-2 py-1.5">
               <div className="mb-1 flex items-center justify-between gap-3">
-                <span className="font-display text-xs uppercase tracking-wide text-cream">Primeros pasos del club</span>
-                <span className="font-cond text-xs text-mut">{guiaInicial.filter(h => h.hecho).length}/4 completados</span>
+                <span className="font-display text-xs uppercase tracking-wide text-cream">{t("guide.title")}</span>
+                <span className="font-cond text-xs text-mut">{t("guide.completed",{count:guiaInicial.filter(h=>h.hecho).length})}</span>
               </div>
               <div className="guide-steps grid gap-1 sm:grid-cols-4">
                 {guiaInicial.map((h, i) => (
@@ -281,14 +281,14 @@ function PantallaPrincipal() {
           )}
           {!compacto && state.dia <= 5 && (
             <div className="forecast-strip mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-panel/70 px-4 py-2.5 font-cond text-sm">
-              <span className="font-display uppercase tracking-wide text-sand">Previsión del domingo</span>
-              <span className="text-win" title="Importes deterministas con el plantel, contratos y estado actuales; pueden cambiar antes del domingo.">Ingresos previstos {fmt(ingresosEstimados)}</span>
-              {proyeccion.estimados.length > 0 && <span className="text-gold" title={proyeccion.estimados.map(l => `${l.concepto}: ${fmt(l.min)}–${fmt(l.max)}; media ${fmt(l.mean)}`).join("\n")}>Actividades estimadas +{fmt(adicionalesEstimados)}</span>}
-              <span className="text-blood">Gastos previstos {fmt(gastosEstimados)}</span>
+              <span className="font-display uppercase tracking-wide text-sand">{t("forecast.title")}</span>
+              <span className="text-win" title={t("forecast.guard")}>{t("forecast.income",{amount:fmt(ingresosEstimados)})}</span>
+              {proyeccion.estimados.length > 0 && <span className="text-gold" title={proyeccion.estimados.map(l => `${l.concepto}: ${fmt(l.min)}–${fmt(l.max)}; media ${fmt(l.mean)}`).join("\n")}>{t("forecast.variables",{amount:fmt(adicionalesEstimados)})}</span>}
+              <span className="text-blood">{t("forecast.expenses",{amount:fmt(gastosEstimados)})}</span>
               <span className={balanceEstimado >= 0 ? "text-gold font-bold" : "text-blood font-bold"}>
-                {balanceEstimado >= 0 ? "A favor" : "En pérdida"} {balanceEstimado >= 0 ? "+" : "−"}{fmt(Math.abs(balanceEstimado))}
+                {t(balanceEstimado >= 0 ? "forecast.plus" : "forecast.minus")} {balanceEstimado >= 0 ? "+" : "−"}{fmt(Math.abs(balanceEstimado))}
               </span>
-              <span className="text-mut">Saldo previsto sin actividades variables. Sus estimaciones no son cobros garantizados.</span>
+              <span className="text-mut">{t("forecast.disclosure")}</span>
             </div>
           )}
 
@@ -329,9 +329,9 @@ function PantallaPrincipal() {
         <div className="space-y-2 text-sm text-cream">
           {siguientePaso && <p>{siguientePaso.texto}</p>}
           {guiaInicial.map((h, i) => <Btn key={h.texto} small variant={h.hecho ? "dark" : "gold"} disabled={h.hecho} className="w-full" onClick={() => { setPestana(h.tab); setPlanificacionAbierta(false); }}>{h.hecho ? "✓" : i + 1} {h.texto}</Btn>)}
-          <p>Ingresos previstos: {fmt(ingresosEstimados)} · Gastos previstos: {fmt(gastosEstimados)} · Neto: {fmt(balanceEstimado)}</p>
-          {proyeccion.estimados.map((l, i) => <p key={i}>{l.concepto}: {fmt(l.min)}–{fmt(l.max)} · media {fmt(l.mean)}</p>)}
-          <p>Las actividades variables son estimaciones, no cobros garantizados.</p>
+          <p>{t("forecast.summary",{income:fmt(ingresosEstimados),expenses:fmt(gastosEstimados),net:fmt(balanceEstimado)})}</p>
+          {proyeccion.estimados.map((l, i) => <p key={i}>{t("forecast.range",{label:l.concepto,min:fmt(l.min),max:fmt(l.max),mean:fmt(l.mean)})}</p>)}
+          <p>{t("forecast.notGuaranteed")}</p>
         </div>
       </Modal>}
 
@@ -344,168 +344,13 @@ function PantallaPrincipal() {
         />
       )}
 
-      {/* MODAL MATCHMAKING: SELECCIÓN DE RIVAL (3 OFERTAS DEL PROMOTOR) */}
-      {selectorAbierto && state.ofertas.length > 0 && state.ofertasPara && (
-        <Modal
-          wide
-          title="Selección de Rival · 3 ofertas del promotor"
-          icon="target"
-          onClose={() => setSelectorAbierto(false)}
-        >
-          <button className="btn-poster mb-3 self-center border border-line px-3 py-2 text-sand" onClick={() => dispatch({ type: "BUSCAR_RIVAL", id: state.ofertasPara! })}>Volver a buscar rival</button>
-          <p className="mb-3 font-cond text-sm text-sand">
-            Tu rival del sábado para{" "}
-            <b className="text-cream">
-              {state.plantel.find(p => p.id === state.ofertasPara)?.nombre}
-            </b>
-            . Los rivales llegan con energía real (40–80%), nunca descansados al 100%.
-          </p>
-          <div className="grid gap-3 lg:grid-cols-3">
-            {state.ofertas.map(of => (
-              <div
-                key={of.id}
-                className={`panel p-4 rounded-2xl ${
-                  of.esTitulo > 0
-                    ? "border-gold2/70"
-                    : of.nivel === "desafio"
-                    ? "border-blood/50"
-                    : ""
-                }`}
-              >
-                <Chip
-                  tone={
-                    of.esTitulo > 0
-                      ? "gold"
-                      : of.nivel === "accesible"
-                      ? "win"
-                      : of.nivel === "parejo"
-                      ? "mut"
-                      : "blood"
-                  }
-                >
-                  {of.etiqueta}
-                </Chip>
-                <div className="mt-2 font-display text-xl leading-tight text-cream">
-                  {of.rival.nombre}
-                </div>
-                <div className="font-cond text-xs uppercase tracking-wide text-mut">
-                  {of.rival.division} · {of.rival.circuito} · Récord {of.rival.record.v}-
-                  {of.rival.record.d}-{of.rival.record.e ?? 0} ({of.rival.record.ko} KO)
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-center">
-                  <div className="border border-line bg-panel2 py-1.5 rounded-lg">
-                    <div className="font-display text-2xl text-gold">
-                      {valoracion(of.rival.atrib)}
-                    </div>
-                    <div className="font-cond text-[10px] uppercase text-mut">Valoración</div>
-                  </div>
-                  <div className="border border-line bg-panel2 py-1.5 rounded-lg">
-                    <div className="font-display text-2xl text-win">
-                      {Math.round(of.rival.energia)}%
-                    </div>
-                    <div className="font-cond text-[10px] uppercase text-mut">Energía</div>
-                  </div>
-                </div>
-                <p className="mt-2 font-cond text-xs leading-snug text-sand">{of.detalle}</p>
-                <div className="mt-2 flex items-center justify-between border-t border-line pt-2">
-                  <span className="font-display text-lg text-gold">{fmt(of.bolsa)}</span>
-                  {of.esTitulo > 0 && (
-                    <span className="anim-cinturon font-cond text-[10px] uppercase text-gold font-bold">
-                      <I n="trophy" className="mr-1 inline h-3 w-3" />
-                      {TITULOS[of.esTitulo as 1 | 2 | 3 | 4].cinturon}
-                    </span>
-                  )}
-                </div>
-                <Btn
-                  variant={
-                    of.esTitulo > 0 ? "gold" : of.nivel === "desafio" ? "blood" : "dark"
-                  }
-                  className="mt-2 w-full"
-                  onClick={() => resolverOferta(of.id)}
-                >
-                  Firmar pelea
-                </Btn>
-              </div>
-            ))}
-          </div>
-        </Modal>
-      )}
+      {/* Presentation state is separate from the saved offers and R3 regeneration. */}
+      {selectorAbierto && state.ofertas.length > 0 && state.ofertasPara && <Modal wide fit title={t("offer.title")} icon="target" onClose={()=>setSelectorAbierto(false)}>
+        <OfferDetail/>
+      </Modal>}
 
       {/* BALANCE SEMANAL DEL DOMINGO */}
-      {state.resumen && (
-        <Modal wide title={`Balance Semanal · Semana ${state.semana}`} icon="calendar">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="border border-win/40 bg-win/5 p-4 rounded-2xl">
-              <div className="mb-2 flex items-center gap-2 font-display text-xl tracking-wide text-win">
-                <I n="up" className="h-4 w-4" /> Ingresos
-              </div>
-              {state.resumen.ingresos.map((l, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between border-b border-line/60 py-1.5 font-cond text-sm"
-                >
-                  <span className="text-sand">{l.concepto}</span>
-                  <span className="text-win">{fmt(l.monto)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="border border-blood/40 bg-blood/5 p-4 rounded-2xl">
-              <div className="mb-2 flex items-center gap-2 font-display text-xl tracking-wide text-[#ff8a7e]">
-                <I n="down" className="h-4 w-4" /> Gastos Fijos
-              </div>
-              {state.resumen.gastos.length === 0 && (
-                <p className="font-cond text-sm italic text-mut">
-                  Sin gastos: local propio y sin personal.
-                </p>
-              )}
-              {state.resumen.gastos.map((l, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between border-b border-line/60 py-1.5 font-cond text-sm"
-                >
-                  <span className="text-sand">{l.concepto}</span>
-                  <span className="text-[#ff8a7e]">−{fmt(l.monto)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={`mt-4 flex items-center justify-between border-2 p-4 rounded-2xl ${
-              state.resumen.total >= 0
-                ? "border-gold2/70 bg-gold/10"
-                : "border-blood/60 bg-blood/10"
-            }`}
-          >
-            <span className="font-display text-2xl tracking-wide text-cream">
-              Resultado neto de la semana
-            </span>
-            <span
-              className={`font-display text-4xl font-bold ${
-                state.resumen.total >= 0 ? "text-gold" : "text-blood"
-              }`}
-            >
-              {state.resumen.total >= 0 ? "+" : "−"}
-              {fmt(Math.abs(state.resumen.total))}
-            </span>
-          </div>
-
-          <p className="mt-2 font-cond text-xs text-mut">
-            Las bolsas y entradas se cobran el sábado; el domingo se liquidan cuotas, alquiler y sueldos.
-            Caja después del cierre: {fmt(state.dinero)}. El resultado neto histórico se ve en Mi Perfil.
-          </p>
-
-          <Btn
-            variant="gold"
-            className="mt-4 w-full py-2.5"
-            onClick={() => dispatch({ type: "CERRAR_DOMINGO" })}
-          >
-            <I n="play" className="h-4 w-4" /> Continuar
-          </Btn>
-        </Modal>
-      )}
-
+      {state.resumen && <WeeklyBalance/>}
       {/* FICHA TÉCNICA DEL ATLETA */}
       {fichaId && (
         <BoxerSheet
@@ -530,12 +375,13 @@ function PantallaPrincipal() {
 }
 
 function Raiz() {
+  const { t } = useMessages();
   const { state, guardado, reintentarGuardado } = useGame();
   return <>
     {state.creado ? <PantallaPrincipal /> : <Intro />}
     {!guardado.ok && <div role="alert" data-testid="save-error" className="pointer-events-none fixed inset-x-3 top-2 z-[100] mx-auto max-w-2xl rounded-xl border border-blood bg-ink p-3 text-cream shadow-xl">
       <p className="font-cond text-sm">{guardado.mensaje}</p>
-      <Btn small className="pointer-events-auto mt-2" onClick={reintentarGuardado}>Reintentar guardado</Btn>
+      <Btn small className="pointer-events-auto mt-2" onClick={reintentarGuardado}>{t("save.retry")}</Btn>
     </div>}
   </>;
 }

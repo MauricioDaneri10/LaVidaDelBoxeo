@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, m as motion, useReducedMotion } from "framer-motion";
 import { mountDialog } from "../ui/dialogs";
 import { paginasTexto } from "../ui/textPages";
 import { useMessages } from "../i18n";

@@ -5,6 +5,9 @@ import { Btn, TextoPaginado } from "./ui";
 import { EventDetail } from "./EventDetail";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
 import { formatearFecha, useMessages } from "../i18n";
+import { presentarEvento } from "../i18n/events";
+import { presentarActividad } from "../i18n/presentation";
+import { COMUNITARIOS } from "../game/data";
 
 export default function CalendarioView() {
   const { state, dispatch } = useGame();
@@ -25,8 +28,8 @@ export default function CalendarioView() {
       pelea: p.id, evento: null,
     })),
     ...(state.veladaProgramada ? [{ id: "velada", dia: 6, semana: state.semana, texto: t("calendar.show"), pelea: null, evento: null }] : []),
-    ...state.comunitarios.map((c, i) => ({ id: `social:${i}`, dia: 7, semana: state.semana, texto: `${c.nombre}\n${t("calendar.social")}`, pelea: null, evento: null })),
-    ...state.eventos.map(e => ({ id: `evento:${e.id}`, dia: state.dia, semana: state.semana, texto: `${e.titulo}\n${e.de}\n${t(e.venceEn === 1 ? "event.expiry.one" : "event.expiry", { days: e.venceEn })}\n${e.texto}`, pelea: null, evento: e })),
+    ...state.comunitarios.map((c, i) => ({ id: `social:${i}`, dia: 7, semana: state.semana, texto: `${c.nombre===COMUNITARIOS[c.tipo].nombre ? presentarActividad(c.tipo,locale).nombre : `${t("record.historical")}\n${c.nombre}`}\n${t("calendar.social")}`, pelea: null, evento: null })),
+    ...state.eventos.map(e => {const copy=presentarEvento(e,locale);return { id: `evento:${e.id}`, dia: state.dia, semana: state.semana, texto: `${copy.historico ? t("record.historical") + "\n" : ""}${copy.titulo}\n${copy.de}\n${t(e.venceEn === 1 ? "event.expiry.one" : "event.expiry", { days: e.venceEn })}\n${copy.texto}`, pelea: null, evento: e };}),
   ];
   const seleccionado = agenda[Math.min(indice, Math.max(0, agenda.length - 1))];
   useEffect(() => {

@@ -121,52 +121,22 @@ html, body, #root {
 .club-panel > * { position: relative; z-index: 1; }
 
 .app-footer { background: rgba(20,16,12,.72); }
-.fight-screen-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  height: 100dvh;
-  min-height: 0;
-  background-color: var(--color-ink);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-gold2) var(--color-panel);
-}
-.fight-screen-content { min-height: 100%; }
-.fight-plan-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.fight-plan-option { min-height: 2.6rem; }
-.fight-round-button { min-height: 2.4rem; }
-@media (max-height: 680px) {
-  .fight-screen-overlay { padding: .35rem !important; }
-  .fight-screen-content { gap: .35rem !important; }
-  .fight-heading > div:first-child { font-size: .58rem; letter-spacing: .22em; }
-  .fight-heading h1 { font-size: 1.45rem; line-height: 1.05; }
-  .fight-status-card { padding: .4rem !important; border-radius: .75rem; }
-  .fight-status-card .font-display { font-size: 1.05rem; }
-  .fight-status-card .font-cond { font-size: .58rem; }
-  .fight-status-card .stat-bar { height: .4rem; }
-  .fight-ring { height: clamp(120px, 23vh, 180px) !important; border-radius: 1rem; }
-  .fight-ring > div:first-child { height: 2.5rem; }
-  .fight-ring > div:first-child .anim-bob { width: .75rem; height: .75rem; }
-  .fight-details { gap: .35rem !important; }
-  .fight-stats-panel, .fight-controls-panel { padding: .45rem !important; border-radius: .75rem; }
-  .fight-stats-panel { gap: .25rem !important; }
-  .fight-stats-panel table { font-size: .68rem; }
-  .fight-stats-panel th { font-size: .53rem; }
-  .fight-stats-panel td { padding-top: .15rem; padding-bottom: .15rem; }
-  .fight-controls-panel { justify-content: flex-start; }
-  .fight-corner-content { display: flex; flex-direction: column; gap: .3rem !important; }
-  .fight-corner-content > div:first-child { font-size: .76rem; padding-bottom: .2rem; }
-  .fight-plan-list { gap: .2rem !important; }
-  .fight-plan-option { min-height: 2rem; padding: .25rem .35rem !important; gap: .35rem; }
-  .fight-plan-option svg { width: .75rem; height: .75rem; }
-  .fight-plan-option .font-display { font-size: .64rem; }
-  .fight-plan-option .font-cond { font-size: .52rem; }
-  .fight-round-button { min-height: 1.8rem; margin-top: .1rem !important; padding-top: .25rem; padding-bottom: .25rem; font-size: .7rem; }
-}
-@media (max-width: 640px) {
-  .fight-details { grid-template-columns: minmax(0, 1fr); }
-  .fight-plan-list { grid-template-columns: minmax(0, 1fr); }
-  .fight-ring { min-height: 145px; }
+/* A bounded decision canvas; the same ring artwork stays available in its view. */
+.fight-screen-overlay { position: fixed; inset: 0; height: 100dvh; min-height: 0; background-color: var(--color-ink); overflow: hidden; }
+.fight-screen-content { height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 8px; }
+.fight-heading { grid-row: 1; }
+.fight-navigation { grid-row: 2; }
+.fight-view { grid-row: 3; min-height: 0; overflow: hidden; }
+.fight-actions { grid-row: 4; }
+.fight-screen-content > footer { grid-row: 5; font-size: 12px; }
+.fight-screen-content :is(p, .font-cond) { font-size: 14px !important; line-height: 1.4 !important; }
+.fight-screen-content .anim-conteo { font-size: 48px; }
+@media (max-height: 450px) {
+  .fight-screen-content { grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 4px; }
+  .fight-heading, .fight-navigation, .fight-actions { grid-column: 1; }
+  .fight-view { grid-column: 2; grid-row: 1 / 5; }
+  .fight-actions { align-self: end; }
+  .fight-screen-content > footer { grid-column: 1 / 3; }
 }
 .plantel-grid > .panel { min-height: 126px; }
 .roster-cards > .roster-card { min-height: 126px; }
@@ -346,15 +316,6 @@ html.movimiento-reducido *::after {
   .calendar-agenda-list article { padding: .35rem !important; }
   .calendar-agenda-list article > p { margin-top: .15rem !important; font-size: .62rem !important; }
   .calendar-agenda-list article > div:last-child { margin-top: .25rem !important; }
-  .profile-summary { gap: .15rem !important; padding: .1rem !important; }
-  .profile-summary h2 { font-size: .95rem !important; line-height: 1.05 !important; }
-  .profile-summary p { font-size: .62rem !important; line-height: 1.1 !important; }
-  .profile-summary .mt-2 { margin-top: .2rem !important; }
-  .profile-summary .grid > div { padding: .1rem .2rem !important; }
-  .profile-summary .grid > div > div:first-child { font-size: .88rem !important; line-height: 1 !important; }
-  .profile-summary .grid > div > div:last-child { font-size: .52rem !important; line-height: 1 !important; }
-  .profile-summary > div:last-child { gap: .15rem !important; padding-top: .1rem !important; }
-  .profile-summary > div:last-child > span { font-size: .58rem !important; line-height: 1.1 !important; }
   .profile-subnav { gap: .25rem !important; }
   .profile-subnav > div { padding: .15rem !important; }
   .profile-subnav > div button { min-height: 1.1rem !important; padding: .1rem .35rem !important; font-size: .58rem !important; line-height: 1 !important; }
@@ -438,6 +399,9 @@ html.movimiento-reducido *::after {
 
 /* R4: actions never inherit the legacy tiny-profile overrides. Composition
    must adapt around these floors; reducing them is not a fitting strategy. */
+.bounded-detail { display: grid; gap: 8px; }
+.bounded-detail > * { min-width: 0; min-height: 0; }
+@media (max-height: 450px) { .bounded-detail { grid-template-columns: 200px minmax(0, 1fr); } }
 :is(.fondo-app, [role="dialog"]) :is(.font-cond, .text-xs, .text-\[9px\], .text-\[10px\], .text-\[11px\], .text-\[12px\], .text-\[13px\]) {
   font-size: 14px !important;
   line-height: 1.4 !important;
@@ -457,22 +421,7 @@ html.movimiento-reducido *::after {
 .roster-open span:not([data-text-role="secondary"]) { font-size: 14px !important; }
 .market-categories button { min-height: 36px; font-size: 14px; }
 .gym-stations-paged { grid-template-columns: minmax(0, 1fr); top: 36%; bottom: 64px; }
-.gym-stations-paged > div { display: none; }
-.gym-stations-paged[data-start="1"][data-end="1"] > div:nth-child(n+1):nth-child(-n+1) { display: block; }
-.gym-stations-paged[data-start="1"][data-end="2"] > div:nth-child(n+1):nth-child(-n+2) { display: block; }
-.gym-stations-paged[data-start="1"][data-end="3"] > div:nth-child(n+1):nth-child(-n+3) { display: block; }
-.gym-stations-paged[data-start="1"][data-end="4"] > div:nth-child(n+1):nth-child(-n+4) { display: block; }
-.gym-stations-paged[data-start="1"][data-end="5"] > div:nth-child(n+1):nth-child(-n+5) { display: block; }
-.gym-stations-paged[data-start="2"][data-end="2"] > div:nth-child(n+2):nth-child(-n+2) { display: block; }
-.gym-stations-paged[data-start="2"][data-end="3"] > div:nth-child(n+2):nth-child(-n+3) { display: block; }
-.gym-stations-paged[data-start="2"][data-end="4"] > div:nth-child(n+2):nth-child(-n+4) { display: block; }
-.gym-stations-paged[data-start="2"][data-end="5"] > div:nth-child(n+2):nth-child(-n+5) { display: block; }
-.gym-stations-paged[data-start="3"][data-end="3"] > div:nth-child(n+3):nth-child(-n+3) { display: block; }
-.gym-stations-paged[data-start="3"][data-end="4"] > div:nth-child(n+3):nth-child(-n+4) { display: block; }
-.gym-stations-paged[data-start="3"][data-end="5"] > div:nth-child(n+3):nth-child(-n+5) { display: block; }
-.gym-stations-paged[data-start="4"][data-end="4"] > div:nth-child(n+4):nth-child(-n+4) { display: block; }
-.gym-stations-paged[data-start="4"][data-end="5"] > div:nth-child(n+4):nth-child(-n+5) { display: block; }
-.gym-stations-paged[data-start="5"][data-end="5"] > div:nth-child(n+5):nth-child(-n+5) { display: block; }
+.gym-stations-paged > div[data-visible="false"] { display: none; }
 .gym-status { gap: 8px; padding: 8px; }
 .city-property-details { height: 100%; }
 .city-property-details p { font-size: 14px !important; line-height: 1.3; }
@@ -506,6 +455,9 @@ html.movimiento-reducido *::after {
   .calendar-picker { grid-column: 1; grid-row: 2; }
   .roster-pagination { position: absolute; left: -204px; bottom: 0; width: 200px; }
   .profile-screen { display: grid !important; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: 44px minmax(0, 1fr); gap: 4px !important; }
+  .profile-properties { display: contents !important; }
+  .profile-property-picker { grid-column: 1; grid-row: 2; align-self: start; }
+  .profile-property-detail { grid-column: 2; grid-row: 1 / 3; margin: 0 !important; }
   .profile-subnav { grid-column: 1; grid-row: 1; margin: 0 !important; }
   .profile-courses { display: contents !important; }
   .profile-branches { grid-column: 1; grid-row: 2; align-self: start; }
@@ -564,6 +516,9 @@ html.movimiento-reducido *::after {
   .settings-screen .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .staff-grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+@media (max-width: 639px), (max-height: 650px) {
+  .staff-card .font-display { font-size: 14px !important; line-height: 1.4 !important; }
+}
 .staff-pagination { flex-shrink: 0; }
 .market-card > p { font-size: 14px !important; line-height: 1.3 !important; }
 .market-card > p.text-sand { font-size: 12px !important; }
