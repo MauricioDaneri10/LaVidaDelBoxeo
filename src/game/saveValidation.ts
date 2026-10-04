@@ -9,7 +9,7 @@ export const ATRIBUTOS_BASE: Atributos = {
 import type { EstadoJuego } from "./types";
 import { consolidarConsejos, evidenciaCobroDanada } from "./consejos";
 
-export const SCHEMA_ACTUAL = 8;
+export const SCHEMA_ACTUAL = 9;
 export class ErrorGuardado extends Error {
   constructor(message: string, public readonly codigo: "corruption" | "incompatible" | "ambiguous" = "corruption") { super(message); }
 }
@@ -38,9 +38,14 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
   if (typeof inicial !== "number" || !Number.isInteger(inicial) || inicial < 1 || inicial > SCHEMA_ACTUAL) throw new ErrorGuardado("Schema incompatible: original protegido.", "incompatible");
   // A damaged guide cannot be replaced by an empty optional value: that would
   // erase reliable milestones and allow autosave to invent a restarted guide.
-  if (inicial === SCHEMA_ACTUAL && "guiaClub" in s) {
+  if (inicial >= 8 && "guiaClub" in s) {
     const issues: string[] = [];
     if (guiaClub(s.guiaClub, "guiaClub", issues) === BAD || issues.length) throw new ErrorGuardado("Progreso de la guía dañado: original protegido; recuperá ese registro antes de guardar.", "ambiguous");
+  }
+  if (inicial >= 9) {
+    const libros = [s.libroIngresos, s.libroGastos, ...(objeto(s.resumen) ? [s.resumen.ingresos, s.resumen.gastos] : [])];
+    if (libros.some(rows => Array.isArray(rows) && rows.some(l => objeto(l) && "claseContable" in l && l.claseContable !== "financiacion")))
+      throw new ErrorGuardado("Identidad contable dañada: original protegido; recuperá ese registro antes de guardar.", "ambiguous");
   }
   if (evidenciaCobroDanada(s.consejos)) throw new ErrorGuardado("Evidencia de cobro de un hito dañada: original protegido; se necesita recuperar ese registro antes de habilitar nuevos pagos.", "ambiguous");
   // Stable legacy identity: repeated migration of the same bytes is identical.
@@ -78,6 +83,16 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
         equipo: licencia || Array.isArray(x.equipamiento) && x.equipamiento.some(id => typeof id === "string" && id in EQUIPOS),
         guanteos: licencia || sanos.some(p => p.guanteosRealizados >= 10), licencia }, schemaVersion: 8 };
     },
+  };
+  migraciones[8] = x => {
+    const identificar = (raw: unknown, ingreso = false): unknown => Array.isArray(raw) ? raw.map(l => {
+      if (!objeto(l)) return l;
+      if ("claseContable" in l) throw new ErrorGuardado("Identidad contable reservada en datos antiguos: original protegido.", "ambiguous");
+      // Exact legacy template only, retaining every amount, label and extension.
+      return ingreso && l.concepto === "Desembolso del préstamo" ? { ...l, claseContable: "financiacion" } : l;
+    }) : raw;
+    return { ...x, schemaVersion: 9, libroIngresos: identificar(x.libroIngresos, true), libroGastos: identificar(x.libroGastos),
+      ...(objeto(x.resumen) ? { resumen: { ...x.resumen, ingresos: identificar(x.resumen.ingresos, true), gastos: identificar(x.resumen.gastos) } } : {}) };
   };
   for (let v = inicial; v < SCHEMA_ACTUAL; v++) s = migraciones[v](s);
   if (versionAntigua) s = { ...s, version: 2 };
@@ -204,7 +219,7 @@ const activeCombat: Rule = (v, p, i) => {
   return checked;
 };
 const result = fields({ miId: optional(id), rivalNombre: optional(str), gane: bool, empate: bool, metodo: oneOf(["Nocaut", "Nocaut Técnico", "Decisión Unánime", "Decisión Dividida", "Decisión Mayoritaria", "Empate"]), tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])), caidasA: count, caidasB: count, registroA: compubox, registroB: compubox, bolsa: num(0), fama: num(), tituloGanado: title, resumen: str }, {}, ["gane", "empate", "metodo", "tarjetas", "caidasA", "caidasB", "registroA", "registroB", "bolsa", "fama", "tituloGanado", "resumen"]);
-const ledger = list(fields({ concepto: str, monto: num(0) }, {}, ["concepto", "monto"]));
+const ledger = list(fields({ concepto: str, monto: num(0), claseContable: optional(oneOf(["financiacion"])) }, {}, ["concepto", "monto"]));
 const carreraArchivada = fields({ id, pugilista: boxer, club: str, semanaSalida: num(1, Infinity, true), motivo: str, historial: list(result) }, {}, ["id", "pugilista", "club", "semanaSalida", "motivo", "historial"]);
 const guiaClub = fields({ alumnosIniciales: list(id), enfoquesConfirmados: list(id), enfoques: bool, equipo: bool, guanteos: bool, licencia: bool }, {}, ["alumnosIniciales", "enfoquesConfirmados", "enfoques", "equipo", "guanteos", "licencia"]);
 const action = fields({ tipo: oneOf(["dinero", "fama", "nuevoAlumno", "programarComunitario", "aceptarPatrocinio", "exhibicion", "mantenimiento", "entrevista", "recaudacion", "nada"]), monto: optional(num()), costo: optional(num(0)), fama: optional(num()), nombre: optional(str), semanas: optional(count), comunitario: optional(oneOf(Object.keys(COMUNITARIOS))) }, {}, ["tipo"]);

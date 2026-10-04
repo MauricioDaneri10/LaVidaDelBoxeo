@@ -1,7 +1,7 @@
 # Plan 54 — R4: interfaz, texto y accesibilidad
 
 **Estado:** aprobado; implementación EN CURSO, todavía sin cierre. 2026-10-01.
-**Continuación2026-10-03:** informe55 amplía evidencia a410 tests y184 claves, pero el detector de rangos de texto mantiene46/210 casos RED y el catálogo global sigue incompleto. PR #6 permanece borrador/NO APTO; no pedir una nueva autorización para continuar el alcance vigente ni confundir resultados parciales con cierre.
+**Continuación2026-10-04:** informe55 y contexto operativo distinguen evidencia actual de la histórica. Checkpoint433 tests/15 archivos,298 claves por idioma y focales de aviso vencido/Panel/cobro exacto. Matrices anteriores corresponden a otros builds, no al nuevo artefacto. Matriz final pendiente: runner17 familias×10 tamaños más estados restantes. Continúan catálogo global y cobertura obligatoria; solo es habilitado, presupuestos intactos. PR6 permanece borrador/NO APTO. No pedir otra autorización para pendientes vigentes.
 **Baseline:** main `8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3`, R3 integrado sin publicación.
 **Alcance:** A18, A19, A20, A23, A26 de auditoría44 y cierre pendiente del selector documentado en informes52/53.
 **Salida:** pestañas y decisiones utilizables en escritorio/móvil/zoom; texto legible y veraz; foco/idioma completos para el alcance expresamente habilitado. No certifica el juego completo.

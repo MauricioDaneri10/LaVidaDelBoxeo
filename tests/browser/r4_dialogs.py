@@ -159,11 +159,26 @@ def gym_drawer_case(page):
     before=state(page)
     station=page.get_by_role('combobox',name='Estación del gimnasio')
     if station.count():
+        if station.locator('option[value="club"]').count():
+            station.select_option(value='club')
+            wall=page.get_by_role('dialog',name='Pared del club',exact=True)
+            wall.wait_for()
+            page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+            report=measure_detail(page)
+            assert not report['failures'], ('wall',report['failures'],page.locator('.gym-wall-detail .gym-marquee').evaluate('e=>({parent:e.parentElement.className,rect:e.getBoundingClientRect().toJSON(),translate:getComputedStyle(e).translate,transform:getComputedStyle(e).transform,left:getComputedStyle(e).left,width:getComputedStyle(e).width})'))
+            assert page.locator('.gym-wall-detail .gym-marquee').is_visible()
+            assert page.locator('.gym-wall-detail .gym-poster').is_visible()
+            assert page.evaluate("() => {const a=document.querySelector('.gym-wall-detail .gym-marquee').getBoundingClientRect(), b=document.querySelector('.gym-wall-detail .gym-poster').getBoundingClientRect();return a.left>=b.right || b.left>=a.right || a.top>=b.bottom || b.top>=a.bottom;}"), 'Poster and marquee occupy overlapping rectangles'
+            page.screenshot(path=str(page.r4_open_capture.with_name(page.r4_open_capture.stem+'-wall.png')))
+            page.keyboard.press('Escape')
+            wall.wait_for(state='detached')
+            assert station.evaluate('e=>e===document.activeElement')
         for value in ['1','2','3','4','5']:
             station.select_option(value=value)
             page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
             report=measure_detail(page)
             assert not report['failures'], ('station',value,report['failures'])
+            assert page.evaluate("() => {const wall=document.querySelector('.gym-scene > .absolute .gym-marquee');return !wall || ![...document.querySelectorAll('.gym-stations .gym-figure')].filter(e=>e.getClientRects().length).some(e=>{const a=wall.getBoundingClientRect(),b=e.getBoundingClientRect();return a.left<b.right && b.left<a.right && a.top<b.bottom && b.top<a.bottom;});}"), 'Marquee occludes a visible boxer'
             if value=='1': page.screenshot(path=str(page.r4_open_capture))
     trigger=page.get_by_role('button',name=re.compile(r'^Ver plantel'))
     trigger.click()
@@ -188,6 +203,10 @@ def transfer_cancel_case(page):
     nav=page.locator('.app-nav select')
     if nav.count(): nav.select_option(value='plantel')
     else: page.locator('.app-nav').get_by_role('button',name='Plantel',exact=True).click()
+    picker=page.locator('.roster-filters select')
+    if picker.locator('option[value="vista:rendimiento"]').count():
+        picker.select_option(value='grupo:federados')
+        picker.select_option(value='vista:rendimiento')
     native=[]
     page.on('dialog',lambda dialog: (native.append(dialog.type),dialog.dismiss()))
     trigger=page.get_by_role('button',name='Transferir',exact=True).first
@@ -195,6 +214,11 @@ def transfer_cancel_case(page):
     assert not native, 'Transfer uses a native dialog outside the accessible layer stack'
     dialog=page.get_by_role('dialog',name='Transferir fuera del club')
     dialog.wait_for()
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    literal=complete_literal(page)
+    assert before['plantel'][0]['nombre'] in literal and 'histórica' in literal
+    report=measure_detail(page)
+    assert not report['failures'], report['failures']
     page.keyboard.press('Escape')
     assert page.get_by_role('dialog').count()==0
     assert state(page)==before, 'Cancel must preserve career, money and RNG'
@@ -461,6 +485,9 @@ def archive_case(page):
     else: page.locator('.app-nav').get_by_role('button', name='Plantel', exact=True).click()
     management=page.get_by_role('button', name='Plantel · Cupos y gestión', exact=True)
     if management.count(): management.click()
+    else:
+        compact=page.locator('.roster-filters select')
+        if compact.locator('option[value="gestion:abrir"]').count(): compact.select_option(value='gestion:abrir')
     trigger = page.get_by_role('button', name='Archivo de carreras', exact=True)
     trigger.click()
     dialog = page.get_by_role('dialog').filter(has=page.get_by_test_id('career-archive'))
@@ -498,9 +525,333 @@ def archive_case(page):
     assert trigger.evaluate('e=>e===document.activeElement')
 
 
+def go_tab(page, value, label):
+    nav=page.locator('.app-nav select')
+    if nav.count(): nav.select_option(value=value)
+    else: page.locator('.app-nav').get_by_role('button',name=label,exact=True).click()
+
+
+def complete_literal(page, scope=None):
+    parts=[]
+    while True:
+        report=measure_detail(page)
+        assert not report['failures'], report['failures']
+        literal=(scope if scope is not None else page).get_by_test_id('literal-text-page')
+        parts.append(literal.evaluate("e=>[...e.childNodes].map(n=>window.__r4PseudoNodes?.get(n)===n.textContent ? window.__r4PseudoOriginals.get(n) : n.textContent).join('')"))
+        following=literal.locator('..').get_by_role('button',name=re.compile(r'^Siguiente(?:\s|$)'))
+        if not following.count() or following.is_disabled(): break
+        following.click()
+    return ''.join(parts)
+
+
+def roster_views_case(page):
+    go_tab(page,'plantel','Plantel')
+    before=state(page)
+    picker=page.locator('.roster-filters select').first
+    if not picker.locator('option[value="vista:nombre"]').count():
+        assert not measure_detail(page)['failures']
+        return
+    seen=set()
+    while True:
+        picker.select_option(value='vista:nombre')
+        report=measure_detail(page)
+        assert not report['failures'], ('name',report['failures'])
+        card=page.locator('.plantel-grid article')
+        width=page.locator('.plantel-grid').bounding_box()['width']
+        required=min(len(before['plantel'])-len(seen),5,max(1,int((width+8)/308)))
+        assert card.count()>=required, 'Readable first-row capacity must not be wasted'
+        for i in range(card.count()):
+            trigger=card.nth(i).locator('button[aria-label^="Abrir ficha técnica de"]')
+            seen.add(trigger.get_attribute('aria-label').removeprefix('Abrir ficha técnica de '))
+        for view in ['identidad','estado','rendimiento']:
+            picker.select_option(value='vista:'+view)
+            if view!='rendimiento':
+                for i in range(card.count()): assert complete_literal(page,card.nth(i))
+            else: assert not measure_detail(page)['failures']
+        page.screenshot(path=str(page.r4_open_capture))
+        nxt=page.locator('.roster-pagination').get_by_role('button',name=re.compile(r'^Siguiente(?:\s|$)'))
+        if not nxt.count() or nxt.is_disabled(): break
+        nxt.click()
+    assert seen=={p['nombre'] for p in before['plantel'] if not p.get('enEspera')}
+    assert state(page)==before, 'Changing presentation altered career data'
+
+
+def courses_case(page):
+    go_tab(page,'perfil','Mi Perfil')
+    before=state(page)
+    branch=page.get_by_role('combobox',name='Rama de cursos',exact=True)
+    for value,label in [('deportiva','Deportiva'),('promotora','Promotora'),('empresarial','Empresarial')]:
+        if branch.count(): branch.select_option(value=value)
+        else: page.locator('.profile-branches').get_by_role('button',name=re.compile('^'+label+r'(?:\s|$)')).click()
+        for index in range(3):
+            assert not measure_detail(page)['failures']
+            detail=page.get_by_role('button',name=re.compile(r'^Ver curso(?:\s|$)'))
+            if not detail.count(): break
+            detail.click()
+            dialog=page.get_by_role('dialog').last
+            page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+            assert complete_literal(page)
+            page.screenshot(path=str(page.r4_open_capture))
+            page.keyboard.press('Escape')
+            dialog.wait_for(state='detached')
+            assert detail.evaluate('e=>e===document.activeElement')
+            nxt=page.locator('.profile-pagination').get_by_role('button',name=re.compile(r'^Siguiente(?:\s|$)'))
+            if nxt.is_disabled(): break
+            nxt.click()
+    assert state(page)==before, 'Reading a course changed money or progress'
+
+
+def calendar_future_case(page):
+    go_tab(page,'calendario','Calendario')
+    before=state(page)
+    assert before['dia']==6 and before['pendientes'][0]['semanaProgramada']==9
+    view=page.get_by_role('combobox',name='Vista del calendario',exact=True)
+    view.select_option(value='resumen')
+    assert 'Próximo paso: Guanteos del sábado' in complete_literal(page)
+    view.select_option(value='agenda')
+    literal=complete_literal(page)
+    assert 'Semana 9' in literal and 'Rival Fixture' in literal and '$100' in literal
+    assert state(page)==before, 'Reading a future contract altered its dates or payment'
+
+
+def calendar_views_case(page):
+    go_tab(page,'calendario','Calendario')
+    before=state(page)
+    assert len(before['eventos'])==3, 'Synthetic events must survive loading exactly'
+    view=page.get_by_role('combobox',name='Vista del calendario',exact=True)
+    for value in ['semana','resumen','agenda']:
+        view.select_option(value=value)
+        if value=='resumen': assert 'Próximo paso' in complete_literal(page)
+        elif value=='semana':
+            days=page.get_by_role('combobox',name='Día de la semana',exact=True)
+            for day in range(1,8):
+                if days.count(): days.select_option(value=str(day))
+                assert not measure_detail(page)['failures']
+        else:
+            activity=page.get_by_role('combobox',name='Actividad de la agenda',exact=True)
+            for event in before['eventos']:
+                activity.select_option(value='evento:'+event['id'])
+                literal=complete_literal(page)
+                assert event['titulo'] in literal and event['texto'] in literal
+                view.select_option(value='decision')
+                response=page.get_by_role('combobox',name='Respuesta al evento',exact=True)
+                for index,choice in enumerate(event['opciones']):
+                    response.select_option(value=str(index))
+                    assert complete_literal(page)==choice['texto']
+                page.screenshot(path=str(page.r4_open_capture))
+                view.select_option(value='agenda')
+    assert state(page)==before, 'Reviewing calendar choices altered events, money or dates'
+
+
+def event_response_case(page):
+    go_tab(page,'calendario','Calendario')
+    before=state(page)
+    view=page.get_by_role('combobox',name='Vista del calendario',exact=True)
+    view.select_option(value='agenda')
+    page.get_by_role('combobox',name='Actividad de la agenda',exact=True).select_option(value='evento:r4-response')
+    view.select_option(value='decision')
+    response=page.get_by_role('combobox',name='Respuesta al evento',exact=True)
+    response.select_option(value='0')
+    page.get_by_role('button',name='Confirmar respuesta',exact=True).click()
+    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.toasts.some(t=>t.texto.includes('para reparar'))")
+    after=state(page)
+    assert after['eventos']==before['eventos'] and after['dinero']==0
+    assert response.is_visible(), 'Rejected response dismissed the decision instead of retaining it'
+    assert view.input_value()=='decision'
+    assert not measure_detail(page)['failures']
+    response.select_option(value='1')
+    page.get_by_role('button',name=re.compile(r'^Confirmar respuesta(?:\s|$)')).click()
+    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.eventos.length===0")
+    page.wait_for_function("document.querySelector('select[aria-label=\"Vista del calendario\"]').value==='agenda'")
+    assert view.input_value()=='agenda', 'Successful response did not dismiss the completed decision'
+    assert state(page)['dinero']==0 and state(page)['libroIngresos']==before['libroIngresos'] and state(page)['libroGastos']==before['libroGastos']
+
+
+def event_panel_case(page):
+    before=state(page)
+    nav=page.locator('.app-nav select')
+    if nav.count(): nav.select_option(value='contexto-club')
+    channel=page.get_by_role('combobox',name='Canal del panel del club',exact=True)
+    for value in ['mensajes','patrocinios']:
+        channel.select_option(value=value)
+        notices=[e for e in before['eventos'] if (e['tipo']=='patrocinio')==(value=='patrocinios')]
+        picker=page.get_by_role('combobox',name='Aviso del panel',exact=True)
+        for event in notices:
+            picker.select_option(value=event['id'])
+            trigger=page.get_by_role('button',name=re.compile(r'^Leer y gestionar aviso(?:\s|$)'))
+            previous_layers=page.get_by_role('dialog').count()
+            trigger.click()
+            dialog=page.get_by_role('dialog',name=re.compile(r'^Detalle de aviso(?:\s|$)'))
+            page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+            literal=complete_literal(page)
+            assert event['titulo'] in literal and event['texto'] in literal
+            dialog.get_by_role('combobox',name='Sección del aviso',exact=True).select_option(value='respuesta')
+            response=dialog.get_by_role('combobox',name='Respuesta al evento',exact=True)
+            for index,choice in enumerate(event['opciones']):
+                response.select_option(value=str(index))
+                assert complete_literal(page)==choice['texto']
+            assert state(page)==before, 'Reading event details changed the saved game'
+            page.keyboard.press('Escape')
+            dialog.wait_for(state='detached')
+            assert page.get_by_role('dialog').count()==previous_layers, 'Escape closed another dialog layer'
+            assert trigger.evaluate('e=>e===document.activeElement'), 'Event details lost their trigger focus'
+        assert not measure_detail(page)['failures']
+    if nav.count():
+        page.keyboard.press('Escape')
+        page.get_by_role('dialog').wait_for(state='detached')
+        assert nav.evaluate('e=>e===document.activeElement')
+    assert state(page)==before
+
+
+def press_panel_case(page):
+    before=state(page)
+    nav=page.locator('.app-nav select')
+    if nav.count(): nav.select_option(value='contexto-club')
+    page.get_by_role('combobox',name='Canal del panel del club',exact=True).select_option(value='prensa')
+    picker=page.get_by_role('combobox',name='Noticia del panel',exact=True)
+    assert picker.locator('option').count()==len(before['prensa']), 'News omitted from selector'
+    for note in before['prensa']:
+        picker.select_option(value=note['id'])
+        trigger=page.get_by_role('button',name=re.compile(r'^Leer noticia(?:\s|$)'))
+        trigger.click()
+        dialog=page.get_by_role('dialog',name=re.compile(r'^Noticias del Ring(?:\s|$)'))
+        page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+        assert complete_literal(page,dialog)==f"Semana {note['semana']}\n{note['texto']}", 'News text or week changed'
+        page.keyboard.press('Escape')
+        dialog.wait_for(state='detached')
+        assert trigger.evaluate('e=>e===document.activeElement'), 'News lost trigger focus'
+    assert not measure_detail(page)['failures']
+    assert state(page)==before, 'Reading press rewrote history or game state'
+
+
+def advice_panel_case(page):
+    before=state(page)
+    nav=page.locator('.app-nav select')
+    if nav.count(): nav.select_option(value='contexto-club')
+    page.get_by_role('combobox',name='Canal del panel del club',exact=True).select_option(value='consejos')
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    sections=page.get_by_role('combobox',name='Sección de consejos',exact=True)
+    for section in ['hitos','historial','orientacion','finanzas']:
+        sections.select_option(value=section)
+        assert not measure_detail(page)['failures'], (section,measure_detail(page)['failures'])
+        if section in ['hitos','historial']:
+            records=[c for c in before['consejos'] if bool(c.get('archivado') or c['reclamado'])==(section=='historial')]
+            picker=page.get_by_role('combobox',name='Hito del club',exact=True)
+            assert picker.locator('option').count()==len(records)
+            for record in records:
+                picker.select_option(value=record['id'])
+                trigger=page.get_by_role('button',name=re.compile(r'^Ver hito(?:\s|$)'))
+                trigger.click()
+                dialog=page.get_by_role('dialog',name=re.compile(r'^Detalle del hito(?:\s|$)'))
+                page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+                dialog.get_by_role('combobox',name='Detalle del consejo',exact=True).select_option(value='texto')
+                assert complete_literal(page,dialog)==record['texto']
+                dialog.get_by_role('combobox',name='Detalle del consejo',exact=True).select_option(value='recompensa')
+                reward=complete_literal(page,dialog)
+                assert str(record['fama']) in reward
+                if record.get('archivado'):
+                    assert 'Archivado' in reward and 'sin cobro' in reward
+                    assert record['motivoArchivo'] in reward
+                if record['reclamado']: assert 'Cobrado' in reward
+                page.keyboard.press('Escape')
+                dialog.wait_for(state='detached')
+                assert trigger.evaluate('e=>e===document.activeElement')
+        else:
+            page.get_by_role('button',name=re.compile(r'^Leer detalle(?:\s|$)')).click()
+            dialog=page.get_by_role('dialog',name=re.compile(r'^Don Anselmo(?:\s|$)'))
+            page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+            detail=complete_literal(page,dialog)
+            if section=='finanzas':
+                assert '$500' in detail and '$600' in detail and '$60' in detail and '10 cuotas' in detail
+            page.keyboard.press('Escape')
+            dialog.wait_for(state='detached')
+    assert state(page)==before, 'Browsing advice paid a reward or changed the save'
+
+
+def sponsor_panel_case(page):
+    before=state(page)
+    nav=page.locator('.app-nav select')
+    if nav.count(): nav.select_option(value='contexto-club')
+    page.get_by_role('combobox',name='Canal del panel del club',exact=True).select_option(value='patrocinios')
+    trigger=page.get_by_role('button',name='Contrato activo · Leer detalle',exact=True)
+    trigger.click()
+    dialog=page.get_by_role('dialog',name=re.compile(r'^Contrato de patrocinio(?:\s|$)'))
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    details=complete_literal(page,dialog)
+    assert before['patrocinio']['nombre'] in details
+    assert '$200' in details and '10' in details and 'domingo' in details
+    page.keyboard.press('Escape')
+    dialog.wait_for(state='detached')
+    assert trigger.evaluate('e=>e===document.activeElement')
+    assert not measure_detail(page)['failures']
+    assert state(page)==before, 'Reading sponsorship changed the contract'
+
+
+def advice_payment_case(page):
+    before=state(page)
+    nav=page.locator('.app-nav select')
+    if nav.count(): nav.select_option(value='contexto-club')
+    page.get_by_role('combobox',name='Canal del panel del club',exact=True).select_option(value='consejos')
+    page.get_by_role('combobox',name='Hito del club',exact=True).select_option(value='c9')
+    page.get_by_role('button',name='Ver hito',exact=True).click()
+    dialog=page.get_by_role('dialog',name='Detalle del hito',exact=True)
+    assert dialog.get_by_role('button',name='Cobrar',exact=True).count()==0, 'Claim offered before displaying reward'
+    dialog.get_by_role('combobox',name='Detalle del consejo',exact=True).select_option(value='recompensa')
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    assert complete_literal(page,dialog)=='Recompensa: +2 fama · $80\nListo para cobrar'
+    assert state(page)==before
+    dialog.get_by_role('button',name='Cobrar',exact=True).click()
+    dialog.wait_for(state='detached')
+    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.consejos.find(c=>c.id==='c9').reclamado")
+    after=state(page)
+    assert after['dinero']==before['dinero']+80 and after['fama']==before['fama']+2
+    assert after['libroIngresos']==before['libroIngresos']+[{'concepto':'Recompensa · '+before['consejos'][0]['texto'],'monto':80}]
+    page.reload(wait_until='networkidle')
+    assert state(page)['consejos']==after['consejos'] and state(page)['dinero']==after['dinero']
+    if nav.count(): nav.select_option(value='contexto-club')
+    page.get_by_role('combobox',name='Canal del panel del club',exact=True).select_option(value='consejos')
+    page.get_by_role('combobox',name='Sección de consejos',exact=True).select_option(value='historial')
+    page.get_by_role('combobox',name='Hito del club',exact=True).select_option(value='c9')
+    page.get_by_role('button',name='Ver hito',exact=True).click()
+    assert page.get_by_role('dialog',name='Detalle del hito',exact=True).get_by_role('button',name='Cobrar',exact=True).count()==0
+    page.keyboard.press('Escape')
+    assert state(page)['dinero']==after['dinero'] and state(page)['fama']==after['fama']
+
+
+def expired_event_case(page):
+    before=state(page)
+    rng=page.evaluate('window.__qaRandom')
+    go_tab(page,'calendario','Calendario')
+    page.get_by_role('combobox',name='Vista del calendario',exact=True).select_option(value='agenda')
+    page.get_by_role('combobox',name='Actividad de la agenda',exact=True).select_option(value='evento:r4-expired')
+    view=page.get_by_role('combobox',name='Vista del calendario',exact=True)
+    view.select_option(value='decision')
+    page.get_by_role('combobox',name='Sección del aviso',exact=True).select_option(value='respuesta')
+    assert page.get_by_role('button',name='Confirmar respuesta',exact=True).is_disabled(), 'Expired notice still offers an executable response'
+    page.get_by_role('combobox',name='Sección del aviso',exact=True).select_option(value='texto')
+    detail=complete_literal(page)
+    assert 'Este evento ya venció.' in detail and before['eventos'][0]['texto'] in detail
+    assert state(page)==before and page.evaluate('window.__qaRandom')==rng
+
+
+def calendar_identity_case(page):
+    before=state(page)
+    go_tab(page,'calendario','Calendario')
+    page.get_by_role('combobox',name='Vista del calendario',exact=True).select_option(value='agenda')
+    picker=page.get_by_role('combobox',name='Actividad de la agenda',exact=True)
+    values=picker.locator('option').evaluate_all('es=>es.map(e=>e.value)')
+    assert len(values)==4 and len(set(values))==4, 'Calendar presentation IDs collide across entity types'
+    for event in before['eventos']:
+        picker.select_option(value='evento:'+event['id'])
+        assert event['texto'] in complete_literal(page)
+    assert state(page)==before, 'Presentation ID disambiguation changed persisted identities'
+
+
 def run():
+    global URL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-ready", action="store_true", required=True)
+    parser.add_argument("--port", type=int, default=5235, help="Isolated ephemeral test origin; never use the owner's port")
     parser.add_argument("--matrix", action="store_true", help="Settings and gym detail at all ten required sizes")
     parser.add_argument("--case", help="Run one representative acceptance case")
     parser.add_argument("--career", action="store_true", help="Long-name licensed boxer with zero energy and five historical results")
@@ -509,6 +860,8 @@ def run():
     parser.add_argument("--text-audit", action="store_true", help="Assert primary/secondary floors on visible dialog copy")
     parser.add_argument("--text-bounds", action="store_true", help="Assert actual visible text-range bounds too")
     args = parser.parse_args()
+    assert args.port != 3000 and 1024 <= args.port <= 65535
+    URL=f"http://127.0.0.1:{args.port}/"
     started = time.perf_counter()
     captures=Path(tempfile.mkdtemp(prefix='r4-dialogs-'))
     dist = ROOT / "dist"
@@ -516,8 +869,8 @@ def run():
                    for p in dist.rglob("*") if p.is_file()}
     assert (dist / "index.html").exists()
     with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 5235))
-    server = subprocess.Popen([sys.executable, "-m", "http.server", "5235", "--bind", "127.0.0.1", "--directory", str(dist)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        probe.bind(("127.0.0.1", args.port))
+    server = subprocess.Popen([sys.executable, "-m", "http.server", str(args.port), "--bind", "127.0.0.1", "--directory", str(dist)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     report = {"origin": URL, "cases": [], "build": fingerprint, "captures": str(captures), "pseudo": args.pseudo, "zoom": "CSS /1.25; DPR=1" if args.zoom else "100%"}
     try:
         deadline = time.monotonic() + 5
@@ -548,11 +901,23 @@ def run():
             report["dialog_source_sha256"] = hashlib.sha256((ROOT / "src/ui/dialogs.ts").read_bytes()).hexdigest()
             checks=[("selector-close-reopen-preserve", offers_case), ("selector-mobile-preserve", offers_case), ("dialog-focus-keyboard", focus_case),
                                 ("nested-stack-focus-escape", stacked_dialog_case), ("out-of-order-unmount", out_of_order_dialog_case),
-                                ('compact-contexts-preserve',context_case),('hiring-confirmation',hiring_case),('settings-mobile-bounds',settings_bounds_case),('toast-original-deadline',toast_deadline_case),('transfer-cancel',transfer_cancel_case),('archive',archive_case),('intro',intro_case),('management-switch',management_switch_case)]
+                                ('compact-contexts-preserve',context_case),('hiring-confirmation',hiring_case),('settings-mobile-bounds',settings_bounds_case),('toast-original-deadline',toast_deadline_case),('transfer-cancel',transfer_cancel_case),('archive',archive_case),('intro',intro_case),('management-switch',management_switch_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case)]
             cases=[(name,check,None) for name,check in checks]
+            cases.append(('event-response',event_response_case,(390,667)))
+            cases.append(('event-panel',event_panel_case,(390,667)))
+            cases.append(('calendar-identity',calendar_identity_case,(390,667)))
+            cases.append(('calendar-future',calendar_future_case,(390,667)))
+            cases.append(('press-panel',press_panel_case,(390,667)))
+            cases.append(('advice-panel',advice_panel_case,(390,667)))
+            cases.append(('sponsor-panel',sponsor_panel_case,(390,667)))
+            cases.append(('advice-payment',advice_payment_case,(390,667)))
+            cases.append(('event-expired',expired_event_case,(390,667)))
             if args.matrix:
-                cases=[(f'{name}-{w}x{h}',check,(w,h)) for w,h in SIZES for name,check in [('settings',settings_bounds_case),('gym-detail',gym_drawer_case),('city-detail',city_detail_case),('boxer-detail',boxer_detail_case),('archive',archive_case),('intro',intro_case),('club-status',club_status_case)]]
+                cases=[(f'{name}-{w}x{h}',check,(w,h)) for w,h in SIZES for name,check in [('settings',settings_bounds_case),('gym-detail',gym_drawer_case),('city-detail',city_detail_case),('boxer-detail',boxer_detail_case),('archive',archive_case),('intro',intro_case),('club-status',club_status_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case),('event-panel',event_panel_case),('transfer-cancel',transfer_cancel_case),('press-panel',press_panel_case),('advice-panel',advice_panel_case),('sponsor-panel',sponsor_panel_case),('advice-payment',advice_payment_case),('event-expired',expired_event_case)]]
             if args.case:
+                if args.matrix and args.case in ['press-panel','advice-panel','sponsor-panel']:
+                    check={'press-panel':press_panel_case,'advice-panel':advice_panel_case,'sponsor-panel':sponsor_panel_case}[args.case]
+                    cases=[(f'{args.case}-{w}x{h}',check,(w,h)) for w,h in SIZES]
                 cases=[case for case in cases if case[0]==args.case or (args.matrix and case[0].startswith(args.case+'-'))]
                 assert cases, f'Unknown acceptance case: {args.case}'
             for name,check,size in cases:
@@ -563,6 +928,8 @@ def run():
                 if name.startswith('intro'): fixture.update(creado=False, nombreJugador='')
                 if name.startswith('club-status'):
                     fixture.update(nombreGimnasio='Club de los Campeones de Nombres Extraordinariamente Largos',nombreJugador='María de los Ángeles Fernández de la Cruz',dinero=0,seguidores=0,fama=0)
+                if name.startswith('gym-detail'):
+                    fixture['nombreGimnasio']='Club de los Campeones de Nombres Extraordinariamente Largos'
                 if name.startswith('archive'):
                     punches={'jab':{'lanzados':0,'conectados':0},'poder':{'lanzados':0,'conectados':0}}
                     fixture['archivoCarreras']=[]
@@ -579,13 +946,33 @@ def run():
                     fixture['historial']=[{'miId':own['id'],'rivalNombre':'Rival histórico con nombre extenso '+str(i),'gane':False,'empate':True,'metodo':'Empate','tarjetas':[],'caidasA':0,'caidasB':0,'registroA':punches,'registroB':punches,'bolsa':0,'fama':0,'tituloGanado':0,'resumen':'Registro histórico desconocido que debe conservarse literalmente. '*3} for i in range(5)]
                 if name=='management-switch':
                     fixture['plantel'][1].update(rol='boxeador',licenciaFederativa=True,circuito='amateur',peleasAmateur=0)
-                if name.startswith("selector") or name=='transfer-cancel':
+                if name.startswith('calendar-views'):
+                    fixture['eventos']=[{'id':f'r4-event-{i}','tipo':'mantenimiento','de':'Comisión del club','titulo':'Aviso con identidad extensa '+str(i),'texto':'Descripción completa que debe poder leerse sin cortar ni resolver el evento. '*2,'venceEn':i+1,'opciones':[{'texto':'Respuesta que necesita explicación completa '+str(j),'accion':{'tipo':'nada'}} for j in range(3)]} for i in range(3)]
+                if name=='event-response':
+                    fixture.update(dinero=0,eventos=[{'id':'r4-response','tipo':'mantenimiento','de':'Comisión del club','titulo':'Reparación pendiente','texto':'El jugador debe poder volver a elegir después de un rechazo.','venceEn':3,'opciones':[{'texto':'Reparar por $100','accion':{'tipo':'mantenimiento','costo':100}},{'texto':'Conservar el dinero','accion':{'tipo':'nada'}}]}])
+                if name.startswith('event-panel'):
+                    fixture['eventos']=[{'id':f'r4-panel-{i}','tipo':'patrocinio' if i==2 else 'mantenimiento','de':'Comisión del club','titulo':'Aviso histórico con identidad extensa '+str(i),'texto':'Descripción conservada que debe poder leerse entera en todos los tamaños. '*2,'venceEn':3,'opciones':[{'texto':'Respuesta con detalle literal completo '+str(j),'accion':{'tipo':'nada'}} for j in range(2)]} for i in range(3)]
+                if name.startswith('press-panel'):
+                    fixture['prensa']=[{'id':f'r4-news-{i}','semana':i+1,'texto':f'Noticia histórica {i}: '+('Texto desconocido conservado sin traducir ni inventar identidad. '*2)} for i in range(3)]
+                if name.startswith('advice-panel'):
+                    fixture.update(dinero=0,consejos=[{'id':'c1','texto':'Objetivo histórico con texto literal extenso. '*3,'fama':2,'cumplido':False,'reclamado':False},{'id':'c2','texto':'Registro ya cobrado que debe conservarse. '*3,'fama':2,'cumplido':True,'reclamado':True},{'id':'c11','texto':'Duplicado archivado sin inventar un cobro. '*3,'fama':1,'cumplido':False,'reclamado':False,'archivado':True,'motivoArchivo':'Razón histórica literal con todos sus parámetros intactos. '*2}])
+                if name.startswith('sponsor-panel'):
+                    fixture['patrocinio']={'nombre':'Patrocinador histórico con nombre extenso '*5,'semanal':200,'semanas':10}
+                if name.startswith('advice-payment'):
+                    fixture.update(dinero=0,seguidores=1500,fama=10,libroIngresos=[],consejos=[{'id':'c9','texto':'Llegá a 1.500 seguidores y hacé conocido el nombre del gimnasio.','fama':2,'dinero':80,'cumplido':True,'reclamado':False}])
+                if name.startswith('event-expired'):
+                    fixture['eventos']=[{'id':'r4-expired','tipo':'mantenimiento','de':'Comisión del club','titulo':'Aviso vencido','texto':'Registro original vencido que no debe eliminarse al consultarlo.','venceEn':0,'opciones':[{'texto':'Conservar','accion':{'tipo':'nada'}}]}]
+                if name=='calendar-identity':
+                    fixture.update(veladaProgramada=True,comunitarios=[{'tipo':'bingo','nombre':'Bingo ya pactado'}],eventos=[{'id':ident,'tipo':'mantenimiento','de':'Comisión','titulo':'Identidad histórica '+ident,'texto':'Aviso original '+ident,'venceEn':3,'opciones':[{'texto':'Conservar','accion':{'tipo':'nada'}}]} for ident in ['velada','social-0']])
+                if name.startswith("selector") or name.startswith('transfer-cancel') or name.startswith('calendar-future'):
                     own = fixture["plantel"][0]
                     own.update(rol="boxeador", licenciaFederativa=True, circuito="amateur", energia=100)
                     rival = copy.deepcopy(own)
                     rival.update(id="r4-rival", nombre="Rival Fixture")
                     fixture["ofertasPara"] = own["id"]
                     fixture["ofertas"] = [{"id":"r4-offer", "nivel":"parejo", "rival":rival,"bolsa":100,"esTitulo":0,"etiqueta":"Oferta sintética", "detalle":"Fixture válido"}]
+                    if name.startswith('calendar-future'):
+                        fixture.update(dia=6,ofertas=[],ofertasPara=None,pendientes=[{'id':'r4-future','miId':own['id'],'rival':rival,'bolsa':100,'esTitulo':0,'velada':False,'semanaProgramada':9,'diaProgramado':6}])
                 mobile=name in ['selector-mobile-preserve','settings-mobile-bounds','intro']
                 w,h=size or ((390,667) if mobile else (1280,720))
                 ctx = browser.new_context(viewport={"width":round(w/1.25) if args.zoom else w,"height":round(h/1.25) if args.zoom else h},device_scale_factor=1,has_touch=w<=844)
@@ -608,7 +995,7 @@ def run():
                     if args.career:
                         loaded=state(page)
                         assert loaded['plantel'][0]['nombre']==fixture['plantel'][0]['nombre']
-                        assert loaded['plantel'][0]['energia']==0
+                        assert loaded['plantel'][0]['energia']==fixture['plantel'][0]['energia'], 'Energy changed from the exact installed fixture'
                         assert loaded['historial']==fixture['historial'], 'Synthetic history fixture was repaired instead of exercised'
                     check(page)
                     assert not errors, errors

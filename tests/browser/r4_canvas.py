@@ -99,6 +99,7 @@ def run():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build-ready',action='store_true',required=True)
     parser.add_argument('--all-states',action='store_true')
+    parser.add_argument('--capture-states',action='store_true',help='Capture empty and maximum green states at the two inspection sizes too')
     parser.add_argument('--text-audit',action='store_true',help='Assert font floors on visible non-interactive copy too')
     parser.add_argument('--text-bounds',action='store_true',help='Also assert actual text ranges fit viewport and clipping ancestors')
     parser.add_argument('--zoom',action='store_true')
@@ -169,8 +170,18 @@ def run():
                                 page.evaluate(EXPAND)
                                 page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
                             case.update(page.evaluate(MEASURE))
+                            if tab=='Plantel' and mode!='empty':
+                                grid=page.locator('.plantel-grid')
+                                width=grid.bounding_box()['width']
+                                required=min(len(fixture['plantel']),5,max(1,int((width+8)/308)))
+                                count=grid.locator('article').count()
+                                case['density']={'required_first_row':required,'visible_cards':count,'width':width}
+                                if count<required: case['failures'].append({'kind':'roster-capacity-unused','required':required,'actual':count})
+                            if tab=='Calendario' and viewport['width']>700 and viewport['height']>450:
+                                count=page.locator('.calendar-content > div > div').count()
+                                if count!=7: case['failures'].append({'kind':'calendar-week-incomplete','required':7,'actual':count})
                             case['status']='FAIL' if case['failures'] or case['globalScroll'] else 'PASS'
-                            if case['status']=='FAIL' or (mode=='normal' and (w,h) in [(1280,720),(390,844)]):
+                            if case['status']=='FAIL' or ((mode=='normal' or args.capture_states) and (w,h) in [(1280,720),(390,844)]):
                                 shot=output/f'{mode}-{w}x{h}-{tab.replace(" ","-")}.png'
                                 page.screenshot(path=str(shot));case['capture']=str(shot)
                         except Exception:

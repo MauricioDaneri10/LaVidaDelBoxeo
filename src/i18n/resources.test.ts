@@ -4,6 +4,13 @@ import { catalogs, cargarCatalogo, es, registrarCatalogo } from "./catalog";
 afterEach(() => { catalogs.en = undefined; vi.unstubAllGlobals(); });
 
 describe("R4 — recursos de traducción, sin habilitar idiomas parciales", () => {
+  it.each(["en", "pt-BR"] as const)("%s no oculta claves duplicadas mediante JSON.parse", async locale => {
+    const { readFileSync } = await vi.importActual<{ readFileSync: (url: URL, encoding: string) => string }>("node:fs");
+    const raw = readFileSync(new URL(`../../public/i18n/${locale}.json`, import.meta.url), "utf8");
+    const keys = Array.from(raw.matchAll(/^\s*"([^"\r\n]+)"\s*:/gm), match => match[1]);
+    expect(keys.length).toBe(Object.keys(es).length);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
   it("validación exacta no sustituye un catálogo sano por claves faltantes", () => {
     const healthy = registrarCatalogo("en", { ...es });
     const bad: Record<string, string> = { ...es };

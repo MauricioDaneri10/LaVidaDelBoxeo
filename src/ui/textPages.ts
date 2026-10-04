@@ -1,7 +1,8 @@
-/** Presentation-only slices. Unknown historical text is never rewritten or saved. */
+/// <reference lib="es2022.intl" />
+/** Presentation-only grapheme slices. Historical text is never rewritten or saved. */
 export function paginasTexto(texto: string, capacidad = 90): string[] {
   if (!Number.isInteger(capacidad) || capacidad < 1) throw new Error("Invalid text-page capacity");
-  const letras = Array.from(texto);
+  const letras = Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(texto), item => item.segment);
   if (!letras.length) return [""];
   const paginas: string[] = [];
   for (let inicio = 0; inicio < letras.length;) {

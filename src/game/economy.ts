@@ -22,6 +22,11 @@ export interface EstimatedIncome extends SocialActivityRange {
   concepto: string;
 }
 
+/** Same bounded charge for projection, settlement and its presentation. */
+export function costoFinancieroCaja(caja: number): number {
+  return caja < 0 ? Math.max(10, Math.min(50, Math.ceil(Math.abs(caja) * 0.03))) : 0;
+}
+
 /** Applies the existing rounding after the caller draws the activity's base revenue. */
 export function socialActivityIncome(baseRevenue: number, multiplicadorEventos: number): number {
   return Math.round(baseRevenue * multiplicadorEventos);
@@ -72,7 +77,7 @@ export function weeklyEconomy(e: EstadoJuego, { nivel, multiplicadorMarca }: Wee
   if (!e.propiedades.includes("local") && !e.propiedades.includes("arena")) gastos.push({ concepto: "Alquiler del local", monto: 150 });
   const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
   if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
-  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: Math.max(10, Math.min(50, Math.ceil(Math.abs(e.dinero) * 0.03))) });
+  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: costoFinancieroCaja(e.dinero) });
   if (e.prestamo && e.prestamo.saldo > 0) gastos.push({ concepto: `Cuota del préstamo (${e.prestamo.semanasRestantes} restantes)`, monto: Math.min(e.prestamo.cuota, e.prestamo.saldo) });
   return { ingresos, gastos, total: ingresos.reduce((total, l) => total + l.monto, 0) - gastos.reduce((total, l) => total + l.monto, 0) };
 }

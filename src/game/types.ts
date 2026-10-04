@@ -171,7 +171,7 @@ export interface EntradaSalonFama {
   semanaRetiro: number;
   motivo: string;
 }
-export interface LineaLibro { concepto: string; monto: number; }
+export interface LineaLibro { concepto: string; monto: number; claseContable?: "financiacion"; }
 /** Every competitive departure; separate from the selected Hall of Fame. */
 export interface CarreraArchivada {
   id: string;

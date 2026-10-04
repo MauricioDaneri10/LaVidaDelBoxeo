@@ -7,7 +7,7 @@ import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, capacidadAmateurs, c
 import { guardarEnRanura, useGame } from "../game/state";
 import { ATAJOS_DEFAULT, ATAJOS_LABELS, conflictosAtajos, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { CategoriaMercado, CursoId, PersonalId, Pugilista, RamaCurso } from "../game/types";
-import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador } from "./ui";
+import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador, TextoPaginado } from "./ui";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
 import { calcularCapacidadPlantel, ordenarPlantel, type DimensionesLayoutPlantel, type OrdenPlantel } from "../game/plantelLayout";
 import ArchivoCarreras from "./CareerArchive";
@@ -38,9 +38,14 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   const [orden, setOrden] = useState<OrdenPlantel>("recientes");
   const [archivoAbierto, setArchivoAbierto] = useState(false);
   const [gestionAbierta, setGestionAbierta] = useState(false);
+  const [detalleTarjeta, setDetalleTarjeta] = useState("nombre");
   const [bajaPendiente, setBajaPendiente] = useState<Pugilista | null>(null);
   const compactoPlantel = useResponsiveCapacity("(max-width: 700px), (max-height: 650px)");
   const plantelApaisado = useResponsiveCapacity("(max-height: 450px)");
+  const grupos: Array<[string, string]> = [["todos", t("roster.all", { count: state.plantel.length })], ["alumnos", t("roster.students", { count: alumnos.length, capacity: cupoAlumnos })], ["federados", t("roster.competitors", { count: boxeadores.length })], ["espera", t("roster.waiting", { count: alumnosEspera.length })]];
+  const ordenes: Array<[string, string]> = [["recientes", t("roster.newest")], ["valoracion-desc", t("roster.highest")], ["valoracion-asc", t("roster.lowest")]];
+  const vistas: Array<[string, string]> = [["nombre", t("roster.viewName")], ["identidad", t("roster.viewIdentity")], ["estado", t("roster.viewCondition")], ["rendimiento", t("roster.viewPerformance")]];
+  const opciones = (lista: Array<[string, string]>, prefijo = "") => lista.filter(([id]) => id !== "espera" || alumnosEspera.length > 0).map(([id, nombre]) => <option key={id} value={prefijo + id}>{nombre}</option>);
 
   // Lista según filtro
   const listaAtletasSinPrioridad = filtroGrupo === "todos"
@@ -74,7 +79,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     return () => ro.disconnect();
   }, []);
 
-  const layout = calcularCapacidadPlantel(dims, listaAtletas.length, pagina, { cardMinH: 170, cardMinW: 300, altoPaginacion: plantelApaisado ? 0 : altoPaginacion });
+  const layout = calcularCapacidadPlantel(dims, listaAtletas.length, pagina, { cardMinH: 300, cardMinW: 300, altoPaginacion: plantelApaisado ? 0 : altoPaginacion });
   const { columnas, filas, porPagina, totalPaginas, estiloGrilla, obtenerAtletasVisibles } = layout;
   useEffect(() => {
     const el = paginacionRef.current;
@@ -107,6 +112,22 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     const paseProfesional = p.rol === "boxeador" ? puedeProfesionalizar(p, state) : { ok: false };
     const recienIngresado = p.semanaIngreso === state.semana;
 
+    if (compactoPlantel) return <article key={p.id} className="panel min-h-0 p-2">
+      {detalleTarjeta === "nombre" && <><button className="flex min-h-11 w-full items-start gap-2 text-left" onClick={() => seleccionarAtleta(p)} aria-label={`Abrir ficha técnica de ${p.nombre}`}>
+        <RostroBoxeador atleta={p} className="h-8 w-8 shrink-0 rounded-lg" />
+        <div className="min-w-0"><p>{p.nombre}</p>{(recienIngresado || (p.rol === "alumno" && !p.enEspera && !state.guiaClub?.enfoquesConfirmados.includes(p.id))) && <p className="text-gold">{tieneDT ? "Nuevo · Enfoque automático" : t("roster.focus")}</p>}</div>
+      </button>{dims.altoDisponible >= 300 && <div className="mt-2 space-y-2"><BarraEnergia v={p.energia} /><p>{valoracion(p.atrib)} · {p.rol === "alumno" ? `${p.guanteosRealizados}/10` : `${p.record.v}-${p.record.d}-${p.record.e ?? 0} · ${p.record.ko} KO`}</p></div>}</>}
+      {detalleTarjeta === "identidad" && <TextoPaginado capacidad={40} texto={`${p.edad} años · ${p.division}\n${p.rol === "boxeador" ? p.circuito === "pro" ? "Licencia Profesional" : "Licencia Amateur" : "Alumno"}\nValoración: ${valoracion(p.atrib)}`} />}
+      {detalleTarjeta === "estado" && <div className="space-y-2"><BarraEnergia v={p.energia} /><TextoPaginado capacidad={40} texto={`${COMBOS[p.combo]?.nombre ?? ""}${p.enEspera ? "\nEspera" : ""}${p.lesion ? `\nLesión: ${p.lesion.semanas} semanas` : ""}${paseProfesional.ok ? "\nPase profesional · decisión pendiente" : ""}${p.elite ? "\nÉlite" : ""}${p.titulo > 0 ? `\n${TITULOS[p.titulo as 1 | 2 | 3 | 4].nombre}` : ""}`} /></div>}
+      {detalleTarjeta === "rendimiento" && <div className="space-y-2">
+        <p>{p.rol === "alumno" ? `Guanteos ${p.guanteosRealizados}/10` : `${p.record.v}-${p.record.d}-${p.record.e ?? 0} · ${p.record.ko} KO`}</p>
+        <div className="flex flex-wrap gap-2">
+          {p.rol === "alumno" ? listoSabado && !p.enEspera && <Btn onClick={() => dispatch({ type: "LICENCIAR", id: p.id })}>Tramitar licencia · {fmt(200)}</Btn> : agendada ? <Chip tone="blood">Cartelera</Chip> : onBuscarRival && <Btn onClick={() => onBuscarRival(p.id)}>Rival</Btn>}
+          {(p.rol === "boxeador" || p.enEspera) && <Btn variant="ghost" onClick={() => setBajaPendiente(p)}>{p.enEspera ? "Retirar" : "Transferir"}</Btn>}
+        </div>
+      </div>}
+    </article>;
+
     return (
       <motion.article
         key={p.id}
@@ -119,7 +140,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             : ""
         }`}
       >
-        <div className="flex items-start justify-between gap-2 shrink-0">
+        <div className="roster-identity flex items-start justify-between gap-2 shrink-0">
           <button
             type="button"
             onClick={() => seleccionarAtleta(p)}
@@ -128,10 +149,10 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           >
             <RostroBoxeador atleta={p} className="roster-avatar h-8 w-8 shrink-0 rounded-lg group-hover:ring-1 group-hover:ring-gold transition-all" />
             <div className="min-w-0">
-              <div className="font-display text-sm sm:text-base leading-tight tracking-wide text-cream truncate group-hover:text-gold transition-colors">
+              <div className="font-display text-sm leading-normal tracking-wide text-cream group-hover:text-gold transition-colors" style={{ overflowWrap: "anywhere" }}>
                 {p.nombre}
               </div>
-              <div data-text-role="secondary" className="font-cond text-xs uppercase tracking-wider text-mut truncate">
+              <div data-text-role="secondary" className="font-cond text-xs uppercase text-mut" style={{ overflowWrap: "anywhere" }}>
                 {p.edad} años · {p.division} · {p.rol === "boxeador" ? (p.circuito === "pro" ? "Profesional" : "Amateur") : "Alumno"}
               </div>
               {(recienIngresado || (p.rol === "alumno" && !p.enEspera && !state.guiaClub?.enfoquesConfirmados.includes(p.id))) && (
@@ -157,7 +178,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           </div>
         </div>
 
-        <div className="mt-1 flex items-center gap-1 min-h-0 overflow-hidden">
+        <div className="roster-condition mt-1 flex flex-wrap items-center gap-1 min-h-0">
           <BarraEnergia v={p.energia} />
           {paseProfesional.ok && <Chip tone="gold">Pase profesional · decisión pendiente</Chip>}
           {p.enEspera && <Chip tone="gold">Espera</Chip>}
@@ -175,7 +196,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           )}
           {COMBOS[p.combo] && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-line bg-panel2 px-1.5 py-0.5 font-cond text-[10px] text-sand truncate"
+              className="inline-flex items-center gap-1 rounded border border-line bg-panel2 px-1.5 py-0.5 font-cond text-[10px] text-sand"
               title={`Enfoque semanal: ${COMBOS[p.combo].nombre}`}
             >
               <I n="glove" className="h-3 w-3 text-gold" /> {COMBOS[p.combo].corto}
@@ -183,7 +204,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
           )}
         </div>
 
-        <div className="mt-1 flex items-center justify-between gap-1 border-t border-line pt-1 min-h-0 shrink-0">
+        <div className="roster-performance mt-1 flex flex-wrap items-center justify-between gap-1 border-t border-line pt-1 min-h-0 shrink-0">
           {p.rol === "alumno" ? (
             <>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -271,32 +292,33 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   return (
     <div className="roster-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
       {/* CABECERA COMPACTA DE PLANTEL */}
-      {compactoPlantel ? <Btn small variant="ghost" onClick={() => setGestionAbierta(true)}>{t("roster.management")}</Btn> : cabeceraPlantel}
+      {!compactoPlantel && cabeceraPlantel}
       {gestionAbierta && <Modal title={t("roster.dialog")} onClose={() => setGestionAbierta(false)}>{cabeceraPlantel}<p className="mt-2 text-sm text-sand">Para habilitar a un boxeador: obtené la Licencia de Entrenador en Mi Perfil, completá sus 10 guanteos y tramitá su licencia amateur.</p></Modal>}
 
       {/* RECORRER GRUPOS */}
       {archivoAbierto && <ArchivoCarreras onClose={() => setArchivoAbierto(false)} />}
       {bajaPendiente && <Modal title={t(bajaPendiente.enEspera ? "waiting.removeTitle" : "transfer.title")} onClose={() => setBajaPendiente(null)} fit>
-        <p className="text-sm">{t(bajaPendiente.enEspera ? "waiting.removeMessage" : "transfer.message", { name: bajaPendiente.nombre })}</p>
-        <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setBajaPendiente(null)}>{t("action.cancel")}</Btn><Btn variant="blood" onClick={() => { dispatch({ type: "RETIRAR_ATLETA", id: bajaPendiente.id }); setBajaPendiente(null); }}>{t(bajaPendiente.enEspera ? "waiting.remove" : "transfer.action")}</Btn></div>
+        <div className="r4-confirmation"><TextoPaginado capacidad={40} texto={t(bajaPendiente.enEspera ? "waiting.removeMessage" : "transfer.message", { name: bajaPendiente.nombre })} />
+        <div className="flex flex-wrap gap-2"><Btn onClick={() => setBajaPendiente(null)}>{t("action.cancel")}</Btn><Btn variant="blood" onClick={() => { dispatch({ type: "RETIRAR_ATLETA", id: bajaPendiente.id }); setBajaPendiente(null); }}>{t(bajaPendiente.enEspera ? "waiting.remove" : "transfer.action")}</Btn></div></div>
       </Modal>}
       <div className="roster-filters flex items-center gap-2 border-b border-line pb-1 shrink-0">
-        {plantelApaisado ? <select aria-label={`${t("roster.group")} · ${t("roster.sort")}`} value="actual" onChange={e => {
+        {compactoPlantel ? <select aria-label={`${t("roster.group")} · ${t("roster.sort")}`} value="actual" onChange={e => {
           const [tipo, valor] = e.target.value.split(":");
           if (tipo === "grupo") setFiltroGrupo(valor as typeof filtroGrupo);
           if (tipo === "orden") setOrden(valor as OrdenPlantel);
+          if (tipo === "vista") setDetalleTarjeta(valor);
+          if (tipo === "gestion") setGestionAbierta(true);
         }} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 text-sm text-sand">
-          <option value="actual">{filtroGrupo === "todos" ? t("roster.all", { count: state.plantel.length }) : filtroGrupo === "alumnos" ? t("roster.students", { count: alumnos.length, capacity: cupoAlumnos }) : filtroGrupo === "federados" ? t("roster.competitors", { count: boxeadores.length }) : t("roster.waiting", { count: alumnosEspera.length })} · {orden === "recientes" ? t("roster.newest") : orden === "valoracion-desc" ? t("roster.highest") : t("roster.lowest")}</option>
-          <optgroup label={t("roster.group")}><option value="grupo:todos">{t("roster.all", { count: state.plantel.length })}</option><option value="grupo:alumnos">{t("roster.students", { count: alumnos.length, capacity: cupoAlumnos })}</option><option value="grupo:federados">{t("roster.competitors", { count: boxeadores.length })}</option>{alumnosEspera.length > 0 && <option value="grupo:espera">{t("roster.waiting", { count: alumnosEspera.length })}</option>}</optgroup>
-          <optgroup label={t("roster.sort")}><option value="orden:recientes">{t("roster.newest")}</option><option value="orden:valoracion-desc">{t("roster.highest")}</option><option value="orden:valoracion-asc">{t("roster.lowest")}</option></optgroup>
+          <option value="actual">{grupos.find(([id]) => id === filtroGrupo)?.[1]} · {ordenes.find(([id]) => id === orden)?.[1]} · {vistas.find(([id]) => id === detalleTarjeta)?.[1]}</option>
+          <optgroup label={t("roster.group")}>{opciones(grupos, "grupo:")}</optgroup>
+          <optgroup label={t("roster.sort")}>{opciones(ordenes, "orden:")}</optgroup>
+          <optgroup label={t("roster.view")}>{opciones(vistas, "vista:")}</optgroup>
+          <option value="gestion:abrir">{t("roster.management")}</option>
         </select> : <><select aria-label={t("roster.group")} value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value as typeof filtroGrupo)} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 text-sm text-sand">
-          <option value="todos">{t("roster.all", { count: state.plantel.length })}</option>
-          <option value="alumnos">{t("roster.students", { count: alumnos.length, capacity: cupoAlumnos })}</option>
-          <option value="federados">{t("roster.competitors", { count: boxeadores.length })}</option>
-          {alumnosEspera.length > 0 && <option value="espera">{t("roster.waiting", { count: alumnosEspera.length })}</option>}
+          {opciones(grupos)}
         </select>
         <select aria-label={t("roster.sort")} value={orden} onChange={e => setOrden(e.target.value as OrdenPlantel)} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 text-sm text-sand">
-          <option value="recientes">{t("roster.newest")}</option><option value="valoracion-desc">{t("roster.highest")}</option><option value="valoracion-asc">{t("roster.lowest")}</option>
+          {opciones(ordenes)}
         </select>
         </>}
       </div>
@@ -316,12 +338,12 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             {atletasVisibles.map(renderTarjeta)}
           </div>
         ) : (
-          <div className="panel p-6 text-center font-cond text-sm text-mut my-auto">
-            {filtroGrupo === "federados"
+          <div className="panel p-2 text-center font-cond text-sm text-mut my-auto">
+            <TextoPaginado capacidad={40} texto={filtroGrupo === "federados"
               ? "No tienes boxeadores federados todavía. Completá los 10 guanteos de un alumno y tramitá su licencia para federarlo."
               : filtroGrupo === "espera"
               ? "No hay aspirantes en la lista de espera."
-              : "Sin alumnos activos: la fama y el boca a boca traerán nuevos talentos al gimnasio."}
+              : "Sin alumnos activos: la fama y el boca a boca traerán nuevos talentos al gimnasio."} />
           </div>
         )}
 
@@ -336,7 +358,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             >
               Anterior
             </Btn>
-            <span>{pagina + 1} / {totalPaginas} ({listaAtletas.length} atletas)</span>
+            <span>{pagina + 1} / {totalPaginas}</span>
             <Btn
               small
               variant="gold"
@@ -466,6 +488,7 @@ export function PanelPerfil() {
   const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [paginaCursos, setPaginaCursos] = useState(0);
+  const [cursoDetalle, setCursoDetalle] = useState<CursoId | null>(null);
   useEffect(() => setPaginaCursos(0), [ramaActiva]);
   const cursosDeRama = (Object.keys(CURSOS) as CursoId[]).filter(c => CURSOS[c].rama === ramaActiva).sort((x, y) => CURSOS[x].nivel - CURSOS[y].nivel);
   const [socialAbierto, setSocialAbierto] = useState(false);
@@ -476,6 +499,10 @@ export function PanelPerfil() {
     { id: "promotora", nombre: "Rama Promotora", icono: "ring", color: "text-gold" },
     { id: "empresarial", nombre: "Rama Empresarial", icono: "store", color: "text-neonc" },
   ];
+  const compraCurso = (cid: CursoId) => {
+    const c = CURSOS[cid], reqOk = !c.req || state.cursos.includes(c.req);
+    return state.cursos.includes(cid) ? <p>Aprobado</p> : <Btn small variant={reqOk && state.dinero >= c.costo ? "gold" : "dark"} disabled={!reqOk || state.dinero < c.costo} onClick={() => dispatch({ type: "COMPRAR_CURSO", id: cid })}>{reqOk ? `Comprar · ${fmt(c.costo)}` : `Requiere nivel ${c.nivel - 1}`}</Btn>;
+  };
   const puedeLegado = state.plantel.some(p => p.titulo === 4) || state.fama >= 85;
 
   const resumenPerfil = (
@@ -548,7 +575,6 @@ export function PanelPerfil() {
                   .map(cid => {
                     const c = CURSOS[cid];
                     const aprobado = state.cursos.includes(cid);
-                    const reqOk = !c.req || state.cursos.includes(c.req);
                     return (
                       <div key={cid} className={`profile-course-card flex min-w-0 flex-col justify-between gap-1.5 rounded-lg border p-2 ${aprobado ? "border-win/50 bg-win/5" : "border-line bg-panel2"}`}>
                         <div className="min-w-0">
@@ -560,14 +586,9 @@ export function PanelPerfil() {
                               <Chip tone="win"><I n="check" className="h-3 w-3" /> Aprobado</Chip>
                             ) : <span className="shrink-0 font-cond text-xs text-gold">{fmt(c.costo)}</span>}
                           </div>
-                          <p title={c.desc} className="profile-course-description mt-1 font-cond text-xs leading-snug text-sand">{c.desc}</p>
+                          {!compacto && <p title={c.desc} className="profile-course-description mt-1 font-cond text-xs leading-snug text-sand">{c.desc}</p>}
                         </div>
-                        {!aprobado && <Btn
-                          small
-                          variant={reqOk && state.dinero >= c.costo ? "gold" : "dark"}
-                          disabled={!reqOk || state.dinero < c.costo}
-                          onClick={() => dispatch({ type: "COMPRAR_CURSO", id: cid })}
-                        >{reqOk ? `Comprar · ${fmt(c.costo)}` : `Requiere nivel ${c.nivel - 1}`}</Btn>}
+                        {compacto ? <Btn small onClick={() => setCursoDetalle(cid)}>Ver curso</Btn> : !aprobado && compraCurso(cid)}
                       </div>
                     );
                   })}
@@ -577,6 +598,12 @@ export function PanelPerfil() {
         </div>
         {compacto && <div className="profile-pagination flex shrink-0 items-center justify-center gap-2 py-1"><Btn small variant="ghost" disabled={paginaCursos === 0} onClick={() => setPaginaCursos(p => p - 1)}>Anterior</Btn><span className="text-xs text-sand">{paginaCursos + 1}/{cursosDeRama.length}</span><Btn small variant="ghost" disabled={paginaCursos + 1 >= cursosDeRama.length} onClick={() => setPaginaCursos(p => p + 1)}>Siguiente</Btn></div>}
       </section>}
+
+      {cursoDetalle && <Modal fit title={CURSOS[cursoDetalle].nombre} onClose={() => setCursoDetalle(null)}>
+        <TextoPaginado texto={CURSOS[cursoDetalle].desc} capacidad={40} />
+        <p className="my-2 text-gold">{fmt(CURSOS[cursoDetalle].costo)}</p>
+        {compraCurso(cursoDetalle)}
+      </Modal>}
 
       {socialAbierto && (
         <Modal wide fit title="Actividades del club" icon="calendar" onClose={() => setSocialAbierto(false)}>

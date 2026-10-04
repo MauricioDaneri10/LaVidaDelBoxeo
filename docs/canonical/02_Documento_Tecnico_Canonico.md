@@ -1,5 +1,13 @@
 # Documento Técnico Canónico
 
+## Continuación R4 — 2026-10-03, sin aceptación
+
+Schema9 incorpora migración explícita8→9 para separar financiación de etiquetas visibles. Solo el desembolso de ingreso legacy con la plantilla exacta conocida recibe `claseContable: "financiacion"`; importes, textos, orden y extensiones permanecen intactos. Gastos y etiquetas desconocidas no se reclasifican. Colisiones antiguas con el campo reservado bloquean migración/escritura, conservando originales y backups. Los desembolsos nuevos usan el tipo de comando, no el texto; el costo financiero comparte su función numérica entre previsión y aviso. No hay fechas, pagos ni cambios de parámetros nuevos.
+
+El progreso de guía dañado sigue protegido para schema8 y9. La actualización de la assertion histórica de R2 cambia exclusivamente el destino exacto de schema8 a9, conservando la igualdad completa del estado y la idempotencia. El detalle literal se pagina por grafemas con `Intl.Segmenter`, preservando acentos compuestos, banderas y secuencias ZWJ; verificar la disponibilidad en los navegadores objetivo antes de certificar compatibilidad universal.
+
+Minificación Terser como dependencia de desarrollo fijada, sin opciones inseguras ni cambios de target. Los límites560KiB JS/90KiB CSS permanecen iguales; medir además recursos JSON externos. La nueva configuración invalida evidencia de navegador del bundle anterior: ejecutar sobre artefactos nuevos e inmutables. Ver informe55; catálogo global y aceptación R4 todavía pendientes.
+
 ## Actualización R3 aprobada — 2026-10-01
 
 Revisión PR5 (informe53): la autorización titular operacional expira al cancelar/resolver, sin borrar resultados ni contratos del historial. Una identidad de cobro dañada o una extensión antigua que colisione con el nuevo campo reservado bloquea migración/escritura; no se asigna objetivo ni se reemplaza extensión. ID externo sano permanece intacto.

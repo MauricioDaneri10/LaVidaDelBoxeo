@@ -1,5 +1,9 @@
 # Biblia de Arte Canónica
 
+## Seguimiento R4 — capacidad útil, sin rediseño
+
+Un layout sin recortes puede seguir desaprovechando su canvas. Verificar que la primera fila del Plantel use la capacidad legible disponible; el modo de detalle compacto no fuerza una única columna cuando caben más. Calendario muestra los siete días donde hay espacio y conserva selección explícita en móvil bajo/horizontal. Las acciones y textos siguen accesibles por vistas/detalles, sin duplicar caja ni métricas globales como relleno. En Gimnasio compacto, la pared original tiene acceso explícito y se separa de las estaciones para no competir con figuras y etiquetas. No sustituye arte ni autoriza la estética del boceto posterior.
+
 ## Actualización R3 aprobada — 2026-10-01
 
 Sin rediseño de assets/canvas. UI mínima R3: historial con «Archivado · sin cobro» distinto de «Cobrado»; coordinador suspendido sin prometer sedes; previsión distingue actividades estimadas de ingresos previstos y cobros garantizados. Pruebas afectadas aisladas, footer/bounds: no equivalen a certificación visual R4.

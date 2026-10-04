@@ -15,7 +15,7 @@ export { migrarGuardado } from "./saveValidation";
 import { migrarGuardado } from "./saveValidation";
 import { consolidarConsejos, objetivoConsejo } from "./consejos";
 import type { Consejo } from "./types";
-import { weeklyEconomy, socialActivityIncome } from "./economy";
+import { weeklyEconomy, socialActivityIncome, costoFinancieroCaja } from "./economy";
 import { objetivoConsejoCumplido } from "./consejos";
 export { objetivoConsejoCumplido } from "./consejos";
 
@@ -34,8 +34,8 @@ function conToast(s: EstadoJuego, texto: string, tono: Toast["tono"] = "info"): 
   return { ...s, toasts: [...s.toasts.slice(-3), { id: toastId++, texto, tono }] };
 }
 
-function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[] {
-  return [...arr, { concepto, monto }];
+function linea(arr: LineaLibro[], concepto: string, monto: number, claseContable?: LineaLibro["claseContable"]): LineaLibro[] {
+  return [...arr, { concepto, monto, ...(claseContable ? { claseContable } : {}) }];
 }
 
 // La capacidad del gimnasio cuenta a todo el plantel: alumnos, espera y boxeadores.
@@ -213,17 +213,17 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
 
   const totalIngresos = ingresos.reduce((a, l) => a + l.monto, 0);
   const ingresosOperativos = ingresos
-    .filter(l => l.concepto !== "Desembolso del préstamo")
+    .filter(l => l.claseContable !== "financiacion")
     .reduce((total, l) => total + l.monto, 0);
   const ingresosOperativosYaLiquidados = st.libroIngresos
-    .filter(l => l.concepto !== "Desembolso del préstamo")
+    .filter(l => l.claseContable !== "financiacion")
     .reduce((total, l) => total + l.monto, 0);
 
   // ---- GASTOS ----
   // El cargo es proporcional en deudas pequeñas, pero tiene un techo para
   // evitar que el interés compuesto vuelva matemáticamente irrecuperable la partida.
   if (st.dinero < 0) {
-    const costoFinanciero = determinista.gastos.find(g => g.concepto === "Costo financiero por caja negativa")!.monto;
+    const costoFinanciero = costoFinancieroCaja(st.dinero);
     st = conToast(st, `La caja está en negativo: se suma un costo financiero de ${fmt(costoFinanciero)}.`, "alerta");
   }
 
@@ -812,7 +812,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
   const concepto = conceptoMovimiento(base, a);
   const monto = Math.abs(faltante);
   return faltante > 0
-    ? { ...siguiente, semanaLibro: base.semana, libroIngresos: linea(siguiente.libroIngresos, concepto, monto) }
+    ? { ...siguiente, semanaLibro: base.semana, libroIngresos: linea(siguiente.libroIngresos, concepto, monto, a.type === "PEDIR_PRESTAMO" ? "financiacion" : undefined) }
     : { ...siguiente, semanaLibro: base.semana, libroGastos: linea(siguiente.libroGastos, concepto, monto) };
 }
 

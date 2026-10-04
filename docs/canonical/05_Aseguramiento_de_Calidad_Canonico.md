@@ -1,5 +1,13 @@
 # Aseguramiento de Calidad Canónico
 
+## Seguimiento R4 — 2026-10-04, no aceptación
+
+Checkpoint433 tests y298 claves exactas; focales del aviso vencido y Panel sobre el build identificado en informe55/evidence. Pruebas de cobro comparan importes, fama, línea contable y recarga exactos; leer historia no puede pagar. Testear claves duplicadas del recurso antes de JSON.parse. Reservar matriz final para build estable, nunca atribuir hashes anteriores al nuevo. R4 permanece abierto y los idiomas incompletos deshabilitados; los conteos no sustituyen catálogo global ni estados faltantes.
+
+## Seguimiento R4 — 2026-10-03, evidencia parcial
+
+Agregar assertions de capacidad útil y capturas de estados vacíos/máximos que también pasan: bounds verdes no bastan. Reconstruir todas las páginas de texto literalmente, incluidas secuencias Unicode compuestas. Verificar que una respuesta rechazada por el reducer no cierre la decisión ni salte a otro aviso, y que identidades de agenda no colisionen con IDs históricos. Migración8→9: identidad financiera independiente de la etiqueta, originales/backups/collisiones y roundtrip; seis escenarios económicos exactos sin recalibración. El informe55 identifica build, matriz, tiempos y límites vigentes.421 tests y241 claves no certifican la traducción global ni R4 completo; no habilitar idiomas parciales ni avanzar R5/BOX-15.
+
 ## Actualización R3 aprobada — 2026-10-01
 
 R3: RED→GREEN por contrato; unicidad y compatibilidad legacy, schema7/originales/backups, regresiones R1/R2. Contratos titulares antiguos mantienen checkpoint/pago único; nuevos sin excepción. Seis escenarios12/52 exactos y deficitarios intactos; 120 semanas×3 semillas con conciliación y roundtrip. Navegador aislado5234 y regresiones5231/5232; nunca partida personal/3000. Evidencia final y límites en informe52; gate no certifica juego completo.
