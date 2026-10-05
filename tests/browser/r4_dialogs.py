@@ -1861,6 +1861,9 @@ def transaction_case(page):
         assert state(page)['dinero']==before['dinero'], 'Hiring must not charge weekly salary immediately'
     elif 'activity' in page.r4_case:
         go_tab(page,'perfil','Mi Perfil')
+        # ResizeObserver selects the measured profile composition. Read its
+        # navigation after the layout frames, not from the provisional mount.
+        page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
         picker=page.get_by_role('combobox',name='Sección del perfil',exact=True)
         if picker.count(): picker.select_option('actividades')
         else: page.get_by_role('button',name=re.compile(r'^Actividades del club(?:\s|$)')).click()
