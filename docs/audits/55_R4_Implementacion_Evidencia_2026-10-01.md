@@ -1,5 +1,11 @@
 # R4 — Registro de implementación y evidencia de entrega
 
+## Revisión crítica posterior — 2026-10-05 (estado prioritario)
+
+Prevalece sobre la entrega original y todos los checkpoints siguientes. Informe56 registra cuatro defectos reproducidos/corregidos: extensiones JSON con claves heredadas(P1), foco tras contratación anidada(P2), carrera de restauración de idioma(P1) y Perfil cortado por medir ventana en vez de canvas(P2). **APTO para integrar dentro de R4, pendiente decisión del usuario; PR6 sigue borrador.** Producción6c715786a6cf5d98b6f4eff23baef856207a57b9; harnessd9efc91f35aa42b9908954acb804b758bad568a8. Entre7262 y915f solo cambiaron nueve documentos, pero esa evidencia no cubría estos casos nuevos.
+
+Verify525/525,23 archivos (suite4,67s/build3,99s);1470canvas exactos PASS,40nativos adicionales PASS. Overlays:518/520 en tanda original; dos lecturas prematuras de layout del harness, supersedidas por30/30 de actividad/cierre/legado, mismo artefacto/assertions intactas; **520 identidades efectivas PASS**, no550 distintas ni una tanda520verde. R1/R2 navegador PASS y seis escenarios económicos exactos sin recalibrar. Evidencia completa: `evidence/r4_review_2026-10-05.json`. La evidencia previa se conserva como histórica; no se atribuye al JS nuevo. JS572902/573440(margen538),CSS86239/92160; inicial660424,total803389bytes. Límites Chromium, zoom equivalente y evaluación humana con lector de pantalla siguen explícitos. Sin merge, Pages, publicación, partida personal/3000, R5, BOX15 ni rediseño.
+
 ## Dictamen de entrega — 2026-10-05: listo para revisión de R4, no aceptado
 
 Esta sección prevalece sobre **todos** los checkpoints parciales que siguen. PR #6 permanece en borrador. Código verificado: `7262e319025175ee6560b9cdf2d252048ccb8b00`; base `8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3`. El commit posterior de documentación no altera el código probado. No se fusionó, publicó, ejecutó Pages ni inició R5/BOX-15; partida real y localhost:3000 no utilizados.

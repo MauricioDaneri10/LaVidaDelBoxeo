@@ -1,5 +1,11 @@
 # Aseguramiento de Calidad Canónico
 
+## Regla de revisión crítica R4 — 2026-10-05
+
+Además de claves, placeholders y conteos: probar JSON con nombres heredados de Object.prototype, foco después de que una acción deshabilite el disparador y cambio concurrente de preferencia durante descarga antes de montar autosave. En canvas, esperar la escritura inicial y exigir igualdad exacta del fixture completo tras cargar y navegar; una población de30 o10 profesionales no basta para demostrar que no hubo reparación. Medir también layouts nativos amplios con cabeceras largas: CSS-equivalente125% puede seleccionar otra composición y omitir ese defecto. Cada identidad de evidencia incluye modalidad/viewport/estado/locale. Informe56 separa fallos del juego, errores del recorrido y evidencia anterior invalidada; no relajar mínimos ni ocultar controles. Siguen explícitos Chromium y ausencia de evaluación humana con lector de pantalla.
+
+Última revisión: producción6c715786a6cf5d98b6f4eff23baef856207a57b9/harnessd9efc91f35aa42b9908954acb804b758bad568a8, verify525 y1470canvas exactos PASS. Overlays520identidades efectivas:518PASS/2FAIL originales de readiness de test, con30/30 reemplazando las tres familias afectadas, sin sumar repeticiones ni ocultar RED.40nativos y R1/R2 navegador PASS. Informe56 y manifest r4_review_2026-10-05 prevalecen sobre el contrato de entrega anterior. PR6 borrador, aceptación pendiente; presupuesto intacto con margenJS538bytes.
+
 ## Contrato actualizado R4 — 2026-10-05, entrega para revisión
 
 Prevalece sobre checkpoints parciales siguientes. Código7262e319025175ee6560b9cdf2d252048ccb8b00, informe55/manifest r4_final_2026-10-05: verify518/518;1470casos canvas;510casos únicos de overlays (51familias×10);1175claves por idioma es/en/pt-BR. PR6 sigue borrador, aceptación del usuario pendiente.

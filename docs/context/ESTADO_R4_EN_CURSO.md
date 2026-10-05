@@ -1,5 +1,11 @@
 # Continuidad operativa R4 — 2026-10-04
 
+## Prioridad: revisión crítica final PR6 — 2026-10-05
+
+Dictamen técnico **APTO dentro de R4, pendiente aceptación del usuario**, PR6 en borrador. Base8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3; código revisado6c715786a6cf5d98b6f4eff23baef856207a57b9; harnessd9efc91f35aa42b9908954acb804b758bad568a8. El head documental posterior no modifica producción. Leer informe56 y manifest r4_review_2026-10-05 antes de usar los conteos históricos siguientes.
+
+Cuatro correcciones RED→GREEN: datos JSON especiales, foco de contratación, arranque concurrente de idioma, área neta de Perfil. Verify525,1470canvas exactos,40nativos, R1/R2 navegador y seis escenarios económicos PASS. Cobertura overlays520efectivos: tanda518PASS/2FAIL de espera de layout en harness, después30/30 actividad/cierre/legado; no presentarlo como una tanda520verde o550identidades. JS572902/573440, margen538; CSS86239, inicial660424,total803389bytes. Preservados los límites de Chromium/AT humano y partidas/ramas. Próximo: decisión del usuario sobre aceptación de R4; no avanzar R5/BOX15 ni fusionar/publicar por cuenta propia. Los PNG scratch ajenos e inventarios/logs locales siguen excluidos.
+
 ## Entrega final para revisión — 2026-10-05: estado prioritario
 
 **R4 listo para revisión; no aceptado ni fusionado.** PR #6 en borrador, rama feature/r4-interface-accessibility, base8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3. Código final verificado7262e319025175ee6560b9cdf2d252048ccb8b00; commit posterior solo documenta evidencia. Consultar HEAD del PR para revisión. No partida real/3000, Pages/publicación/merge/R5/BOX-15/rediseño.
