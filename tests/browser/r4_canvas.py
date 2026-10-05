@@ -166,6 +166,8 @@ def run():
                     ctx.add_init_script('localStorage.setItem("vida-del-boxeo:idioma",'+json.dumps(args.locale)+');')
                     page=ctx.new_page();page.goto(URL,wait_until='domcontentloaded')
                     page.locator('.app-nav').wait_for()
+                    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state!==undefined")
+                    assert state(page)==fixture, 'Loaded canvas fixture was repaired instead of exercised exactly'
                     if mode=='maximum':
                         loaded=state(page)
                         assert len(loaded['plantel'])==30, 'Maximum fixture lost pupils or competitors'
@@ -186,6 +188,7 @@ def run():
                                 page.evaluate(EXPAND)
                                 page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
                             case.update(page.evaluate(MEASURE))
+                            assert state(page)==fixture, 'Navigating or localizing a canvas changed its synthetic state'
                             if tab=='Plantel' and mode!='empty':
                                 grid=page.locator('.plantel-grid')
                                 width=grid.bounding_box()['width']
