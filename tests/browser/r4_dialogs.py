@@ -1461,7 +1461,7 @@ def fight_final_case(page):
         page.reload(wait_until='networkidle')
         nav=page.locator('.app-nav select')
         if nav.count():nav.select_option(value='contexto-cartelera')
-        else:page.locator('.app-body button').filter(has_text=re.compile('night|Noche|noite',re.I)).click()
+        else:page.locator('.app-nav button').filter(has_text=re.compile('night|Noche|noite',re.I)).click()
         dialog=page.get_by_role('dialog')
         view=dialog.get_by_role('combobox',name=catalogs[locale]['fight.view'],exact=True)
         assert state(page)['combateActivo']==combat, 'Reading a finished checkpoint changed it'
@@ -1526,6 +1526,28 @@ def planning_case(page):
     before=state(page)
     rng=page.evaluate('window.__qaRandom')
     nav=page.locator('.app-nav select')
+    if not nav.count():
+        # The roomy layout exposes the same guide and forecast inline rather
+        # than through the compact navigation's planning dialog.
+        steps=page.locator('.guide-steps button')
+        assert steps.count()==4
+        for i,field in enumerate(['enfoques','equipo','guanteos','licencia']):
+            assert steps.nth(i).is_disabled()==before['guiaClub'][field]
+            if not steps.nth(i).is_disabled(): steps.nth(i).click()
+        assert 'Ingresos previstos' in page.locator('.forecast-strip').inner_text()
+        assert not measure_detail(page)['failures']
+        go_tab(page,'perfil','Mi Perfil')
+        section=page.get_by_role('combobox',name='Sección del perfil',exact=True)
+        if section.count(): section.select_option('actividades')
+        else: page.get_by_role('button',name='Actividades del club',exact=True).click()
+        dialog=page.get_by_role('dialog')
+        page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+        complete_literal(page,dialog)
+        assert not measure_detail(page)['failures']
+        page.keyboard.press('Escape');dialog.wait_for(state='detached')
+        assert state(page)==before and page.evaluate('window.__qaRandom')==rng
+        page.screenshot(path=str(page.r4_open_capture))
+        return
     nav.select_option(value='contexto-plan')
     dialog=page.get_by_role('dialog')
     page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")

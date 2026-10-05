@@ -489,7 +489,19 @@ export function PanelPerfil() {
   const { state, dispatch } = useGame();
   const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
   const [ramaActiva, setRamaActiva] = useState<RamaCurso>("deportiva");
-  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
+  const ventanaCompacta = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
+  const areaPerfil = useRef<HTMLDivElement>(null);
+  const [altoPerfil, setAltoPerfil] = useState(0);
+  useEffect(() => {
+    const el = areaPerfil.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setAltoPerfil(entry.contentRect.height));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  // Full summary, navigation, branch controls and readable course actions need
+  // their combined canvas height, not the window height above a wrapping header.
+  const compacto = ventanaCompacta || altoPerfil < 600;
   const variosCursos = useResponsiveCapacity("(min-width: 900px) and (min-height: 650px)");
   const cursoUnico = compacto && !variosCursos;
   const [resumenAbierto, setResumenAbierto] = useState(false);
@@ -530,7 +542,7 @@ export function PanelPerfil() {
     </div>
   );
   return (
-    <div className="profile-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
+    <div ref={areaPerfil} className="profile-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
       {!compacto && resumenPerfil}
       {resumenAbierto && <Modal fit title={t("profile.title")} icon="user" onClose={() => setResumenAbierto(false)}>{resumenPerfil}</Modal>}
       <div className="profile-subnav flex flex-wrap items-center justify-center gap-2">
