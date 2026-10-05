@@ -1,5 +1,19 @@
 # Aseguramiento de Calidad Canónico
 
+## Contrato actualizado R4 — 2026-10-05, entrega para revisión
+
+Prevalece sobre checkpoints parciales siguientes. Código7262e319025175ee6560b9cdf2d252048ccb8b00, informe55/manifest r4_final_2026-10-05: verify518/518;1470casos canvas;510casos únicos de overlays (51familias×10);1175claves por idioma es/en/pt-BR. PR6 sigue borrador, aceptación del usuario pendiente.
+
+Para futuras modificaciones, no sumar conteos sin identidad de artefacto: registrar hash de código y **todos** los recursos, matrices/límites/timing y causas de reutilización. Control focal durante ajustes; matriz obligatoria al estabilizar. Geometría verde no basta: inspeccionar imágenes, densidad real y alineación; nada de métricas clonadas, defaults que oculten corrupción o contenido recortado.
+
+Texto decisorio≥14px, secundario≥12px, acción≥36px escritorio/44px táctil. Paginación reconstruida literalmente, grafemas intactos y toda decisión accesible; CTA alineado≤1px en una fila. Medir capacidad según área útil y número real de elementos; no prometer10 simultáneos en todos los tamaños. No inventar tarjetas para rellenar catálogo finito.
+
+Probar diálogo inicial/restauración/Tab/Shift+Tab/Escape/IDs/pila/inert/atajos, selector cerrar/reabrir sin RNG/pagos/contratos, notificación snapshot sin renovar expiración y aviso vencido no confirmable. Probar idioma antes de autosave, recursos inválidos/404/solicitudes desordenadas; cubrir contenido nuevo y errores, desconocidos históricos literales.
+
+Migraciones de presentación7→8/8→9/9→10: explícitas, idempotentes, ceros/campos desconocidos válidos/originales/backups/futuros seguros; no inferir identidad dudosa. Comparar seis escenarios económicos exactos y R1–R3, nunca recalibrar para forzar rentabilidad.
+
+Zoom de esta evidencia es equivalente CSS125% con DPR1, no deviceScaleFactor ni zoom nativo. PseudoDOM+40% es estrés de composición, no prueba aislada de traducción. Teclado automatizado no certifica lector de pantalla; Chromium no certifica otros motores. Presupuestos no aumentados (margenJS947bytes). No usar partida real/localhost3000 ni ejecutar Pages para QA.
+
 ## Seguimiento R4 — 2026-10-04, no aceptación
 
 Checkpoint433 tests y298 claves exactas; focales del aviso vencido y Panel sobre el build identificado en informe55/evidence. Pruebas de cobro comparan importes, fama, línea contable y recarga exactos; leer historia no puede pagar. Testear claves duplicadas del recurso antes de JSON.parse. Reservar matriz final para build estable, nunca atribuir hashes anteriores al nuevo. R4 permanece abierto y los idiomas incompletos deshabilitados; los conteos no sustituyen catálogo global ni estados faltantes.

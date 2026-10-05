@@ -1,5 +1,11 @@
 # Plan de Proyecto Canónico
 
+## Situación vigente — 2026-10-05
+
+R1–R3 están integrados; R4 trabaja exclusivamente en PR#6, en borrador contra main8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3. Las notas anteriores de R3 son historia de su entrega, no una prohibición vigente de ejecutar R4 autorizado. Próxima salida: completar evidencia final del plan54/informe55 y solicitar revisión del propietario; un push no equivale a aceptación.
+
+No avanzar R5/BOX-15, arte nuevo, merge ni publicación. Pages conserva ejecución exclusivamente manual, confirmación explícita y refs/heads/main; no se ejecuta en este trabajo. Presupuesto de bundle no aumenta. Verificaciones independientes usan artefactos inmutables y contextos sintéticos; no acceder a partida personal/localhost3000. Reutilizar evidencia solo cuando la parte comprobada sigue idéntica; matriz final se reserva al candidato estable.
+
 ## Actualización R3 aprobada — 2026-10-01
 
 R3 implementado según plan51, entrega mediante PR en borrador para decisión del usuario. Evidencia en informe52. No iniciar R4/R5/BOX15 ni fusionar/desplegar. Pages permanece manual/confirmada/main.

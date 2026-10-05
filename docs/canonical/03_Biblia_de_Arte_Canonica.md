@@ -1,5 +1,13 @@
 # Biblia de Arte Canónica
 
+## Contrato de composición R4 — 2026-10-05
+
+Se conserva arte y lenguaje visual; el boceto nuevo no pertenece a R4. Piso14px para decidir,12px secundario; acciones36px escritorio/44px táctil. Bounds, hit-testing y capturas son controles complementarios: un footer visible o un test geométrico verde no prueban por sí solos calidad visual.
+
+Distribuir más tarjetas reales antes de estirar una fila escasa; no clonar caja/seguidores ni añadir indicadores de relleno. Referencia nativa1280×720 verificada: Mercado8,Personal8,Plantel6 alumnos yPerfil3 cursos, con paginación/detalle para el resto. No es una cuota universal ni justifica reducir legibilidad. Igualar filas y alturas de controles equivalentes; CTA de la primera fila de Mercado admite como máximo1px de diferencia. Icono y texto quedan centrados dentro de su botón.
+
+Un panel con poco contenido real puede conservar espacio libre; no inventar registros ni convertir tres cursos en tarjetas de relleno. Detalles, requisitos y contratos deben poder leerse completos mediante acción explícita, sin depender de hover. Gimnasio horizontal separa estaciones y pared, evitando que etiquetas o figuras tapen controles. Las futuras fotografías/assets requieren otro diseño aprobado, no se introducen en este gate.
+
 ## Seguimiento R4 — capacidad útil, sin rediseño
 
 Un layout sin recortes puede seguir desaprovechando su canvas. Verificar que la primera fila del Plantel use la capacidad legible disponible; el modo de detalle compacto no fuerza una única columna cuando caben más. Calendario muestra los siete días donde hay espacio y conserva selección explícita en móvil bajo/horizontal. Las acciones y textos siguen accesibles por vistas/detalles, sin duplicar caja ni métricas globales como relleno. En Gimnasio compacto, la pared original tiene acceso explícito y se separa de las estaciones para no competir con figuras y etiquetas. No sustituye arte ni autoriza la estética del boceto posterior.

@@ -1,5 +1,15 @@
 # Documento Técnico Canónico
 
+## Contrato R4 vigente — 2026-10-05
+
+Schema actual10. Migraciones7→8 (guía),8→9 (financiación) y9→10 (presentación) son explícitas e idempotentes.9→10 no inventa identidad de registros anteriores. Un campo reservado presentacion previo, una metadata inválida o un schema futuro bloquean escritura; no se eliminan para permitir autosave. Originales y backups siguen protegidos por R1, incluidas escrituras fallidas y colisiones. Extensiones válidas desconocidas y ceros sobreviven al roundtrip.
+
+Contenido nuevo comparte plantillas fuente en game/messageContent.ts y añade presentacion:{id,parametros} opcional a libros, prensa, avisos y resultados. Importe, concepto literal y método deportivo siguen siendo datos de dominio. Traducir requiere ID, slots exactos y coincidencia de texto fuente; referencias a equipos/cursos/propiedades/eventos/resultados se validan, nombres propios no se reinterpretan. Historia sin identidad fiable queda literal y marcada histórica. Ninguna decisión contable compara texto traducido; financiación utiliza claseContable.
+
+PrepararIdioma resuelve el catálogo validado antes de montar GameProvider/autosave. Fallo de recurso/almacenamiento no cambia preferencia ni partida; reintento o español solo para esta sesión son explícitos. es/en/pt-BR comparten1175 claves y parámetros. Conservación de guía es independiente de nuevos alumnos, bajas y cambios de enfoque; si salieron todos los iniciales antes de confirmar, el paso pendiente usa alumnos actuales, según decisión aprobada.
+
+Los diálogos comparten pila, IDs únicos, foco y fondo inert. Detalle se pagina por grafemas sin partir ZWJ, banderas ni acentos. La capacidad de grilla y sus columnas/filas se deciden juntas, no con breakpoints contradictorios. No cambiar motor, economía ni RNG para resolver layout. Evidencia y límites por artefacto en informe55; esto no es aceptación del gate ni compatibilidad universal.
+
 ## Continuación R4 — 2026-10-03, sin aceptación
 
 Schema9 incorpora migración explícita8→9 para separar financiación de etiquetas visibles. Solo el desembolso de ingreso legacy con la plantilla exacta conocida recibe `claseContable: "financiacion"`; importes, textos, orden y extensiones permanecen intactos. Gastos y etiquetas desconocidas no se reclasifican. Colisiones antiguas con el campo reservado bloquean migración/escritura, conservando originales y backups. Los desembolsos nuevos usan el tipo de comando, no el texto; el costo financiero comparte su función numérica entre previsión y aviso. No hay fechas, pagos ni cambios de parámetros nuevos.

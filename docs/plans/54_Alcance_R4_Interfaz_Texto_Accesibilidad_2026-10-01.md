@@ -1,5 +1,21 @@
 # Plan 54 — R4: interfaz, texto y accesibilidad
 
+## Entrega para revisión — 2026-10-05 (prevalece sobre el seguimiento histórico)
+
+Implementación autorizada completada; **pendiente aceptación del usuario**, PR #6 en borrador. Código probado `7262e319025175ee6560b9cdf2d252048ccb8b00`, base `8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3`. Informe55 y [manifest final](../audits/evidence/r4_final_2026-10-05.json) identifican recursos, tiempos, matriz, reutilización y límites exactos.
+
+- [x] Selector: cierre/reapertura reales preservan ofertas, contratos, caja, RNG y checkpoints. Regeneración solo acción R3.
+- [x] A18/A19: canvas accesible, capacidad medida y legibilidad14/12px; acciones36/44px; tarjetas reales, detalle íntegro/paginación, simetría de CTAs y footer.
+- [x] A20: diálogos con IDs únicos, foco inicial/restauración, Tab/Shift+Tab/Escape, pila/inert/bloqueo de atajos; notificaciones y errores con detalle accesible.
+- [x] A23: guía persistente, confirmación solo de elección ambigua, licencia solo con evidencia; alumnos actuales para paso pendiente si salen los iniciales. Altas/bajas/cambio de enfoque no retroceden hitos.
+- [x] A26: catálogo global1175claves es/en/pt-BR, carga verificada, errores/ayudas/contenido/formato; historia desconocida literal identificada. Locale no cambia contabilidad/RNG.
+- [x] Persistencia: schema10, migraciones7→8/8→9/9→10 explícitas e idempotentes; metadata/colisiones/originales/backups/futuros protegidos; regresiones R1–R3 y seis escenarios económicos exactos sin recalibrar.
+- [x] Matriz final:1470canvas +510estados/overlays PASS, diez tamaños, CSS125equivalente/DPR1, pseudo+40%, nombres largos/extremos; foco/hit/bounds más capturas representativas inspeccionadas.
+- [x] npm run verify:518/518; presupuestos originales intactos JS572493/573440 y CSS86239/92160. MargenJS947 es riesgo futuro, no bloqueo del candidato.
+- [ ] Aceptación/revisión independiente del PR por el usuario. No marcar listo/merge por cuenta propia.
+
+D1–D3 y uso de alumnos actuales para el paso pendiente fueron aprobados en esta conversación y se aplican sin inventar fechas, premios o elecciones. Las secciones siguientes conservan el análisis y checkpoints **históricos**; sus conteos/estado NO APTO antiguos no describen esta entrega. Sin publicación, R5 ni BOX-15. Limitaciones: Chromium, equivalente CSS (no zoom nativo), revisión visual por muestras y sin certificación humana de lector de pantalla.
+
 ## Estado de continuidad prioritario — 2026-10-04
 
 Continúa abierto en PR6. Checkpoint ampliado: suite464/464 (18archivos);959claves verificadas por catálogo, no cobertura global. Optimización real recupera margen: JS550365/573440, CSS86857/92160. No split nuevo ni límites mayores. Informe55 detalla artefactos, tiempos focales y RED→GREEN de combate, libros extensos, contratos, propiedades, avisos y texto veraz de sucursal. Matriz final/verify global de cierre todavía pendientes; conteos históricos posteriores en este documento no certifican este checkpoint. Solo es habilitado. Próximo: mensajes/errores/prensa/contabilidad global, Planificación/densidad y estados extremos restantes; build final inmutable, matriz obligatoria más inspección y regresiones. No detener por checkpoint ni empezar otros gates.
