@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { alumnosActivos, fmt, puedeHabilitar } from "../game/engine";
+import { alumnosActivos, puedeHabilitar } from "../game/engine";
 import { notificacion } from "../game/audio";
 import { useGame } from "../game/state";
 import type { EventoJuego, NotaPrensa } from "../game/types";
 import { Btn, I, Modal, TextoPaginado } from "./ui";
 import { EventDetail } from "./EventDetail";
 import { objetivoConsejo } from "../game/consejos";
-import { useMessages } from "../i18n";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
 import { presentarConsejo } from "../i18n/advice";
 import { presentarEvento } from "../i18n/events";
+import { presentarContenido } from "../i18n/content";
 
 export type PestanaDock = "mensajes" | "patrocinios" | "prensa" | "consejos";
 
@@ -27,19 +28,20 @@ function ListaEventos({ events }: { events: EventoJuego[] }) {
 }
 
 function ListaPrensa({ notes }: { notes: NotaPrensa[] }) {
-  const { t } = useMessages();
+  const { t,locale } = useMessages();
   const [selected, setSelected] = useState("");
   const [open, setOpen] = useState(false);
   const note = notes.find(n => n.id === selected) ?? notes[0];
   useEffect(() => { if (open && !notes.some(n => n.id === selected)) setOpen(false); }, [open, notes, selected]);
   if (!note) return <TextoPaginado capacidad={40} texto={t("press.empty")} />;
+  const lectura=presentarContenido(note.texto,note.presentacion,locale);
   return <div className="space-y-2">
     <select aria-label={t("press.picker")} className="r4-select" value={note.id} onChange={e => setSelected(e.target.value)}>
       {notes.map((n, i) => <option key={n.id} value={n.id}>{i + 1}/{notes.length} · {t("press.week", { week: n.semana })}</option>)}
     </select>
     <Btn onClick={() => { setSelected(note.id); setOpen(true); }}>{t("press.open")}</Btn>
     {open && note.id === selected && <Modal fit title={t("press.title")} onClose={() => setOpen(false)}>
-      <TextoPaginado capacidad={40} texto={`${t("press.week", { week: note.semana })}\n${note.texto}`} />
+      <TextoPaginado capacidad={40} texto={`${t("press.week", { week: note.semana })}\n${lectura.historico?t("record.historical")+"\n":""}${lectura.texto}`} />
     </Modal>}
   </div>;
 }

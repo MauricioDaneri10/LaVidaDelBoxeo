@@ -9,9 +9,9 @@ function storage(value: string | null) {
   return write;
 }
 describe("R4 — formatos y habilitación sin alterar dominio", () => {
-  it("locales incompletos no se habilitan ni borran una preferencia antigua", () => {
+  it("un recurso no cargado no activa ni borra una preferencia antigua", () => {
     const write = storage("pt-BR");
-    expect(IDIOMAS_HABILITADOS).toEqual(["es"]);
+    expect(IDIOMAS_HABILITADOS).toEqual(["es","en","pt-BR"]);
     expect(cargarIdioma()).toBe("es");
     expect(guardarIdioma("pt-BR")).toBe(false);
     expect(write).not.toHaveBeenCalled();

@@ -2,7 +2,7 @@ import { AnimatePresence, m as motion } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { mountDialog } from "../ui/dialogs";
-import { useMessages } from "../i18n";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
 import type { MessageKey } from "../i18n/catalog";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
 import { presentarDivision, presentarResultadoActual, presentarTitulo } from "../i18n/presentation";
@@ -10,7 +10,6 @@ import {
   cerrarAsalto,
   crearEstadoPelea,
   emitirCheckpointCombate,
-  fmt,
   PLANES,
   planSugerido,
   resolverPelea,
@@ -410,7 +409,7 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
               <div className={ladoCaida === "a" && (fase === "conteo" || (fase === "final" && e.ko === "a")) ? "anim-caida" : ""}>
                 <Figura
                   p={vista.A.p}
-                  pose={ladoCaida === "a" && fase === "conteo" ? "caido" : "guardia"}
+                  pose={(ladoCaida === "a" && fase === "conteo") || (fase === "final" && e.ko === "a") ? "caido" : "guardia"}
                   escala={1.5}
                 />
               </div>
@@ -425,13 +424,12 @@ export function FightScreen({ pelea, alTerminar, onTerminar }: FightScreenProps)
           >
             <div key={`b${golpeB}`} className={golpeB > 0 && fase === "asalto" ? "anim-golpe" : ""}>
               <div className={ladoCaida === "b" && (fase === "conteo" || (fase === "final" && e.ko === "b")) ? "anim-caida" : ""}>
-                <div className="-scale-x-100">
                   <Figura
                     p={vista.B.p}
-                    pose={ladoCaida === "b" && fase === "conteo" ? "caido" : "guardia"}
+                    pose={(ladoCaida === "b" && fase === "conteo") || (fase === "final" && e.ko === "b") ? "caido" : "guardia"}
                     escala={1.5}
+                    voltear
                   />
-                </div>
               </div>
             </div>
           </div>

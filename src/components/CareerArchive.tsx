@@ -3,12 +3,13 @@ import { useGame } from "../game/state";
 import type { Atributos } from "../game/types";
 import { ATRIBUTOS_BASE } from "../game/saveValidation";
 import { useMessages } from "../i18n";
+import { presentarResultadoHistorico } from "../i18n/presentation";
 import { Modal, TextoPaginado } from "./ui";
 
 /** Read-only snapshots. No competitive commands and no Hall-of-Fame eligibility. */
 export default function ArchivoCarreras({ onClose }: { onClose: () => void }) {
   const { state } = useGame();
-  const { t } = useMessages();
+  const { t,locale } = useMessages();
   const [index, setIndex] = useState(0);
   const [seccion, setSeccion] = useState("nombre");
   const [atributo, setAtributo] = useState("fuerza");
@@ -36,7 +37,7 @@ export default function ArchivoCarreras({ onClose }: { onClose: () => void }) {
         </>}
         {seccion === "historial" && (!h ? <p>{t("archive.noResults")}</p> : <>
           <select aria-label={t("archive.result")} value={Math.min(combate, entry.historial.length - 1)} onChange={e=>setCombate(Number(e.target.value))} className="r4-select">{entry.historial.map((result,i)=><option key={i} value={i}>{i+1} · {result.rivalNombre ?? result.metodo}</option>)}</select>
-          <p data-text-role="secondary">{t("archive.historical")}</p><TextoPaginado key={combate} texto={h.resumen} capacidad={40} />
+          {presentarResultadoHistorico(h,locale).historico&&<p data-text-role="secondary">{t("archive.historical")}</p>}<TextoPaginado key={combate} texto={presentarResultadoHistorico(h,locale).summary} capacidad={40} />
         </>)}
         {seccion === "extras" && <TextoPaginado texto={JSON.stringify(extras)} />}
       </div>

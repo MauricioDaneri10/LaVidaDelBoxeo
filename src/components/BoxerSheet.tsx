@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMessages } from "../i18n";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
 import { COMBOS } from "../game/data";
-import { enfoqueRecomendado, fmt, puedeHabilitar, puedeProfesionalizar, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
-import { presentarDivision, presentarEstadoRecord, presentarRasgo, presentarTitulo } from "../i18n/presentation";
+import { enfoqueRecomendado, puedeHabilitar, puedeProfesionalizar, tituloAspirable, totalPeleas, valoracion } from "../game/engine";
+import { presentarDivision, presentarEstadoRecord, presentarRasgo, presentarTitulo,presentarResultadoHistorico } from "../i18n/presentation";
 import { useGame } from "../game/state";
 import type { ComboId, Pugilista } from "../game/types";
 import { Figura } from "./GymView";
@@ -201,7 +201,7 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
         </>)}
         {apartado === "historial" && (historialAtleta.length ? <>
           <select aria-label={t("sheet.historyFight")} value={Math.min(paginaHistorial, historialAtleta.length - 1)} onChange={e => setPaginaHistorial(Number(e.target.value))} className="r4-select">{historialAtleta.map((h, i) => <option key={i} value={i}>{i + 1} · {h.rivalNombre}</option>)}</select>
-          {historialAtleta.slice(Math.min(paginaHistorial, historialAtleta.length - 1), Math.min(paginaHistorial, historialAtleta.length - 1) + 1).map(h => <TextoPaginado key={`${p.id}:${paginaHistorial}`} capacidad={apaisado ? 20 : 40} texto={[h.rivalNombre, t(h.empate ? "fight.draw" : h.gane ? "fight.won" : "fight.lost"), t("history.original"), h.metodo, h.resumen, t("sheet.purse", { purse: fmt(h.bolsa) })].join("\n")} />)}
+          {historialAtleta.slice(Math.min(paginaHistorial, historialAtleta.length - 1), Math.min(paginaHistorial, historialAtleta.length - 1) + 1).map(h => {const lectura=presentarResultadoHistorico(h,locale);return <TextoPaginado key={`${p.id}:${paginaHistorial}`} capacidad={apaisado ? 20 : 40} texto={[h.rivalNombre, t(h.empate ? "fight.draw" : h.gane ? "fight.won" : "fight.lost"), ...(lectura.historico?[t("history.original")]:[]), lectura.method, lectura.summary, t("sheet.purse", { purse: fmt(h.bolsa) })].join("\n")} />;})}
         </> : <p>{t("sheet.noHistory")}</p>)}
       </div>
     </div>
@@ -515,8 +515,8 @@ export function BoxerSheet({ id, boxeadorId, onCerrar, onCambiarBoxeador, onBusc
                         <span className={`font-black ${h.gane ? "text-emerald-400" : "text-blood"}`}>
                           {t(h.empate ? "fight.draw" : h.gane ? "fight.won" : "fight.lost")}
                         </span>
-                        <span className="text-sand">{h.metodo}</span>
-                        <span className="text-mut font-mono-data">({h.resumen})</span>
+                        <span className="text-sand">{presentarResultadoHistorico(h,locale).method}</span>
+                        <span className="text-mut font-mono-data">({presentarResultadoHistorico(h,locale).summary}){presentarResultadoHistorico(h,locale).historico&&` · ${t("history.original")}`}</span>
                       </div>
                       <span className="text-gold font-mono-data font-bold">+{fmt(h.bolsa)}</span>
                     </div>

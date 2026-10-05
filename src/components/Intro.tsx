@@ -6,6 +6,7 @@ import { Btn, I, Modal, TextoPaginado } from "./ui";
 import { formatearFecha, useMessages } from "../i18n";
 import { presentarEmblema } from "../i18n/presentation";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import {LanguagePicker} from "./LanguagePicker";
 export default function Intro() {
   const { t, locale } = useMessages();
   const cartelera = [[t("intro.weekdays"), t("intro.training")], [t("intro.saturday"), t("intro.bouts")], [t("intro.sunday"), t("intro.balance")], [t("intro.goal"), t("intro.belts")]];
@@ -68,8 +69,9 @@ export default function Intro() {
         className="panel relative mt-4 w-full max-w-5xl shrink-0 p-4 sm:mt-5 sm:p-5 hard-shadow">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blood via-gold to-blood" />
         {compacto && <select aria-label={t("intro.section")} value={seccion} onChange={e=>setSeccion(e.target.value)} className="r4-select">
-          <option value="coach">{t("intro.coach")}</option><option value="gimnasio">{t("intro.club")}</option><option value="emblema">{t("intro.emblem")}</option><option value="partidas">{t("intro.saves")}</option><option value="ayuda">{t("intro.help")}</option>
+          <option value="coach">{t("intro.coach")}</option><option value="gimnasio">{t("intro.club")}</option><option value="emblema">{t("intro.emblem")}</option><option value="partidas">{t("intro.saves")}</option><option value="idioma">{t("language.label")}</option><option value="ayuda">{t("intro.help")}</option>
         </select>}
+        {(!compacto||seccion==="idioma")&&<LanguagePicker/>}
         <div className="grid gap-5 md:grid-cols-12">
           
           {/* Columna Izquierda: Cartelera de Vida (5 columnas) */}

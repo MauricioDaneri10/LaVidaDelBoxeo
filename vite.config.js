@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [react(), tailwindcss()],
-  build: { minify: "terser" },
+  build: { minify: "terser", terserOptions: { compress: { passes: 3 } } },
   server: {
     host: "0.0.0.0",
     port: 3000,

@@ -99,6 +99,7 @@ export interface CompuBox { jab: CajaGolpes; poder: CajaGolpes; }
 export interface TarjetaJuez { a: number; b: number; }
 
 export interface ResultadoPelea {
+  presentacion?: import("./messageContent").PresentacionContenido;
   /** Identidad del atleta propio; permite mostrar el historial correcto por boxeador. */
   miId?: string;
   rivalNombre?: string;
@@ -160,7 +161,7 @@ export type TipoComunitario = "bingo" | "naipes" | "festival" | "claseAbierta";
 export interface ComunitarioProgramado { tipo: TipoComunitario; nombre: string; }
 export interface PrestamoActivo { saldo: number; cuota: number; semanasRestantes: number; }
 export interface Consejo { id: string; texto: string; fama: number; dinero?: number; cumplido: boolean; reclamado: boolean; archivado?: boolean; motivoArchivo?: string; }
-export interface NotaPrensa { id: string; semana: number; texto: string; }
+export interface NotaPrensa { id: string; semana: number; texto: string; presentacion?: import("./messageContent").PresentacionContenido; }
 export interface Cinturon { id: string; dueno: string; nivel: 1 | 2 | 3 | 4; semana: number; }
 export interface EntradaSalonFama {
   id: string;
@@ -171,7 +172,7 @@ export interface EntradaSalonFama {
   semanaRetiro: number;
   motivo: string;
 }
-export interface LineaLibro { concepto: string; monto: number; claseContable?: "financiacion"; }
+export interface LineaLibro { concepto: string; monto: number; claseContable?: "financiacion"; presentacion?: import("./messageContent").PresentacionContenido; }
 /** Every competitive departure; separate from the selected Hall of Fame. */
 export interface CarreraArchivada {
   id: string;
@@ -270,7 +271,7 @@ export interface SaveEnvelope {
   state: EstadoJuego;
 }
 
-export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro" | "alerta"; }
+export interface Toast { id: number; texto: string; tono: "ok" | "info" | "oro" | "alerta"; presentacion?: import("./messageContent").PresentacionContenido; }
 
 export type Accion =
   | { type: "NUEVO_JUEGO"; nombre: string; gimnasio: string; logoGimnasio?: string }
@@ -304,7 +305,7 @@ export type Accion =
   | { type: "CERRAR_CLUB"; confirmado?: boolean }
   | { type: "EVENTO"; id: string; opcion: number }
   | { type: "RECLAMAR_CONSEJO"; id: string }
-  | { type: "TOAST"; texto: string; tono?: Toast["tono"] }
+  | { type: "TOAST"; texto: string; presentacion?: import("./messageContent").PresentacionContenido; tono?: Toast["tono"] }
   | { type: "QUITAR_TOAST"; id: number }
   | { type: "SCOUT" }
   | { type: "LEGADO" };

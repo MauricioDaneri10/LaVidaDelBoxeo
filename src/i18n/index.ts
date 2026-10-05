@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from "react";
-import { catalogs, translate, type Arguments, type MessageKey } from "./catalog";
+import { catalogs, cargarCatalogo, translate, type Arguments, type MessageKey } from "./catalog";
 export type Locale = "es" | "en" | "pt-BR";
 
-// Do not enable incomplete UI/content. Expand only after global coverage verification.
-export const IDIOMAS_HABILITADOS: readonly Locale[] = ["es"];
+// Candidate activation is verified against global source/content coverage and browser tests.
+export const IDIOMAS_HABILITADOS: readonly Locale[] = ["es", "en", "pt-BR"];
 const CAMBIO_IDIOMA = "vida-del-boxeo:idioma-cambio";
 
 export const LOCALES: Array<{ id: Locale; nombre: string }> = [
@@ -15,13 +15,31 @@ export const LOCALES: Array<{ id: Locale; nombre: string }> = [
 const CLAVE_IDIOMA = "vida-del-boxeo:idioma";
 const intlLocale: Record<Locale, string> = { es: "es-AR", en: "en-US", "pt-BR": "pt-BR" };
 
-export function cargarIdioma(): Locale {
+export function idiomaPreferido(): Locale {
   try {
     const valor = localStorage.getItem(CLAVE_IDIOMA);
     return IDIOMAS_HABILITADOS.includes(valor as Locale) ? valor as Locale : "es";
   } catch {
     return "es";
   }
+}
+
+/** A persisted preference alone never makes an unloaded catalog usable. */
+export function cargarIdioma(): Locale {
+  const locale=idiomaPreferido();
+  return catalogs[locale]?locale:"es";
+}
+
+let solicitud=0;
+export async function seleccionarIdioma(locale:Locale,baseURL?:string):Promise<boolean> {
+  if(!IDIOMAS_HABILITADOS.includes(locale))return false;
+  const actual=++solicitud;
+  try {await cargarCatalogo(locale,baseURL);return actual===solicitud&&guardarIdioma(locale);}
+  catch {return false;}
+}
+export async function restaurarIdioma(baseURL?:string):Promise<boolean> {
+  try {await cargarCatalogo(idiomaPreferido(),baseURL);window.dispatchEvent(new Event(CAMBIO_IDIOMA));return true;}
+  catch {return false;}
 }
 
 export function guardarIdioma(locale: Locale) {
@@ -45,6 +63,11 @@ export function useMessages() {
 
 export function formatearNumero(valor: number, locale: Locale = cargarIdioma()): string {
   return new Intl.NumberFormat(intlLocale[locale]).format(valor);
+}
+
+/** Game currency remains one unit; locale changes separators, never exchange rates. */
+export function formatearDineroJuego(valor:number,locale:Locale=cargarIdioma()):string {
+  return "$"+Math.round(valor).toLocaleString(intlLocale[locale]);
 }
 
 export function formatearMoneda(valor: number, locale: Locale = cargarIdioma(), moneda = "ARS"): string {

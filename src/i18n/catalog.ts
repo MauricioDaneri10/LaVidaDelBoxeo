@@ -1,8 +1,27 @@
 /** Semantic presentation keys only. Domain IDs and accounting text are not keys. */
 import { COMBOS, CONSEJOS_INICIALES, LOGOS_DISPONIBLES, EQUIPOS, CURSOS, PERSONAL_INFO, PROPIEDADES, COMUNITARIOS, CATEGORIAS, TITULOS, RASGOS, DIVISIONES } from "../game/data";
 import { PLANES } from "../game/engine";
+import { TEXTOS_CONTENIDO } from "../game/messageContent";
 import { CONTENIDO_COMISION, contenidoProspecto, contenidoExhibicion, contenidoPatrocinio, PATROCINIO_TEXTO } from "../game/eventContent";
+// One canonical definition per template, preserving literal slot types.
+const contenido = Object.fromEntries(Object.entries(TEXTOS_CONTENIDO).map(([id,text])=>[`content.${id}`,text])) as {
+  [K in keyof typeof TEXTOS_CONTENIDO as `content.${K}`]: (typeof TEXTOS_CONTENIDO)[K]
+};
 export const es = {
+  "language.label": "Idioma",
+  "language.loading": "Cargando y validando el idioma…",
+  "language.error": "No se cambió el idioma. Revisá la conexión o el almacenamiento y volvé a intentarlo.",
+  "language.restoreError": "No se pudo cargar el idioma elegido. Tu preferencia y tu partida no se modificaron. Podés reintentar o usar español en esta sesión.",
+  "language.spanishOnce": "Usar español esta vez",
+"notification.title": "Avisos de esta sesión",
+"notification.count": "Leer avisos ({count})",
+"notification.picker": "Aviso recibido",
+  ...contenido,
+  "plan.section": "Sección de planificación",
+  "plan.step": "Paso de la guía",
+  "plan.done": "Hito completado",
+  "plan.pending": "Hito pendiente",
+  "plan.openTab": "Abrir pestaña",
   "key.space": "Espacio",
   "balance.section": "Sección del balance",
   "balance.summary": "Resumen y conciliación",
@@ -124,6 +143,7 @@ export const es = {
   "balance.net": "Resultado neto de la semana",
   "balance.disclosure": "Las bolsas y entradas se cobran el sábado; el domingo se liquidan cuotas, alquiler y sueldos. Caja después del cierre: {cash}. El resultado neto histórico se ve en Mi Perfil.",
   "save.retry": "Reintentar guardado",
+  "save.failedBrief": "No se guardó",
   "offer.title": "Selección de rival",
   "offer.picker": "Oferta seleccionada",
   "offer.section": "Detalle de la oferta",

@@ -19,7 +19,7 @@ export function Figura({ p, pose = "guardia", escala = 1, voltear = false, onCli
   return (
     <Elemento onClick={onClick} title={onClick ? t("gym.sheetOf",{name:p.nombre}) : p.nombre}
       aria-label={onClick ? t("gym.sheetOf",{name:p.nombre}) : p.nombre} className={`gym-figure group relative flex min-h-11 flex-col items-center focus-visible:outline-2 focus-visible:outline-gold ${onClick ? "cursor-pointer" : ""}`} style={{ width: Math.max(44, 56 * escala) }}>
-      <div data-text-role="secondary" className="pointer-events-none absolute -top-6 z-10 flex items-center gap-1 whitespace-nowrap border border-line bg-ink/95 px-1.5 py-0.5 font-cond text-xs uppercase tracking-wide text-sand opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 shadow-md">
+      <div data-text-role="secondary" className="pointer-events-none absolute -top-6 z-10 flex w-max max-w-[200px] items-center gap-1 whitespace-normal break-words border border-line bg-ink/95 px-1.5 py-0.5 font-cond text-xs uppercase tracking-wide text-sand opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 shadow-md">
         {p.nombre.split(" ")[0]} · {t(`combo.${p.combo}`)} · {t("gym.energy",{energy:Math.round(p.energia)})}
       </div>
       <div className={`${anim} ${voltear ? "-scale-x-100" : ""}`} style={{ animationDelay: `${(p.nombre.length % 5) * 0.17}s` }}>

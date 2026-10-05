@@ -1,18 +1,19 @@
 import { LOGOS_DISPONIBLES } from "../game/data";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
-import { fechaDelJuego, fmt, peleasVencidas } from "../game/engine";
+import { fechaDelJuego, peleasVencidas } from "../game/engine";
 import { useGame } from "../game/state";
 import { Btn, I, Modal, TextoPaginado } from "./ui";
-import { useMessages, formatearNumero } from "../i18n";
+import { formatearDineroJuego as fmt, useMessages, formatearNumero } from "../i18n";
 import { presentarEmblema, nombreDia, nombreMes } from "../i18n/presentation";
 
 interface TopBarProps {
+  errorGuardado?: ReactNode;
   onAjustes?: () => void;
   pulsoAvanzar?: boolean;
 }
 
-export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps) {
+export default function TopBar({ onAjustes, pulsoAvanzar = false,errorGuardado }: TopBarProps) {
   const { t, locale } = useMessages();
   const { state, dispatch } = useGame();
   const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 950px)");
@@ -43,6 +44,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
           <span className="block font-cond text-sm text-cream">{`${dias[state.dia - 1].slice(0, 3)} ${fechaActual.getDate()} · ${fmt(state.dinero)}`}</span>
         </button>
         <button onClick={onAjustes} title={t("top.settings")} aria-label={t("top.settings")} className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-line text-gold"><I n="gear" /></button>
+        {errorGuardado}
         <Btn small variant="gold" onClick={() => state.dia === 7 ? dispatch({ type: "CERRAR_DOMINGO" }) : avanzar()} disabled={carteleraPendiente}>
           {t(state.dia === 7 ? "top.newWeek" : carteleraPendiente ? "top.pending" : "top.advance")}
         </Btn>
@@ -131,6 +133,7 @@ export default function TopBar({ onAjustes, pulsoAvanzar = false }: TopBarProps)
 
         {/* Acciones de Flujo de Tiempo */}
         <div className="ml-auto flex items-center gap-2">
+          {errorGuardado}
           {onAjustes && (
             <button onClick={onAjustes} title={t("top.settings")} aria-label={t("top.settings")}
               className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-panel2 text-sand transition-colors hover:border-gold2 hover:text-gold cursor-pointer">

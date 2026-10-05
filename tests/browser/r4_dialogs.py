@@ -174,24 +174,73 @@ def hiring_case(page):
     assert state(page)['personal'][0]['tipo']=='directorTecnico'
 
 
-def toast_deadline_case(page):
-    """A presentation rerender/new toast must not restart an existing deadline."""
+def mount_toast_fixture(page):
     code = subprocess.check_output(['node','--input-type=module','-e',
-        "import {build} from 'esbuild'; const r=await build({stdin:{contents:`import React from 'react'; import {createRoot} from 'react-dom/client'; import {ContenedorToast} from './src/components/ui'; const root=createRoot(document.getElementById('root')); window.__closed=[]; window.__renderToasts=items=>root.render(React.createElement(ContenedorToast,{toasts:items,onCerrar:id=>window.__closed.push(id)}));`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife'});process.stdout.write(r.outputFiles[0].text);"],cwd=ROOT,text=True)
+        "import {build} from 'esbuild'; const r=await build({stdin:{contents:`import React from 'react'; import {createRoot} from 'react-dom/client'; import {ContenedorToast} from './src/components/ui'; const root=createRoot(document.getElementById('root')); window.__closed=[]; window.__renderToasts=items=>root.render(React.createElement(ContenedorToast,{inline:Boolean(window.__inline),toasts:items,onCerrar:id=>window.__closed.push(id)}));`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife'});process.stdout.write(r.outputFiles[0].text);"],cwd=ROOT,text=True)
     page.set_content('<div id="root"></div>')
     page.clock.install()
     page.add_script_tag(content=code)
+
+
+def toast_deadline_case(page):
+    """A presentation rerender/new toast must not restart an existing deadline."""
+    mount_toast_fixture(page)
     first={'id':101,'texto':'Aviso persistente','tono':'ok','tiempo':4200}
     second={'id':102,'texto':'Segundo aviso','tono':'ok','tiempo':4200}
     page.evaluate('items=>window.__renderToasts(items)',[first])
-    page.get_by_text(first['texto'],exact=True).wait_for()
+    page.get_by_role('button',name='Leer avisos (1)',exact=True).wait_for()
     page.clock.fast_forward(1000)
     page.evaluate('items=>window.__renderToasts(items)',[first,second])
-    page.get_by_text(second['texto'],exact=True).wait_for()
+    page.get_by_role('button',name='Leer avisos (2)',exact=True).wait_for()
     page.clock.fast_forward(3200)
     assert page.evaluate('window.__closed')==[101], 'Original 4200ms deadline was restarted by a rerender'
     page.clock.fast_forward(1000)
     assert page.evaluate('window.__closed')==[101,102]
+
+
+def toast_inline_case(page):
+    """The in-flow reader keeps full copy after expiry without prolonging timers."""
+    mount_toast_fixture(page)
+    page.evaluate('window.__inline=true')
+    first={'id':101,'texto':'Aviso {name} $& 🥊 conservado literalmente. '*4,'tono':'alerta','tiempo':4200}
+    second={'id':102,'texto':'Segundo aviso histórico conservado. '*3,'tono':'ok','tiempo':4200}
+    page.evaluate('items=>window.__renderToasts(items)',[first])
+    page.get_by_role('button',name='Leer avisos (1)',exact=True).wait_for()
+    assert page.locator('[aria-live="polite"]').count()==1, 'Inline notices must remain announced'
+    page.clock.fast_forward(1000)
+    page.evaluate('items=>window.__renderToasts(items)',[first,second])
+    trigger=page.get_by_role('button',name='Leer avisos (2)',exact=True)
+    trigger.click()
+    dialog=page.get_by_role('dialog',name='Avisos de esta sesión',exact=True)
+    assert dialog.evaluate('e=>e.contains(document.activeElement)')
+    page.clock.fast_forward(3200)
+    assert page.evaluate('window.__closed')==[101], 'Reader prolonged the original deadline'
+    page.clock.fast_forward(1000)
+    assert page.evaluate('window.__closed')==[101,102]
+    page.evaluate('window.__renderToasts([])')
+    assert page.get_by_role('button',name='Leer avisos (2)',exact=True).count()==0
+    dialog.wait_for()
+    def read_literal():
+        parts=[]
+        while True:
+            parts.append(dialog.get_by_test_id('literal-text-page').text_content())
+            nxt=dialog.get_by_role('button',name='Siguiente',exact=True)
+            if nxt.is_disabled():break
+            nxt.click()
+        return ''.join(parts)
+    assert read_literal()=='Registro histórico en su idioma original\n'+first['texto']
+    dialog.get_by_role('combobox',name='Aviso recibido',exact=True).select_option('1')
+    assert read_literal()=='Registro histórico en su idioma original\n'+second['texto']
+    page.keyboard.press('Escape')
+    dialog.wait_for(state='detached')
+    assert page.locator('#root').evaluate('e=>!e.inert')
+    assert page.evaluate('window.__closed')==[101,102], 'Reading or closing duplicated expiry callbacks'
+    third={'id':103,'texto':'Aviso descartable sin duplicar el vencimiento','tiempo':4200}
+    page.evaluate('items=>window.__renderToasts(items)',[third])
+    page.get_by_role('button',name='Leer avisos (1)',exact=True).click()
+    dialog.get_by_role('button',name='Cerrar notificación',exact=True).click()
+    page.clock.fast_forward(5000)
+    assert page.evaluate('window.__closed')==[101,102,103], 'Manual dismissal must cancel its expiry callback'
 
 
 def measure_detail(page):
@@ -199,6 +248,48 @@ def measure_detail(page):
         page.evaluate(EXPAND.replace("document.getElementById('root')", 'document.body'))
     page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
     return page.evaluate(MEASURE)
+
+
+def save_error_case(page):
+    """A real storage fault must remain readable without occluding game decisions."""
+    banner=page.get_by_test_id('save-error');banner.wait_for()
+    report=measure_detail(page)
+    assert not report['failures'] and not report['globalScroll'], (report['failures'],page.locator('.game-host, .game-host > div').evaluate_all('es=>es.map(e=>({rect:e.getBoundingClientRect().toJSON(),height:getComputedStyle(e).height,flex:getComputedStyle(e).flex,class:e.className}))'))
+    assert banner.evaluate("e=>getComputedStyle(e).position!=='fixed'"), 'Storage error occludes existing decisions'
+    banner.get_by_role('button',name=re.compile(r'Ver detalle(?:\s|$)')).click()
+    dialog=page.get_by_role('dialog')
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    full=complete_literal(page,dialog)
+    assert 'No se guardó la partida' in full
+    assert page.evaluate("localStorage.getItem('vida-del-boxeo-v2')===window.__r4Original"), 'Failed save overwrote the recoverable original'
+    page.keyboard.press('Escape');dialog.wait_for(state='detached')
+    assert banner.evaluate('e=>e.contains(document.activeElement)')
+    page.evaluate('()=>{Storage.prototype.setItem=window.__r4Set;}')
+    banner.get_by_role('button',name=re.compile(r'Ver detalle(?:\s|$)')).click()
+    page.get_by_role('dialog').get_by_role('button',name=re.compile(r'^Reintentar guardado(?:\s|$)')).click()
+    banner.wait_for(state='hidden')
+    assert state(page)['partidaId']=='r4-disposable'
+
+
+def recovery_case(page):
+    """A genuine render failure must not hide recovery actions or mutate a save."""
+    before=state(page)
+    original=page.evaluate("localStorage.getItem('vida-del-boxeo-v2')")
+    fault='R4 synthetic render fault 🥊 '*12
+    page.evaluate("message=>{window.__r4Date=Intl.DateTimeFormat;Intl.DateTimeFormat=function(){throw new Error(message);};}",fault)
+    go_tab(page,'calendario','Calendario')
+    page.get_by_role('heading',name=re.compile(r'^El gimnasio necesita reiniciarse(?:\s|$)')).wait_for()
+    assert not measure_detail(page)['failures'], measure_detail(page)['failures']
+    full=''.join(complete_literal(page,l.locator('..')) for l in page.locator('main').get_by_test_id('literal-text-page').all())
+    assert fault in full and 'no confirma' in full
+    assert page.evaluate("localStorage.getItem('vida-del-boxeo-v2')") == original
+    assert not measure_detail(page)['globalScroll']
+    assert page.get_by_role('contentinfo').is_visible()
+    page.screenshot(path=str(page.r4_open_capture))
+    page.evaluate('()=>{Intl.DateTimeFormat=window.__r4Date;}')
+    page.get_by_role('button',name=re.compile(r'^Volver a intentar(?:\s|$)')).click()
+    page.locator('.app-nav').wait_for()
+    assert state(page)==before
 
 
 def gym_drawer_case(page):
@@ -265,7 +356,7 @@ def transfer_cancel_case(page):
     dialog=page.get_by_role('dialog',name='Transferir fuera del club')
     dialog.wait_for()
     page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
-    literal=complete_literal(page)
+    literal=complete_literal(page,dialog)
     assert before['plantel'][0]['nombre'] in literal and 'histórica' in literal
     report=measure_detail(page)
     assert not report['failures'], report['failures']
@@ -502,7 +593,7 @@ def settings_bounds_case(page):
     page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
     before=state(page)
     selector=page.get_by_role('combobox', name='Sección de configuración')
-    for section in ['partida','lectura','sonido','atajos','atajos-guardar','riesgo']:
+    for section in ['partida','idioma','lectura','sonido','atajos','atajos-ayuda','atajos-guardar','riesgo']:
         selector.select_option(section)
         page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
         report=measure_detail(page)
@@ -584,7 +675,7 @@ def intro_case(page):
     before=state(page)
     section=page.get_by_role('combobox', name='Sección de inicio', exact=True)
     if section.count():
-        for value in ['coach','gimnasio','emblema','partidas','ayuda']:
+        for value in ['coach','gimnasio','emblema','partidas','idioma','ayuda']:
             section.select_option(value)
             if value=='coach': page.get_by_role('textbox',name='Tu nombre de coach',exact=True).fill('Coach QA')
             if value=='gimnasio': page.get_by_role('textbox',name='Nombre de tu gimnasio',exact=True).fill('Club QA')
@@ -605,11 +696,75 @@ def intro_case(page):
     assert state(page)==before, 'Start-screen navigation changed the saved game'
 
 
+def language_case(page):
+    before=state(page)
+    rng=page.evaluate('window.__qaRandom')
+    spanish={'top.settings':'Configuración y partidas','settings.section':'Sección de configuración','language.label':'Idioma','dialog.close':'Cerrar ventana','settings.title':'Configuración y Partida','nav.gym':'Gimnasio','nav.city':'Ciudad','nav.roster':'Plantel','nav.market':'Mercado','nav.profile':'Mi Perfil','nav.staff':'Personal','nav.calendar':'Calendario'}
+    catalogs={'es':spanish,**{locale:json.loads((ROOT/'public'/'i18n'/(locale+'.json')).read_text(encoding='utf-8')) for locale in ['en','pt-BR']}}
+    locale='es'
+    labels=['nav.gym','nav.city','nav.roster','nav.market','nav.profile','nav.staff','nav.calendar']
+    ids=['gimnasio','ciudad','plantel','mercado','perfil','personal','calendario']
+    for target in ['en','pt-BR','es']:
+        page.get_by_role('button',name=catalogs[locale]['top.settings'],exact=True).click()
+        dialog=page.get_by_role('dialog',name=catalogs[locale]['settings.title'],exact=True)
+        dialog.get_by_role('combobox',name=catalogs[locale]['settings.section'],exact=True).select_option('idioma')
+        dialog.get_by_role('combobox',name=catalogs[locale]['language.label'],exact=True).select_option(target)
+        page.wait_for_function('(locale)=>localStorage.getItem("vida-del-boxeo:idioma")===locale',arg=target)
+        locale=target
+        dialog=page.get_by_role('dialog',name=catalogs[locale]['settings.title'],exact=True)
+        dialog.get_by_role('combobox',name=catalogs[locale]['language.label'],exact=True).wait_for()
+        page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+        assert not measure_detail(page)['failures'], (locale,measure_detail(page)['failures'])
+        page.keyboard.press('Escape');dialog.wait_for(state='detached')
+        assert state(page)==before and page.evaluate('window.__qaRandom')==rng, 'Language altered the game or RNG'
+        for tab,label in zip(ids,labels):
+            go_tab(page,tab,catalogs[locale][label])
+            nav=page.locator('.app-nav select')
+            if nav.count():
+                option=nav.locator('option[value="'+tab+'"]')
+                assert option.count()==1
+                assert option.evaluate("e=>[...e.childNodes].map(n=>window.__r4PseudoNodes?.get(n)===n.textContent ? window.__r4PseudoOriginals.get(n) : n.textContent).join('')")==catalogs[locale][label]
+            assert not measure_detail(page)['failures'], (locale,tab,measure_detail(page)['failures'])
+            assert page.locator('footer').inner_text().startswith('MADART STUDIOS') or 'MadArt Studios' in page.locator('footer').inner_text()
+            assert state(page)==before and page.evaluate('window.__qaRandom')==rng
+        page.screenshot(path=str(page.r4_open_capture.with_name(f'language-{locale}.png')))
+        page.reload(wait_until='networkidle')
+        page.get_by_role('button',name=catalogs[locale]['top.settings'],exact=True).wait_for()
+        assert state(page)==before, 'Locale reload rewrote the save'
+        assert page.evaluate('localStorage.getItem("vida-del-boxeo:idioma")')==locale
+        assert page.evaluate('window.__qaRandom')==rng
+
+
+def language_failure_case(page):
+    before=state(page)
+    page.evaluate('localStorage.setItem("vida-del-boxeo:idioma","pt-BR")')
+    page.route('**/i18n/pt-BR.json',lambda route:route.fulfill(status=404,body='missing'))
+    page.reload(wait_until='networkidle')
+    page.get_by_role('button',name='Usar español esta vez',exact=True).wait_for()
+    assert page.locator('.app-nav').count()==0, 'Game initialized before failed locale recovery'
+    assert state(page)==before
+    assert page.evaluate('localStorage.getItem("vida-del-boxeo:idioma")')=='pt-BR'
+    assert complete_literal(page,page.locator('main')).startswith('No se pudo cargar el idioma elegido.')
+    page.get_by_role('button',name=re.compile(r'^Usar español esta vez(?:\s|$)')).click()
+    page.get_by_role('button',name='Configuración y partidas',exact=True).wait_for()
+    assert state(page)==before
+    assert page.evaluate('localStorage.getItem("vida-del-boxeo:idioma")')=='pt-BR', 'Fallback silently overwrote preference'
+    page.get_by_role('button',name='Configuración y partidas',exact=True).click()
+    dialog=page.get_by_role('dialog',name='Configuración y Partida',exact=True)
+    dialog.get_by_role('combobox',name='Sección de configuración',exact=True).select_option('idioma')
+    language=dialog.get_by_role('combobox',name='Idioma',exact=True)
+    language.select_option('pt-BR')
+    dialog.get_by_role('alert').wait_for()
+    assert dialog.get_by_role('alert').inner_text()=='No se cambió el idioma. Revisá la conexión o el almacenamiento y volvé a intentarlo.'
+    assert language.input_value()=='es' and state(page)==before
+    page.keyboard.press('Escape')
+
+
 def archive_case(page):
     def literal():
         parts=[]
         while True:
-            parts.append(page.get_by_test_id('literal-text-page').evaluate("e=>[...e.childNodes].map(n=>window.__r4PseudoNodes?.get(n)===n.textContent ? window.__r4PseudoOriginals.get(n) : n.textContent).join('')"))
+            parts.append(dialog.get_by_test_id('literal-text-page').evaluate("e=>[...e.childNodes].map(n=>window.__r4PseudoNodes?.get(n)===n.textContent ? window.__r4PseudoOriginals.get(n) : n.textContent).join('')"))
             report=measure_detail(page)
             assert not report['failures'], ('literal page', report['failures'])
             following=page.get_by_role('dialog').last.get_by_role('button', name=re.compile(r'^Siguiente(?:\s|$)'))
@@ -626,6 +781,8 @@ def archive_case(page):
         compact=page.locator('.roster-filters select')
         if compact.locator('option[value="gestion:abrir"]').count(): compact.select_option(value='gestion:abrir')
     trigger = page.get_by_role('button', name='Archivo de carreras', exact=True)
+    view=page.get_by_role('combobox',name='Sección de gestión del plantel',exact=True)
+    if view.count(): view.select_option(value='acciones')
     trigger.click()
     dialog = page.get_by_role('dialog').filter(has=page.get_by_test_id('career-archive'))
     dialog.wait_for()
@@ -668,14 +825,28 @@ def go_tab(page, value, label):
     else: page.locator('.app-nav').get_by_role('button',name=label,exact=True).click()
 
 
+def original_text(scope):
+    # CSS uppercase is presentation, not rewritten catalog/history data.
+    # Pseudo expansion remains active for geometry and is reversed ONLY for identity assertions.
+    return scope.evaluate("e=>{const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT),parts=[];for(let n;(n=w.nextNode());){if(n.parentElement.closest('svg,script,style'))continue;parts.push(window.__r4PseudoNodes?.get(n)===n.textContent?window.__r4PseudoOriginals.get(n):n.textContent);}return parts.join(' ');}")
+
+
 def complete_literal(page, scope=None):
+    if page.get_by_role('dialog').count():
+        page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
     parts=[]
+    target=scope if scope is not None else page.locator('[role="dialog"]:not([inert])').last if page.locator('[role="dialog"]:not([inert])').count() else page.locator('.game-screen')
+    previous=target.get_by_test_id('literal-text-page').locator('..').get_by_role('button',name=re.compile(r'^(?:Anterior|Previous)(?:\s|$)'))
+    # A second read of the SAME value does not reset the player's current page.
+    # Return explicitly to the start, then reconstruct and measure every page.
+    while previous.count() and previous.is_enabled(): previous.click()
     while True:
         report=measure_detail(page)
         assert not report['failures'], report['failures']
-        literal=(scope if scope is not None else page).get_by_test_id('literal-text-page')
+        target=scope if scope is not None else page.locator('[role="dialog"]:not([inert])').last if page.locator('[role="dialog"]:not([inert])').count() else page.locator('.game-screen')
+        literal=target.get_by_test_id('literal-text-page')
         parts.append(literal.evaluate("e=>[...e.childNodes].map(n=>window.__r4PseudoNodes?.get(n)===n.textContent ? window.__r4PseudoOriginals.get(n) : n.textContent).join('')"))
-        following=literal.locator('..').get_by_role('button',name=re.compile(r'^Siguiente(?:\s|$)'))
+        following=literal.locator('..').get_by_role('button',name=re.compile(r'^(?:Siguiente|Next|Próximo)(?:\s|$)'))
         if not following.count() or following.is_disabled(): break
         following.click()
     return ''.join(parts)
@@ -717,8 +888,9 @@ def market_extremes_case(page):
     go_tab(page,'mercado','Mercado')
     before=state(page)
     picker=page.get_by_role('combobox',name='Categoría del mercado',exact=True)
-    for category in ['equipamiento','indumentaria','instalaciones','difusion']:
-        picker.select_option(value=category)
+    for category,label in [('equipamiento','Equipamiento'),('indumentaria','Indumentaria'),('instalaciones','Instalaciones y Salud'),('difusion','Difusión y Marca Propia')]:
+        if picker.count(): picker.select_option(value=category)
+        else: page.locator('.market-categories').get_by_role('button',name=re.compile('^'+label+r'(?:\s|$)')).click()
         while True:
             assert not measure_detail(page)['failures'], (category,measure_detail(page)['failures'])
             for card in page.locator('.market-card').all():
@@ -776,9 +948,18 @@ def staff_extremes_case(page):
 def properties_extremes_case(page):
     go_tab(page,'perfil','Mi Perfil')
     before=state(page)
-    page.get_by_role('combobox',name='Sección del perfil',exact=True).select_option(value='bienes')
+    section=page.get_by_role('combobox',name='Sección del perfil',exact=True)
+    if section.count(): section.select_option(value='bienes')
+    else: page.locator('.profile-subnav').get_by_role('button',name=re.compile(r'^Bienes raíces(?:\s|$)',re.I)).click()
     assert not measure_detail(page)['failures'], measure_detail(page)['failures']
     picker=page.get_by_role('combobox',name='Propiedad del club',exact=True)
+    if not picker.count():
+        assert page.locator('.profile-property-card').count()==6
+        for card in page.locator('.profile-property-card').all():
+            assert 'Escriturada' in original_text(card)
+            assert not measure_detail(page)['failures']
+        assert state(page)==before
+        return
     assert picker.locator('option').count()==6
     for prop in ['local','terreno','sucursal','apartamento','mansion','arena']:
         picker.select_option(value=prop)
@@ -792,8 +973,11 @@ def properties_extremes_case(page):
 def profile_decisions_case(page):
     go_tab(page,'perfil','Mi Perfil')
     before=state(page)
-    page.get_by_role('combobox',name='Sección del perfil',exact=True).select_option(value='resumen')
-    summary=page.get_by_role('dialog',name=re.compile(r'^Perfil del coach(?:\s|$)'))
+    section=page.get_by_role('combobox',name='Sección del perfil',exact=True)
+    if section.count():
+        section.select_option(value='resumen')
+        summary=page.get_by_role('dialog',name=re.compile(r'^Perfil del coach(?:\s|$)'))
+    else: summary=page.locator('.profile-summary')
     summary.wait_for()
     page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
     legacy=summary.get_by_role('button',name=re.compile(r'^Sistema de Legado(?:\s|$)'))
@@ -818,14 +1002,16 @@ def profile_decisions_case(page):
     assert 'resultado neto' in copy and 'reinicia' in copy
     page.keyboard.press('Escape');dialog.wait_for(state='detached')
     assert close.evaluate('e=>e===document.activeElement')
-    page.keyboard.press('Escape');summary.wait_for(state='detached')
+    if section.count(): page.keyboard.press('Escape');summary.wait_for(state='detached')
     assert state(page)==before, 'Reviewing/cancelling destructive decisions changed the save'
 
 
 def fundraising_case(page):
     go_tab(page,'perfil','Mi Perfil')
     before=state(page)
-    page.get_by_role('combobox',name='Sección del perfil',exact=True).select_option(value='actividades')
+    section=page.get_by_role('combobox',name='Sección del perfil',exact=True)
+    if section.count(): section.select_option(value='actividades')
+    else: page.get_by_role('button',name=re.compile(r'^Actividades del Club(?:\s|$)',re.I)).click()
     dialog=page.get_by_role('dialog').last
     picker=dialog.get_by_role('combobox',name='Actividad para recaudar fondos',exact=True)
     page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
@@ -854,6 +1040,7 @@ def courses_case(page):
             assert not measure_detail(page)['failures']
             detail=page.get_by_role('button',name=re.compile(r'^Ver curso(?:\s|$)'))
             if not detail.count(): break
+            if detail.count()>1: detail=detail.nth(index)
             detail.click()
             dialog=page.get_by_role('dialog').last
             page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
@@ -863,8 +1050,9 @@ def courses_case(page):
             dialog.wait_for(state='detached')
             assert detail.evaluate('e=>e===document.activeElement')
             nxt=page.locator('.profile-pagination').get_by_role('button',name=re.compile(r'^Siguiente(?:\s|$)'))
-            if nxt.is_disabled(): break
-            nxt.click()
+            if nxt.count():
+                if nxt.is_disabled(): break
+                nxt.click()
     assert state(page)==before, 'Reading a course changed money or progress'
 
 
@@ -939,7 +1127,7 @@ def calendar_views_case(page):
                 response=page.get_by_role('combobox',name='Respuesta al evento',exact=True)
                 for index,choice in enumerate(event['opciones']):
                     response.select_option(value=str(index))
-                    assert complete_literal(page)==choice['texto']
+                    assert complete_literal(page)=='Registro histórico en su idioma original\n'+choice['texto']
                 page.screenshot(path=str(page.r4_open_capture))
                 view.select_option(value='agenda')
     assert state(page)==before, 'Reviewing calendar choices altered events, money or dates'
@@ -1019,7 +1207,7 @@ def press_panel_case(page):
         trigger.click()
         dialog=page.get_by_role('dialog',name=re.compile(r'^Noticias del Ring(?:\s|$)'))
         page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
-        assert complete_literal(page,dialog)==f"Semana {note['semana']}\n{note['texto']}", 'News text or week changed'
+        assert complete_literal(page,dialog)==f"Semana {note['semana']}\nRegistro histórico en su idioma original\n{note['texto']}", 'News text or week changed'
         page.keyboard.press('Escape')
         dialog.wait_for(state='detached')
         assert trigger.evaluate('e=>e===document.activeElement'), 'News lost trigger focus'
@@ -1097,18 +1285,18 @@ def advice_payment_case(page):
     page.get_by_role('combobox',name='Canal del panel del club',exact=True).select_option(value='consejos')
     page.get_by_role('combobox',name='Hito del club',exact=True).select_option(value='c9')
     page.get_by_role('button',name='Ver hito',exact=True).click()
-    dialog=page.get_by_role('dialog',name='Detalle del hito',exact=True)
+    dialog=page.get_by_role('dialog',name=re.compile(r'^Detalle del hito(?:\s|$)'))
     assert dialog.get_by_role('button',name='Cobrar',exact=True).count()==0, 'Claim offered before displaying reward'
     dialog.get_by_role('combobox',name='Detalle del consejo',exact=True).select_option(value='recompensa')
     page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
     assert complete_literal(page,dialog)=='Recompensa: +2 fama · $80\nListo para cobrar'
     assert state(page)==before
-    dialog.get_by_role('button',name='Cobrar',exact=True).click()
+    dialog.get_by_role('button',name=re.compile(r'^Cobrar(?:\s|$)')).click()
     dialog.wait_for(state='detached')
     page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.consejos.find(c=>c.id==='c9').reclamado")
     after=state(page)
     assert after['dinero']==before['dinero']+80 and after['fama']==before['fama']+2
-    assert after['libroIngresos']==before['libroIngresos']+[{'concepto':'Recompensa · '+before['consejos'][0]['texto'],'monto':80}]
+    assert after['libroIngresos']==before['libroIngresos']+[{'concepto':'Recompensa · '+before['consejos'][0]['texto'],'monto':80,'presentacion':{'id':'ledger.reward','parametros':{'objective':'c9'}}}]
     page.reload(wait_until='networkidle')
     assert state(page)['consejos']==after['consejos'] and state(page)['dinero']==after['dinero']
     if nav.count(): nav.select_option(value='contexto-club')
@@ -1129,9 +1317,8 @@ def expired_event_case(page):
     page.get_by_role('combobox',name='Actividad de la agenda',exact=True).select_option(value='evento:r4-expired')
     view=page.get_by_role('combobox',name='Vista del calendario',exact=True)
     view.select_option(value='decision')
-    page.get_by_role('combobox',name='Sección del aviso',exact=True).select_option(value='respuesta')
     assert page.get_by_role('button',name='Confirmar respuesta',exact=True).is_disabled(), 'Expired notice still offers an executable response'
-    page.get_by_role('combobox',name='Sección del aviso',exact=True).select_option(value='texto')
+    view.select_option(value='agenda')
     detail=complete_literal(page)
     assert 'Este evento ya venció.' in detail and before['eventos'][0]['texto'] in detail
     assert state(page)==before and page.evaluate('window.__qaRandom')==rng
@@ -1226,13 +1413,475 @@ def fight_screen_case(page):
     assert state(page)['dinero']==paid['dinero'] and state(page)['historial']==paid['historial'], 'Reload duplicated a fight payment'
 
 
+def fight_final_case(page):
+    nav=page.locator('.app-nav select')
+    if nav.count():nav.select_option(value='contexto-cartelera')
+    else:page.get_by_role('button',name=re.compile('^Noche de peleas')).click()
+    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.combateActivo!==null")
+    fixture=state(page)
+    combat=fixture['combateActivo']
+    is_ko='-ko' in page.r4_case
+    combat.update(finalizada=True,ko='b' if is_ko else None,asalto=combat['totalAsaltos'],asaltosCerrados=combat['totalAsaltos'],intercambiosAsalto=0,acciones=[],tarjetas=[{'a':30,'b':30} for _ in range(3)])
+    if is_ko:combat['B'].update(hp=0,caidas=1)
+    page.evaluate('s=>localStorage.setItem("vida-del-boxeo-v2",JSON.stringify(s))',fixture)
+    before=copy.deepcopy(fixture)
+    catalogs={locale:json.loads((ROOT/'public'/'i18n'/(locale+'.json')).read_text(encoding='utf-8')) for locale in ['en','pt-BR']}
+    catalogs['es']={'fight.view':'Vista del combate','fight.continue':'Continuar Velada','method.ko':'Nocaut','method.draw':'Empate'}
+    expected=100 if is_ko else 30
+    for locale in ['es','en','pt-BR']:
+        page.evaluate('locale=>localStorage.setItem("vida-del-boxeo:idioma",locale)',locale)
+        page.reload(wait_until='networkidle')
+        nav=page.locator('.app-nav select')
+        if nav.count():nav.select_option(value='contexto-cartelera')
+        else:page.locator('.app-body button').filter(has_text=re.compile('night|Noche|noite',re.I)).click()
+        dialog=page.get_by_role('dialog')
+        view=dialog.get_by_role('combobox',name=catalogs[locale]['fight.view'],exact=True)
+        assert state(page)['combateActivo']==combat, 'Reading a finished checkpoint changed it'
+        for section in ['decision','identidad','estadisticas','tarjetas','relato','ring']:
+            view.select_option(section)
+            result=measure_detail(page)
+            assert not result['failures'] and not result['globalScroll'], (locale,section,result['failures'])
+            if section!='ring':
+                full=complete_literal(page,dialog)
+                if section=='decision':
+                    assert catalogs[locale]['method.ko' if is_ko else 'method.draw'] in full
+                    assert '$'+str(expected) in full, (locale,expected,full)
+            else:
+                fallen=dialog.locator('.fight-ring .gym-figure').nth(1).locator('svg rect[transform^="rotate(70"]')
+                assert fallen.count()==(1 if is_ko else 0), 'Reloaded knockout must retain its fallen presentation'
+        page.screenshot(path=str(page.r4_open_capture.with_name(f'{page.r4_case}-{locale}.png')))
+        page.keyboard.press('Escape')
+        assert dialog.is_visible() and state(page)['combateActivo']==combat
+    terminal=dialog.get_by_role('button',name=re.compile('^'+re.escape(catalogs['pt-BR']['fight.continue'])+r'(?:\s|$)'))
+    terminal.click();dialog.wait_for(state='detached')
+    paid=state(page)
+    assert paid['dinero']==before['dinero']+expected
+    assert len(paid['historial'])==len(before['historial'])+1
+    assert paid['historial'][0]['empate']==(not is_ko) and paid['historial'][0]['gane']==is_ko
+    assert paid['historial'][0]['metodo']==('Nocaut' if is_ko else 'Empate')
+    assert paid['combateActivo'] is None and not paid['pendientes']
+    page.reload(wait_until='networkidle')
+    assert state(page)['dinero']==paid['dinero'] and state(page)['historial']==paid['historial']
+
+
+def fight_count_case(page):
+    nav=page.locator('.app-nav select')
+    if nav.count():nav.select_option(value='contexto-cartelera')
+    else:page.get_by_role('button',name=re.compile('^Noche de peleas')).click()
+    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.combateActivo!==null")
+    fixture=state(page);combat=fixture['combateActivo']
+    combat['semillaAzar']=72
+    combat['A'].update(poderDmg=18.2,precision=1,plan='equilibrado')
+    combat['B'].update(hp=100,hpMax=100,evasion=0,precision=0,plan='equilibrado')
+    page.evaluate('s=>localStorage.setItem("vida-del-boxeo-v2",JSON.stringify(s))',fixture)
+    page.reload(wait_until='networkidle')
+    nav=page.locator('.app-nav select')
+    if nav.count():nav.select_option(value='contexto-cartelera')
+    else:page.get_by_role('button',name=re.compile('^Noche de peleas')).click()
+    dialog=page.get_by_role('dialog')
+    dialog.get_by_role('combobox',name='Vista del combate',exact=True).select_option('ring')
+    dialog.get_by_role('button',name='Salir al Asalto',exact=True).click()
+    skip=dialog.get_by_role('button',name=re.compile(r'^Saltar conteo(?:\s|$)'))
+    skip.wait_for(timeout=60000)
+    result=measure_detail(page)
+    assert not result['failures'] and not result['globalScroll'], result['failures']
+    page.screenshot(path=str(page.r4_open_capture))
+    snapshot=state(page)['combateActivo']
+    assert snapshot['B']['caidas']>=1 and snapshot['B']['hp']>0, 'Fixture did not produce a recoverable fall'
+    skip.click()
+    dialog.get_by_role('button',name=re.compile('^Simular resto del combate')).click()
+    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.combateActivo.finalizada")
+    assert not measure_detail(page)['failures']
+
+
+def planning_case(page):
+    before=state(page)
+    rng=page.evaluate('window.__qaRandom')
+    nav=page.locator('.app-nav select')
+    nav.select_option(value='contexto-plan')
+    dialog=page.get_by_role('dialog')
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    measured=measure_detail(page)
+    assert not measured['failures'], measured['failures']
+    section=dialog.get_by_role('combobox',name='Sección de planificación',exact=True)
+    for value in ['guia','prevision','actividades']:
+        section.select_option(value=value)
+        if value=='guia':
+            step=dialog.get_by_role('combobox',name='Paso de la guía',exact=True)
+            assert step.locator('option').count()==4
+            for i,field in enumerate(['enfoques','equipo','guanteos','licencia']):
+                step.select_option(value=str(i))
+                complete_literal(page,dialog)
+                action=dialog.get_by_role('button',name=re.compile('^Abrir pestaña(?:\\s|$)'))
+                assert action.is_disabled()==before['guiaClub'][field], 'Completed milestone must not present a required action'
+        else:
+            detail=complete_literal(page,dialog)
+            assert 'cobros garantizados' in detail if value=='actividades' else 'Ingresos previstos' in detail
+        assert not measure_detail(page)['failures']
+    assert state(page)==before and page.evaluate('window.__qaRandom')==rng
+    page.screenshot(path=str(page.r4_open_capture))
+    page.keyboard.press('Escape');dialog.wait_for(state='detached')
+    assert nav.evaluate('e=>e===document.activeElement')
+
+
+def career_confirm_case(page):
+    """The visible destructive confirmation performs exactly the existing rule."""
+    before=state(page)
+    go_tab(page,'perfil','Mi Perfil')
+    picker=page.get_by_role('combobox',name='Sección del perfil',exact=True)
+    if picker.count():
+        picker.select_option('resumen')
+        summary=page.get_by_role('dialog').last
+    else: summary=page.locator('.profile-summary')
+    is_legacy='legacy' in page.r4_case
+    summary.get_by_role('button',name=re.compile(r'^Sistema de Legado(?:\s|$)' if is_legacy else r'^Cerrar el club(?:\s|$)')).click()
+    dialog=page.get_by_role('dialog').last
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    full=complete_literal(page,dialog)
+    if is_legacy: assert 'nueva carrera' in full and 'no se conserva' in full
+    else: assert 'Archivo de carreras competitivas' in full and '$900' in full and 'reinicia' in full
+    confirm=dialog.get_by_role('button',name=re.compile(r'^Iniciar legado(?:\s|$)' if is_legacy else r'^Confirmar cierre irreversible(?:\s|$)'))
+    assert confirm.is_enabled()
+    assert not measure_detail(page)['failures']
+    confirm.click()
+    page.wait_for_function("old=>JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.nombreGimnasio===old+' II'",arg=before['nombreGimnasio'])
+    after=state(page)
+    if is_legacy:
+        assert after['legados']==before['legados']+1
+        assert after['fama']==14
+        assert after['dinero']==1400, 'Empty-roster legacy must preserve the exact existing capital formula'
+        assert after['nombreJugador']=='El Heredero' and after['partidaId']!=before['partidaId']
+        assert after['salonFama']==[] and after['archivoCarreras']==[] and after['stats']['peleas']==0
+    else:
+        assert after['dinero']==900 and after['legados']==0 and after['partidaId']==before['partidaId']
+        assert after['nombreJugador']==before['nombreJugador']
+        assert after['salonFama']==before['salonFama'] and after['archivoCarreras']==before['archivoCarreras']
+        for key in ['peleas','victorias','kos','veladas','titulos']: assert after['stats'][key]==before['stats'][key]
+    for key in ['propiedades','personal','equipamiento','cursos','pendientes','historial','comunitarios','cinturones']:
+        assert after[key]==[], (key,after[key])
+    assert after['prestamo'] is None and after['patrocinio'] is None and after['semana']==1 and after['dia']==1
+    page.reload(wait_until='networkidle');assert state(page)==after
+
+
+def localized_details_case(page):
+    """Real foreign catalogs, full detail pages, non-mutating decisions and focus.
+
+    This complements (rather than substitutes) the Spanish functional matrix.
+    Never translates fixtures or changes domain assertions to fit a locale.
+    """
+    locale='pt-BR' if 'portuguese' in page.r4_case else 'en'
+    labels=json.loads((ROOT/'public'/'i18n'/(locale+'.json')).read_text(encoding='utf-8'))
+    before=state(page)
+    rng=page.evaluate('window.__qaRandom')
+    page.evaluate('locale=>localStorage.setItem("vida-del-boxeo:idioma",locale)',locale)
+    page.reload(wait_until='networkidle')
+    page.get_by_role('button',name=labels['top.settings'],exact=True).wait_for()
+    def select(scope,key,value):
+        scope.get_by_role('combobox',name=labels[key],exact=True).select_option(value=value)
+    def button(scope,key):
+        return scope.get_by_role('button',name=re.compile('^'+re.escape(labels[key])+r'(?:\s|$)'))
+    def read(scope=None):
+        if page.get_by_role('dialog').count():
+            page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+        target=scope if scope is not None else page
+        full=complete_literal(page,scope) if target.get_by_test_id('literal-text-page').count() else original_text(scope if scope is not None else page.locator('body'))
+        result=measure_detail(page)
+        assert not result['failures'] and not result['globalScroll'], (locale,result['failures'])
+        assert not re.search(r'\b(?:message|content|nav|settings|staff|sheet)\.[a-z]+\.[a-z]+\b',full), 'Unresolved catalog key'
+        return full
+    def close(trigger=None):
+        page.keyboard.press('Escape')
+        if trigger is not None: assert trigger.evaluate('e=>e===document.activeElement'), 'Foreign dialog lost trigger focus'
+    def tab(value,key):
+        go_tab(page,value,labels[key]);read()
+    trigger=page.get_by_role('button',name=labels['top.settings'],exact=True)
+    trigger.click()
+    dialog=page.get_by_role('dialog').last
+    for section in ['partida','idioma','lectura','sonido','atajos','atajos-ayuda','atajos-guardar','riesgo']:
+        select(dialog,'settings.section',section);read(dialog)
+    close(trigger)
+    tab('ciudad','nav.city')
+    for prop in ['local','terreno','sucursal','apartamento','mansion','arena']:
+        picker=page.get_by_role('combobox',name=labels['city.management'],exact=True)
+        if picker.count():
+            picker.select_option(value=prop)
+            trigger=picker
+        else:
+            page.get_by_role('button',name=re.compile('^'+re.escape(labels['property.'+prop+'.name'])+' ·')).click()
+            trigger=button(page,'city.inspect');trigger.click()
+        dialog=page.get_by_role('dialog').last
+        for section in ['detalle','beneficio','compra']:
+            select(dialog,'city.propertySection',section);read(dialog)
+        close(trigger)
+    tab('mercado','nav.market')
+    for index,category in enumerate(['equipamiento','indumentaria','instalaciones','difusion']):
+        picker=page.get_by_role('combobox',name=labels['market.category'],exact=True)
+        if picker.count(): picker.select_option(value=category)
+        else: button(page,'category.'+str(index)+'.name').click()
+        while True:
+            read()
+            for card in page.locator('.market-card').all():
+                trigger=button(card,'action.detail')
+                if trigger.count(): trigger.click();read(page.get_by_role('dialog').last);close(trigger)
+                else:
+                    full=read(card)
+                    ident=card.get_attribute('data-equipment-id')
+                    assert labels['gear.'+ident+'.desc'] in full and labels['gear.'+ident+'.effect'] in full
+            following=page.locator('.market-pagination button').last
+            if not following.count() or following.is_disabled(): break
+            following.click()
+    tab('personal','nav.staff')
+    while True:
+        read()
+        for card in page.locator('.staff-card').all():
+            trigger=button(card,'action.detail');trigger.click();dialog=page.get_by_role('dialog').last
+            for section in ['funcion','disponibilidad','contratos']:
+                select(dialog,'staff.detailView',section);read(dialog)
+                if section=='contratos':
+                    employee=dialog.get_by_role('combobox',name=labels['staff.employee'],exact=True)
+                    if employee.count():
+                        ids=employee.locator('option').evaluate_all('es=>es.map(e=>e.value)')
+                        for ident in ids:
+                            employee.select_option(value=ident)
+                            name=next(p['nombre'] for p in before['personal'] if p['id']==ident)
+                            assert name in read(dialog), 'Foreign catalog rewrote historical employee'
+            close(trigger)
+        following=page.locator('.staff-pagination button').last
+        if not following.count() or following.is_disabled(): break
+        following.click()
+    tab('perfil','nav.profile')
+    for branch,key in [('deportiva','sports'),('promotora','promoter'),('empresarial','business')]:
+        picker=page.get_by_role('combobox',name=labels['profile.branch'],exact=True)
+        if picker.count(): picker.select_option(value=branch)
+        else: button(page.locator('.profile-branches'),'profile.branch.'+key).click()
+        while True:
+            trigger=button(page,'course.open')
+            if not trigger.count():
+                assert page.locator('.profile-course-card').count()==3
+                read(page.locator('.profile-course-grid'))
+                break
+            for course_trigger in trigger.all():
+                course_trigger.click();read(page.get_by_role('dialog').last);close(course_trigger)
+            following=page.locator('.profile-pagination button').last
+            if not following.count() or following.is_disabled(): break
+            following.click()
+    profile_picker=page.get_by_role('combobox',name=labels['profile.section'],exact=True)
+    compact_profile=profile_picker.count()>0
+    if compact_profile:
+        profile_picker.select_option('bienes')
+        for prop in ['local','terreno','sucursal','apartamento','mansion','arena']:
+            select(page,'property.choose',prop)
+            assert labels['property.deeded'] in read(page.locator('.profile-property-detail'))
+        profile_picker.select_option('resumen');dialog=page.get_by_role('dialog').last
+    else:
+        button(page.locator('.profile-subnav'),'profile.properties').click()
+        assert page.locator('.profile-property-card').count()==6
+        for card in page.locator('.profile-property-card').all(): assert labels['property.deeded'] in read(card)
+        dialog=page.locator('.profile-summary')
+    for section in ['identidad','estadisticas','decisiones']:
+        select(dialog,'profile.sectionDetail',section);read(dialog)
+    legacy=button(dialog,'legacy.system');assert legacy.is_enabled();legacy.click()
+    read(page.get_by_role('dialog').last);close(legacy)
+    closure=button(dialog,'closure.open');closure.click()
+    assert '$900' in read(page.get_by_role('dialog').last);close(closure)
+    if compact_profile:
+        close();profile_picker.select_option('actividades')
+    else: button(page.locator('.profile-subnav'),'profile.activities').click()
+    dialog=page.get_by_role('dialog').last
+    for activity in ['bingo','naipes','festival','claseAbierta']:
+        select(dialog,'social.choose',activity)
+        assert labels['social.risk'] in read(dialog)
+        assert button(dialog,'social.schedule').is_disabled()
+    close()
+    tab('plantel','nav.roster')
+    trigger=page.get_by_role('button',name=re.compile('^'+re.escape(labels['roster.openSheet'].split('{name}')[0]))).first
+    trigger.click();dialog=page.get_by_role('dialog').last
+    section_picker=dialog.get_by_role('combobox',name=labels['sheet.section'],exact=True)
+    if section_picker.count():
+        sections=section_picker.locator('option').evaluate_all('es=>es.map(e=>e.value)')
+        for section in sections:
+            section_picker.select_option(section);read(dialog)
+    else: read(dialog)
+    close(trigger)
+    nav=page.locator('.app-nav select')
+    if nav.count():
+        nav.select_option(value='contexto-club');dialog=page.get_by_role('dialog').last
+    else: dialog=page.locator('.club-panel')
+    for channel in ['mensajes','patrocinios','prensa','consejos']:
+        select(dialog,'panel.channel',channel);read(dialog)
+        if channel=='mensajes':
+            button(dialog,'event.open').click();child=page.get_by_role('dialog').last
+            assert 'Registro histórico literal 🥊' in read(child);close()
+        if channel=='prensa':
+            button(dialog,'press.open').click();child=page.get_by_role('dialog').last
+            full=read(child);assert labels['record.historical'] in full and 'Registro histórico literal 🥊' in full;close()
+        if channel=='consejos':
+            select(dialog,'advice.section','orientacion');button(dialog,'advice.read').click()
+            assert labels['advice.intro'] in read(page.get_by_role('dialog').last);close()
+    page.screenshot(path=str(page.r4_open_capture))
+    if nav.count(): close()
+    assert state(page)==before and page.evaluate('window.__qaRandom')==rng, 'Foreign detail changed save or game RNG'
+    page.reload(wait_until='networkidle')
+    assert state(page)==before and page.evaluate('window.__qaRandom')==rng
+
+
+def transaction_case(page):
+    """Execute visible decisions, checking exact R3 prices and persisted receipts."""
+    before=state(page)
+    costs=[]
+    def check():
+        if page.get_by_role('dialog').count(): page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+        result=measure_detail(page)
+        assert not result['failures'] and not result['globalScroll'], result
+    def following(selector):
+        next_button=page.locator(selector+' button').last
+        assert next_button.is_enabled(), 'Required decision missing from all pages'
+        next_button.click()
+    def card_on_page(selector,pager):
+        previous=page.locator(pager+' button').first
+        while previous.count() and previous.is_enabled(): previous.click()
+        for _ in range(30):
+            card=page.locator(selector)
+            if card.count(): return card
+            following(pager)
+        raise AssertionError('Unreachable card: '+selector)
+    def buy(scope,amount):
+        check()
+        scope.get_by_role('button',name=re.compile(r'^Comprar · \$'+f'{amount:,}'.replace(',','.')+r'(?:\s|$)')).click()
+        costs.append(amount)
+        page.wait_for_function('n=>JSON.parse(localStorage.getItem("vida-del-boxeo-v2")).state.dinero===n',arg=before['dinero']-sum(costs))
+    if 'gear' in page.r4_case:
+        go_tab(page,'mercado','Mercado')
+        for ident,category,amount in [('cuerdaVelocidad','equipamiento',700),('plataformaReaccion','equipamiento',1200),('barraProteinas','instalaciones',3200)]:
+            picker=page.get_by_role('combobox',name='Categoría del mercado',exact=True)
+            if picker.count(): picker.select_option(category)
+            else: page.get_by_role('button',name=re.compile('^'+('Equipamiento' if category=='equipamiento' else 'Instalaciones y Salud')+r'(?:\s|$)')).click()
+            card=card_on_page('[data-equipment-id="'+ident+'"]','.market-pagination')
+            detail=card.get_by_role('button',name=re.compile(r'^Ver detalle(?:\s|$)'))
+            if detail.count():
+                detail.click();dialog=page.get_by_role('dialog').last
+                complete_literal(page,dialog);buy(dialog,amount);page.keyboard.press('Escape')
+            else: buy(card,amount)
+            assert state(page)['equipamiento'].count(ident)==1
+        assert [p['energia'] for p in state(page)['plantel']]==[p['energia'] for p in before['plantel']], 'Equipment must not grant retroactive energy'
+    elif 'brand' in page.r4_case:
+        go_tab(page,'mercado','Mercado')
+        picker=page.get_by_role('combobox',name='Categoría del mercado',exact=True)
+        if picker.count(): picker.select_option('difusion')
+        else: page.locator('.market-categories').get_by_role('button',name=re.compile(r'^Difusión y Marca Propia(?:\s|$)')).click()
+        card=card_on_page('[data-equipment-id="estudioMarca"]','.market-pagination')
+        if card.get_by_role('button',name=re.compile(r'^Ver detalle(?:\s|$)')).count():
+            card.get_by_role('button',name=re.compile(r'^Ver detalle(?:\s|$)')).click()
+            buy(page.get_by_role('dialog').last,2500);page.keyboard.press('Escape')
+        else: buy(card,2500)
+        assert card.get_by_role('button',name=re.compile(r'^Ver detalle(?:\s|$)')).count()==1, 'Duplicated brand access'
+        card.get_by_role('button',name=re.compile(r'^Ver detalle(?:\s|$)')).click()
+        dialog=page.get_by_role('dialog').last;complete_literal(page,dialog);check()
+        dialog.get_by_role('textbox',name='Nombre de la marca',exact=True).fill('Marca auditada')
+        check();dialog.get_by_role('button',name=re.compile(r'^Lanzar(?:\s|$)')).click()
+        page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state.marcaRopa==='Marca auditada'")
+        assert state(page)['equipamiento']==['estudioMarca']
+        assert not dialog.get_by_role('textbox',name='Nombre de la marca',exact=True).count()
+        assert 'Marca auditada' in complete_literal(page,dialog)
+        page.keyboard.press('Escape')
+    elif 'course' in page.r4_case:
+        go_tab(page,'perfil','Mi Perfil')
+        trigger=page.get_by_role('button',name=re.compile(r'^Ver curso(?:s)?(?:\s|$)')).first
+        if trigger.count():
+            trigger.click();dialog=page.get_by_role('dialog').last;complete_literal(page,dialog);buy(dialog,500);page.keyboard.press('Escape')
+        else: buy(page.locator('.profile-course-card').first,500)
+        assert state(page)['cursos']==before['cursos']+['dt']
+    elif 'staff' in page.r4_case:
+        go_tab(page,'personal','Personal')
+        for ident in ['gerente','entrenadorLocal','coordinadorSucursal']:
+            card=card_on_page('[data-staff-type="'+ident+'"]','.staff-pagination')
+            card.get_by_role('button',name=re.compile(r'^Ver detalle(?:\s|$)')).click()
+            dialog=page.get_by_role('dialog').last;complete_literal(page,dialog);check()
+            if ident=='coordinadorSucursal':
+                assert dialog.get_by_role('button',name=re.compile(r'^No disponible(?:\s|$)')).is_disabled()
+            else:
+                count=len(state(page)['personal'])
+                dialog.get_by_role('button',name=re.compile(r'^Contratar(?:\s|$)')).click()
+                confirmation=page.get_by_role('button',name=re.compile(r'^Contratar igualmente(?:\s|$)'))
+                if confirmation.count(): complete_literal(page,page.get_by_role('dialog').last);check();confirmation.click()
+                page.wait_for_function('n=>JSON.parse(localStorage.getItem("vida-del-boxeo-v2")).state.personal.length===n',arg=count+1)
+                assert sum(p['tipo']==ident for p in state(page)['personal'])==1
+            page.keyboard.press('Escape')
+        assert [p['tipo'] for p in state(page)['personal']]==['gerente','entrenadorLocal']
+        assert state(page)['dinero']==before['dinero'], 'Hiring must not charge weekly salary immediately'
+    elif 'activity' in page.r4_case:
+        go_tab(page,'perfil','Mi Perfil')
+        picker=page.get_by_role('combobox',name='Sección del perfil',exact=True)
+        if picker.count(): picker.select_option('actividades')
+        else: page.get_by_role('button',name=re.compile(r'^Actividades del club(?:\s|$)')).click()
+        dialog=page.get_by_role('dialog').last
+        dialog.get_by_role('combobox',name='Actividad para recaudar fondos',exact=True).select_option('claseAbierta')
+        check();complete_literal(page,dialog)
+        dialog.get_by_role('button',name=re.compile(r'^Agendar(?:\s|$)')).click();costs.append(60)
+        page.wait_for_function('n=>JSON.parse(localStorage.getItem("vida-del-boxeo-v2")).state.dinero===n',arg=before['dinero']-60)
+        assert dialog.get_by_role('button',name=re.compile(r'^Agendado(?:\s|$)')).is_disabled()
+        assert state(page)['recreativos']==before['recreativos']+1
+        assert state(page)['comunitarios']==[{'tipo':'claseAbierta','nombre':'Clase Abierta del Barrio'}]
+        page.keyboard.press('Escape')
+    else:
+        go_tab(page,'ciudad','Ciudad')
+        picker=page.get_by_role('combobox',name='Gestión de ciudad e inmuebles',exact=True)
+        if picker.count(): picker.select_option('arena')
+        else:
+            page.get_by_role('button',name=re.compile(r'^Arena Central ·')).click()
+            page.get_by_role('button',name=re.compile(r'^Ver inmueble · Detalles y compra(?:\s|$)')).click()
+        dialog=page.get_by_role('dialog').last
+        dialog.get_by_role('combobox',name='Sección del inmueble',exact=True).select_option('compra')
+        complete_literal(page,dialog);buy(dialog,80000)
+        assert state(page)['propiedades']==before['propiedades']+['arena']
+        assert dialog.get_by_role('button',name=re.compile(r'^Inmueble en posesión(?:\s|$)')).is_disabled()
+        page.keyboard.press('Escape')
+    after=state(page)
+    assert after['dinero']==before['dinero']-sum(costs)
+    assert [row['monto'] for row in after['libroGastos']]==costs, 'Exact receipt/price reconciliation'
+    assert after['libroIngresos']==[] and after['resumen'] is None, 'No invented payment or liquidation'
+    assert after['dia']==before['dia'] and after['semana']==before['semana']
+    for row in after['libroGastos']: assert row['presentacion']['id'].startswith('ledger.')
+    page.screenshot(path=str(page.r4_open_capture))
+    page.reload(wait_until='networkidle');assert state(page)==after
+
+
+def density_mid_case(page):
+    assert page.viewport_size=={'width':1024,'height':576}, 'Explicit reduced desktop density regression'
+    before=state(page)
+    go_tab(page,'personal','Personal')
+    assert page.locator('.staff-card').count()==2, 'Reduced desktop leaves half the grid unused'
+    report=measure_detail(page)
+    assert not report['failures'] and not report['globalScroll'], report
+    assert state(page)==before, 'Density must not change contracts, money or RNG'
+    page.screenshot(path=str(page.r4_open_capture))
+
+
+def density_efficiency_case(page):
+    """A roomy desktop must show more items, not merely stretch a sparse row."""
+    assert page.viewport_size=={'width':1280,'height':720}, 'Explicit native density regression'
+    for tab,label,selector,minimum in [('mercado','Mercado','.market-card',8),('personal','Personal','.staff-card',8),('plantel','Plantel','.plantel-grid article',6),('perfil','Mi Perfil','.profile-course-card',3)]:
+        go_tab(page,tab,label)
+        page.wait_for_function('([s,n])=>document.querySelectorAll(s).length>=n',arg=[selector,minimum])
+        count=page.locator(selector).count()
+        assert count>=minimum, (tab,count,minimum)
+        result=measure_detail(page)
+        assert not result['failures'] and not result['globalScroll'], result
+        if tab=='mercado':
+            tops=page.locator('.market-card').evaluate_all("es=>es.slice(0,4).map(e=>[...e.querySelectorAll('button')].find(b=>b.textContent.trim().startsWith('Ver detalle')).getBoundingClientRect().top)")
+            assert max(tops)-min(tops)<=1, ('Detail buttons not aligned',tops)
+
+
 def run():
     global URL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-ready", action="store_true", required=True)
+    parser.add_argument("--dist", type=Path, default=ROOT/'dist', help="Immutable isolated build; record and recheck every asset hash")
     parser.add_argument("--port", type=int, default=5235, help="Isolated ephemeral test origin; never use the owner's port")
     parser.add_argument("--matrix", action="store_true", help="Settings and gym detail at all ten required sizes")
     parser.add_argument("--case", help="Run one representative acceptance case")
+    parser.add_argument("--cases", help="Comma-separated case families, retaining all assertions")
+    parser.add_argument("--shard", type=int, nargs=2, metavar=("INDEX", "COUNT"), help="Independent matrix partition; union must cover every case")
     parser.add_argument("--viewport", type=int, nargs=2, metavar=("WIDTH", "HEIGHT"), help="Focused real-size case (CSS zoom remains separate)")
     parser.add_argument("--career", action="store_true", help="Long-name licensed boxer with zero energy and five historical results")
     parser.add_argument("--zoom", action="store_true", help="CSS viewport /1.25; DPR remains 1")
@@ -1244,7 +1893,7 @@ def run():
     URL=f"http://127.0.0.1:{args.port}/"
     started = time.perf_counter()
     captures=Path(tempfile.mkdtemp(prefix='r4-dialogs-'))
-    dist = ROOT / "dist"
+    dist = args.dist.resolve()
     fingerprint = {str(p.relative_to(dist)): hashlib.sha256(p.read_bytes()).hexdigest()
                    for p in dist.rglob("*") if p.is_file()}
     assert (dist / "index.html").exists()
@@ -1281,7 +1930,10 @@ def run():
             report["dialog_source_sha256"] = hashlib.sha256((ROOT / "src/ui/dialogs.ts").read_bytes()).hexdigest()
             checks=[("selector-close-reopen-preserve", offers_case), ("selector-mobile-preserve", offers_case), ("dialog-focus-keyboard", focus_case),
                                 ("nested-stack-focus-escape", stacked_dialog_case), ("out-of-order-unmount", out_of_order_dialog_case),
-                                ('compact-contexts-preserve',context_case),('hiring-confirmation',hiring_case),('settings-mobile-bounds',settings_bounds_case),('toast-original-deadline',toast_deadline_case),('transfer-cancel',transfer_cancel_case),('archive',archive_case),('intro',intro_case),('management-switch',management_switch_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case)]
+                                ('compact-contexts-preserve',context_case),('hiring-confirmation',hiring_case),('settings-mobile-bounds',settings_bounds_case),('toast-original-deadline',toast_deadline_case),('toast-inline-reader',toast_inline_case),('transfer-cancel',transfer_cancel_case),('archive',archive_case),('intro',intro_case),('management-switch',management_switch_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case)]
+            checks.append(('density-efficiency',density_efficiency_case))
+            checks.append(('density-mid',density_mid_case))
+            checks.extend((f'transaction-{kind}',transaction_case) for kind in ['gear','course','staff','activity','property'])
             cases=[(name,check,None) for name,check in checks]
             cases.append(('event-response',event_response_case,(390,667)))
             cases.append(('event-panel',event_panel_case,(390,667)))
@@ -1294,6 +1946,7 @@ def run():
             cases.append(('advice-payment',advice_payment_case,(390,667)))
             cases.append(('event-expired',expired_event_case,(390,667)))
             cases.append(('fight-screen',fight_screen_case,(390,667)))
+            cases.extend([('fight-screen-final-draw',fight_final_case,(390,667)),('fight-screen-final-ko',fight_final_case,(390,667)),('fight-screen-count',fight_count_case,(390,667)),('fight-screen-reduced',fight_screen_case,(390,667))])
             cases.append(('club-status',club_status_case,(390,667)))
             cases.append(('boxer-detail',boxer_detail_case,(390,667)))
             cases.append(('city-records',city_records_case,(390,667)))
@@ -1302,16 +1955,36 @@ def run():
             cases.append(('gym-detail',gym_drawer_case,(390,667)))
             cases.append(('selector-detail',offers_detail_case,(390,667)))
             cases.extend([('selector-sign',selector_action_case,(390,667)),('selector-regenerate',selector_action_case,(390,667))])
+            cases.append(('planning',planning_case,(390,667)))
+            cases.extend([('language-switch',language_case,(390,667)),('language-failure',language_failure_case,(390,667))])
+            cases.append(('save-error',save_error_case,(390,667)))
+            cases.append(('save-error-intro',save_error_case,(844,390)))
+            cases.append(('render-recovery',recovery_case,(844,390)))
+            cases.extend([('localized-english',localized_details_case,(390,667)),('localized-portuguese',localized_details_case,(390,667))])
+            cases.extend([('career-closure-confirm',career_confirm_case,(390,667)),('career-legacy-confirm',career_confirm_case,(390,667))])
             cases.extend([('market-extremes',market_extremes_case,(390,667)),('staff-extremes',staff_extremes_case,(390,667)),('properties-extremes',properties_extremes_case,(390,667))])
             cases.extend([('profile-belt',profile_decisions_case,(390,667)),('profile-title-only',profile_decisions_case,(390,667)),('fundraising',fundraising_case,(390,667))])
+            cases.append(('transaction-brand',transaction_case,(390,667)))
             if args.matrix:
-                cases=[(f'{name}-{w}x{h}',check,(w,h)) for w,h in SIZES for name,check in [('settings',settings_bounds_case),('gym-detail',gym_drawer_case),('city-detail',city_detail_case),('boxer-detail',boxer_detail_case),('archive',archive_case),('intro',intro_case),('club-status',club_status_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case),('event-panel',event_panel_case),('transfer-cancel',transfer_cancel_case),('press-panel',press_panel_case),('advice-panel',advice_panel_case),('sponsor-panel',sponsor_panel_case),('advice-payment',advice_payment_case),('event-expired',expired_event_case),('fight-screen',fight_screen_case)]]
+                families=[('settings',settings_bounds_case),('gym-detail',gym_drawer_case),('gym-belts',gym_belts_case),('city-detail',city_detail_case),('city-records',city_records_case),('boxer-detail',boxer_detail_case),('archive',archive_case),('intro',intro_case),('club-status',club_status_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case),('event-panel',event_panel_case),('event-response',event_response_case),('transfer-cancel',transfer_cancel_case),('press-panel',press_panel_case),('advice-panel',advice_panel_case),('sponsor-panel',sponsor_panel_case),('advice-payment',advice_payment_case),('event-expired',expired_event_case),('fight-screen',fight_screen_case),('fight-screen-final-draw',fight_final_case),('fight-screen-final-ko',fight_final_case),('fight-screen-count',fight_count_case),('fight-screen-reduced',fight_screen_case),('planning',planning_case),('language-switch',language_case),('language-failure',language_failure_case),('save-error',save_error_case),('market-extremes',market_extremes_case),('staff-extremes',staff_extremes_case),('properties-extremes',properties_extremes_case),('profile-belt',profile_decisions_case),('profile-title-only',profile_decisions_case),('fundraising',fundraising_case),('weekly-balance',weekly_balance_case),('selector-detail',offers_detail_case),('selector-sign',selector_action_case),('selector-regenerate',selector_action_case)]
+                families.extend([('localized-english',localized_details_case),('localized-portuguese',localized_details_case),('save-error-intro',save_error_case),('career-closure-confirm',career_confirm_case),('career-legacy-confirm',career_confirm_case),('render-recovery',recovery_case)])
+                families.extend((f'transaction-{kind}',transaction_case) for kind in ['gear','course','staff','activity','property','brand'])
+                cases=[(f'{name}-{w}x{h}',check,(w,h)) for w,h in SIZES for name,check in families]
             if args.case:
                 if args.matrix and args.case in ['press-panel','advice-panel','sponsor-panel']:
                     check={'press-panel':press_panel_case,'advice-panel':advice_panel_case,'sponsor-panel':sponsor_panel_case}[args.case]
                     cases=[(f'{args.case}-{w}x{h}',check,(w,h)) for w,h in SIZES]
                 cases=[case for case in cases if case[0]==args.case or (args.matrix and case[0].startswith(args.case+'-'))]
                 assert cases, f'Unknown acceptance case: {args.case}'
+            if args.cases:
+                wanted=args.cases.split(',')
+                cases=[case for case in cases if any(case[0]==name or (args.matrix and case[0].startswith(name+'-')) for name in wanted)]
+                assert cases, 'Unknown acceptance families'
+            if args.shard:
+                index,count=args.shard
+                assert 0 <= index < count
+                report['shard']={'index':index,'count':count,'total_cases':len(cases)}
+                cases=[case for i,case in enumerate(cases) if i%count==index]
             if args.viewport:
                 assert not args.matrix and all(n > 0 for n in args.viewport), 'Viewport is for focal cases, not matrix replacement'
                 cases=[(name,check,tuple(args.viewport)) for name,check,_ in cases]
@@ -1320,7 +1993,25 @@ def run():
                 fixture.update(creado=True, partidaId="r4-disposable", semana=8, semanaLibro=8, dia=2,
                                eventos=[], consejos=[], prensa=[], toasts=[], personal=[], pendientes=[],
                                ofertas=[], ofertasPara=None, combateActivo=None, resumen=None)
+                if name=='density-efficiency':
+                    fixture['plantel']=[dict(copy.deepcopy(base['plantel'][i%len(base['plantel'])]),id=f'density-efficient-{i}',nombre=f'Nombre extenso compuesto {i}',rol='alumno') for i in range(10)]
+                if name.startswith('transaction-'):
+                    fixture.update(dinero=100000,libroIngresos=[],libroGastos=[],equipamiento=[],personal=[],propiedades=[],cursos=[],comunitarios=[],recreativos=0)
+                    if name.startswith('transaction-staff'): fixture.update(propiedades=['sucursal'],cursos=['clubes','franquicias'])
+                    if name.startswith('transaction-property'): fixture.update(cursos=['veladas','prensa','tv'])
+                if name.startswith('localized-'):
+                    fixture.update(dinero=-1500,propiedades=['local','terreno','sucursal','apartamento','mansion','arena'],
+                        cinturones=[{'id':'r4-localized-belt','dueno':'Titular histórico 🥊','nivel':4,'semana':1}],
+                        personal=[{'id':f'r4-staff-{i}','tipo':role,'nombre':f'Contrato literal 🥊 {i}'} for i,role in enumerate(['directorTecnico','gerente','coordinadorSucursal','coordinadorSucursal','entrenadorLocal'])],
+                        eventos=[{'id':'r4-literal-event','tipo':'mantenimiento','de':'Comisión histórica','titulo':'Registro histórico literal 🥊','texto':'Registro histórico literal 🥊, no traducir sin identidad fiable.','venceEn':3,'opciones':[{'texto':'Conservar registro literal','accion':{'tipo':'nada'}}]}],
+                        prensa=[{'id':'r4-literal-news','semana':1,'texto':'Registro histórico literal 🥊'}])
                 if name.startswith('intro'): fixture.update(creado=False, nombreJugador='')
+                if name.startswith('save-error-intro'): fixture.update(creado=False, nombreJugador='')
+                if name.startswith('career-'):
+                    fixture.update(nombreGimnasio='Club de auditoría',nombreJugador='Coach de auditoría',dinero=-1500,plantel=[],legados=0,fama=0,cinturones=[{'id':'r4-world','dueno':'Histórico','nivel':4,'semana':1}],
+                        propiedades=['local','arena'],cursos=['dt'],equipamiento=['soga'],personal=[{'id':'r4-manager','tipo':'gerente','nombre':'Contrato conservado hasta confirmación'}],
+                        prestamo={'saldo':600,'cuota':60,'semanasRestantes':10},patrocinio={'nombre':'Patrocinio anterior','semanal':200,'semanas':10})
+                    fixture['stats'].update(peleas=7,victorias=3,kos=2,veladas=1,titulos=1)
                 if name.startswith('club-status'):
                     fixture.update(nombreGimnasio='Club de los Campeones de Nombres Extraordinariamente Largos',nombreJugador='María de los Ángeles Fernández de la Cruz',dinero=0,seguidores=0,fama=0)
                 if name.startswith('city-records'):
@@ -1357,12 +2048,13 @@ def run():
                     punches={'jab':{'lanzados':0,'conectados':0},'poder':{'lanzados':0,'conectados':0}}
                     fixture['historial']=[{'miId':own['id'],'rivalNombre':'Rival histórico con nombre extenso '+str(i),'gane':False,'empate':True,'metodo':'Empate','tarjetas':[],'caidasA':0,'caidasB':0,'registroA':punches,'registroB':punches,'bolsa':0,'fama':0,'tituloGanado':0,'resumen':'Registro histórico desconocido que debe conservarse literalmente. '*3} for i in range(5)]
                 if name=='management-switch':
+                    fixture['plantel'][0].update(rol='boxeador',licenciaFederativa=True,circuito='amateur',peleasAmateur=50,record={'v':50,'d':0,'e':0,'ko':0})
                     fixture['plantel'][1].update(rol='boxeador',licenciaFederativa=True,circuito='amateur',peleasAmateur=0)
                 if name.startswith('calendar-views'):
                     fixture['eventos']=[{'id':f'r4-event-{i}','tipo':'mantenimiento','de':'Comisión del club','titulo':'Aviso con identidad extensa '+str(i),'texto':'Descripción completa que debe poder leerse sin cortar ni resolver el evento. '*2,'venceEn':i+1,'opciones':[{'texto':'Respuesta que necesita explicación completa '+str(j),'accion':{'tipo':'nada'}} for j in range(3)]} for i in range(3)]
                 if name.startswith('weekly-balance'):
                     fixture.update(dia=7,resumen={'ingresos':[{'concepto':f'Concepto histórico de ingreso {i} '+('con parámetros literales 🥊 '*4),'monto':100} for i in range(12)],'gastos':[{'concepto':f'Concepto histórico de gasto {i} '+('con parámetros literales 🥊 '*4),'monto':100} for i in range(12)],'total':0})
-                if name=='event-response':
+                if name.startswith('event-response'):
                     fixture.update(dinero=0,eventos=[{'id':'r4-response','tipo':'mantenimiento','de':'Comisión del club','titulo':'Reparación pendiente','texto':'El jugador debe poder volver a elegir después de un rechazo.','venceEn':3,'opciones':[{'texto':'Reparar por $100','accion':{'tipo':'mantenimiento','costo':100}},{'texto':'Conservar el dinero','accion':{'tipo':'nada'}}]}])
                 if name.startswith('event-panel'):
                     fixture['eventos']=[{'id':f'r4-panel-{i}','tipo':'patrocinio' if i==2 else 'mantenimiento','de':'Comisión del club','titulo':'Aviso histórico con identidad extensa '+str(i),'texto':'Descripción conservada que debe poder leerse entera en todos los tamaños. '*2,'venceEn':3,'opciones':[{'texto':'Respuesta con detalle literal completo '+str(j),'accion':{'tipo':'nada'}} for j in range(2)]} for i in range(3)]
@@ -1407,17 +2099,22 @@ def run():
                 ctx.add_init_script('window.__r4Pseudo='+str(args.pseudo).lower()+';')
                 ctx.add_init_script('window.__r4TextAudit='+str(args.text_audit or args.text_bounds).lower()+';window.__r4TextBounds='+str(args.text_bounds).lower()+';')
                 ctx.add_init_script("if(!localStorage.getItem('r4-seeded')){localStorage.setItem(" + json.dumps(KEY) + "," + json.dumps(json.dumps(fixture)) + ");localStorage.setItem('r4-seeded','yes');}")
+                if name.startswith('save-error'):
+                    ctx.add_init_script("window.__r4Original=localStorage.getItem('vida-del-boxeo-v2');window.__r4Set=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('Full storage with technical detail 🥊 '.repeat(12),'QuotaExceededError');};")
                 ctx.route("**/*", route_local)
                 page = ctx.new_page()
+                if 'reduced' in name:page.emulate_media(reduced_motion='reduce')
                 page.r4_case = name
                 page.r4_open_capture = captures/(name+'-open.png')
                 page.set_default_timeout(5000)
                 errors = []
                 page.on("pageerror", lambda e: errors.append(str(e)))
+                case_started=time.perf_counter()
                 result = {"case":name}
                 try:
                     page.goto(URL, wait_until="networkidle")
-                    page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state!==undefined")
+                    if not name.startswith('save-error'):
+                        page.wait_for_function("JSON.parse(localStorage.getItem('vida-del-boxeo-v2')).state!==undefined")
                     if name.startswith('archive'):
                         assert state(page)['archivoCarreras']==fixture['archivoCarreras'], 'Archived fixture changed during load'
                     if args.career:
@@ -1430,7 +2127,10 @@ def run():
                     if name.startswith('staff-extremes'): assert state(page)['personal']==fixture['personal'], 'Historical contracts changed during load or presentation'
                     if name.startswith('market-extremes'): assert state(page)['marcaRopa']==fixture['marcaRopa'], 'Historical brand changed during load or presentation'
                     if name.startswith('properties-extremes'): assert state(page)['propiedades']==fixture['propiedades'], 'Ownership changed during load or presentation'
-                    assert not errors, errors
+                    if name.startswith('render-recovery'):
+                        assert all(e=='R4 synthetic render fault 🥊 '*12 for e in errors), errors
+                        result['expected_render_errors']=len(errors)
+                    else: assert not errors, errors
                     result["status"] = "PASS"
                     if page.r4_open_capture.exists(): result['open_capture']=str(page.r4_open_capture)
                 except Exception:
@@ -1439,6 +2139,8 @@ def run():
                     path=captures/(name+'.png')
                     page.screenshot(path=str(path));result['capture']=str(path)
                 report["cases"].append(result)
+                result['elapsed_seconds']=round(time.perf_counter()-case_started,3)
+                print(name+' '+result['status']+' '+str(result['elapsed_seconds'])+'s',file=sys.stderr,flush=True)
                 ctx.close()
             browser.close()
     finally:

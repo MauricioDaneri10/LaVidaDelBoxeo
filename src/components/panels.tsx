@@ -3,15 +3,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CATEGORIAS, COMBOS, COMUNITARIOS, CURSOS, EQUIPOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "../game/data";
 import { recomendarEquipo } from "../game/market";
 import { audioHabilitado, setAudioHabilitado } from "../game/audio";
-import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, estadoRecord, fmt, nivelGimnasio, puedeContratarPersonal, puedeHabilitar, puedeProfesionalizar, proyeccionSemanalRecurrente, totalPeleas, valoracion } from "../game/engine";
+import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, estadoRecord, nivelGimnasio, puedeContratarPersonal, puedeHabilitar, puedeProfesionalizar, proyeccionSemanalRecurrente, totalPeleas, valoracion } from "../game/engine";
 import { guardarEnRanura, useGame } from "../game/state";
 import { ATAJOS_DEFAULT, ATAJOS_LABELS, conflictosAtajos, normalizarTecla, type Atajos } from "../game/shortcuts";
 import type { CategoriaMercado, CursoId, GearId, PersonalId, PropiedadId, Pugilista, RamaCurso, TipoComunitario } from "../game/types";
 import { BarraEnergia, Btn, Chip, I, Modal, RostroBoxeador, TextoPaginado } from "./ui";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import {LanguagePicker} from "./LanguagePicker";
 import { calcularCapacidadPlantel, ordenarPlantel, type DimensionesLayoutPlantel, type OrdenPlantel } from "../game/plantelLayout";
 import ArchivoCarreras from "./CareerArchive";
-import { useMessages } from "../i18n";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
+import { contenidoMensaje } from "../game/messageContent";
 import { disponibilidadPersonal, legadoDisponible, presentarActividad, presentarCategoria, presentarCurso, presentarDivision, presentarEquipo, presentarPersonal, presentarPropiedad, presentarTitulo } from "../i18n/presentation";
 
 interface PanelPlantelProps {
@@ -42,7 +44,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
   const [vistaGestion, setVistaGestion] = useState("cupos");
   const [detalleTarjeta, setDetalleTarjeta] = useState("nombre");
   const [bajaPendiente, setBajaPendiente] = useState<Pugilista | null>(null);
-  const compactoPlantel = useResponsiveCapacity("(max-width: 700px), (max-height: 650px)");
+  const compactoPlantel = useResponsiveCapacity("(max-width: 700px), (max-height: 800px)");
   const plantelApaisado = useResponsiveCapacity("(max-height: 450px)");
   const grupos: Array<[string, string]> = [["todos", t("roster.all", { count: state.plantel.length })], ["alumnos", t("roster.students", { count: alumnos.length, capacity: cupoAlumnos })], ["federados", t("roster.competitors", { count: boxeadores.length })], ["espera", t("roster.waiting", { count: alumnosEspera.length })]];
   const ordenes: Array<[string, string]> = [["recientes", t("roster.newest")], ["valoracion-desc", t("roster.highest")], ["valoracion-asc", t("roster.lowest")]];
@@ -81,7 +83,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
     return () => ro.disconnect();
   }, []);
 
-  const layout = calcularCapacidadPlantel(dims, listaAtletas.length, pagina, { cardMinH: 300, cardMinW: 300, altoPaginacion: plantelApaisado ? 0 : altoPaginacion });
+  const layout = calcularCapacidadPlantel(dims, listaAtletas.length, pagina, { cardMinH: compactoPlantel ? 160 : 300, cardMinW: 300, altoPaginacion: plantelApaisado ? 0 : altoPaginacion });
   const { columnas, filas, porPagina, totalPaginas, estiloGrilla, obtenerAtletasVisibles } = layout;
   useEffect(() => {
     const el = paginacionRef.current;
@@ -148,6 +150,7 @@ export function PanelPlantel({ onAbrir, onBuscarRival, onSeleccionarBoxeador }: 
             onClick={() => seleccionarAtleta(p)}
             className="roster-open flex min-h-11 items-center gap-2 min-w-0 text-left cursor-pointer group focus-visible:outline-2 focus-visible:outline-gold"
             title={t("roster.openSheet",{name:p.nombre})}
+            aria-label={t("roster.openSheet",{name:p.nombre})}
           >
             <RostroBoxeador atleta={p} className="roster-avatar h-8 w-8 shrink-0 rounded-lg group-hover:ring-1 group-hover:ring-gold transition-all" />
             <div className="min-w-0">
@@ -389,10 +392,11 @@ export function PanelMercado() {
   const [cat, setCat] = useState<CategoriaMercado>("equipamiento");
   const [pagina, setPagina] = useState(0);
   const [nombreMarca, setNombreMarca] = useState("");
-  const canvasAmplio = useResponsiveCapacity();
+  const canvasAmplio = useResponsiveCapacity("(min-width: 1100px) and (min-height: 650px)");
   const canvasEstrecho = useResponsiveCapacity("(max-width: 639px), (max-height: 650px)");
-  const canvasIntermedio = useResponsiveCapacity("(min-width: 900px) and (min-height: 900px)");
-  const porPagina = canvasEstrecho ? 1 : canvasAmplio ? 8 : canvasIntermedio ? 6 : 4;
+  const mercadoApaisado = useResponsiveCapacity("(max-height: 450px)");
+  const porPagina = canvasEstrecho ? 1 : canvasAmplio ? 8 : 4;
+  const detalleMercado = canvasEstrecho || canvasAmplio;
   useEffect(() => setPagina(0), [cat, porPagina]);
   const recomendadoId = recomendarEquipo(cat, state.equipamiento, state.dinero);
   const items = Object.entries(EQUIPOS)
@@ -422,14 +426,14 @@ export function PanelMercado() {
         ))}
       </div>
 
-      <div className={`market-items-grid grid min-h-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${canvasAmplio && items.length >= 8 ? "market-items-grid-expanded" : ""}`}>
+      <div style={canvasEstrecho ? {gridTemplateColumns:"minmax(0,1fr)"} : undefined} className={`market-items-grid grid min-h-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${canvasAmplio && items.length >= 8 ? "market-items-grid-expanded" : ""}`}>
         {items.slice(pagina * porPagina, pagina * porPagina + porPagina).map(([id]) => {
           const eq = presentarEquipo(id as GearId, locale);
           const comprado = state.equipamiento.includes(id as never);
           const bloqueado = id === "zonaElite" && !state.cursos.includes("altoRendimiento");
           return (
             <div key={id} data-equipment-id={id} title={`${eq.nombre}: ${eq.desc} ${eq.efecto}`} className={`market-card panel flex min-h-[132px] flex-col p-2 ${comprado ? "border-win/50" : ""}`}>
-              <div className="flex min-h-[42px] items-start justify-between gap-1">
+              <div className="flex min-h-[42px] flex-wrap items-start justify-between gap-1">
                 <div className="flex items-center gap-2.5">
                   <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-gold2/50 bg-gold/10 text-gold shadow-inner"><I n={eq.icono} className="h-4 w-4" /></div>
                   <div>
@@ -440,36 +444,18 @@ export function PanelMercado() {
                 {comprado && <Chip tone="win"><I n="check" className="h-3 w-3" /> {t("market.installedLabel")}</Chip>}
                 {!comprado && id === recomendadoId && <Chip tone="neon">{t("market.recommended")}</Chip>}
               </div>
-              {!canvasEstrecho && <><p className="mt-1 font-cond text-sm text-sand">{eq.desc}</p><p className="mt-1 font-cond text-sm text-neonc">{eq.efecto}</p></>}
-              {canvasEstrecho && <Btn className="mt-auto" onClick={() => setEquipoDetalle(id as GearId)}>{t("action.detail")}</Btn>}
+              {!detalleMercado && <><p className="mt-1 font-cond text-sm text-sand">{eq.desc}</p><p className="mt-1 font-cond text-sm text-neonc">{eq.efecto}</p></>}
+              {(detalleMercado || (id === "estudioMarca" && comprado)) && <Btn className="mt-auto" onClick={() => setEquipoDetalle(id as GearId)}>{t("action.detail")}</Btn>}
               {!comprado && !canvasEstrecho && (
                 <Btn
                   small
                   variant={state.dinero >= eq.costo && !bloqueado ? "gold" : "dark"}
-                  className="mt-auto w-full"
+                  className={detalleMercado ? "mt-2 w-full" : "mt-auto w-full"}
                   disabled={state.dinero < eq.costo || bloqueado}
                   onClick={() => dispatch({ type: "COMPRAR_EQUIPO", id: id as never })}
                 >
                   {bloqueado ? t("market.highPerformance") : t("action.buy", { price: fmt(eq.costo) })}
                 </Btn>
-              )}
-              {id === "estudioMarca" && comprado && !canvasEstrecho && (
-                <div className="mt-3 border-t border-line pt-2">
-                  {state.marcaRopa ? (
-                    <Btn onClick={() => setEquipoDetalle("estudioMarca")}>{t("action.detail")}</Btn>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        value={nombreMarca}
-                        onChange={e => setNombreMarca(e.target.value)}
-                        maxLength={16}
-                        aria-label={t("market.brandName")} placeholder={t("market.brandName")}
-                        className="w-full border border-line bg-ink px-2 py-1 font-cond text-sm text-cream outline-none focus:border-gold"
-                      />
-                      <Btn small variant="gold" onClick={() => dispatch({ type: "CREAR_MARCA", nombre: nombreMarca })}>{t("market.launch")}</Btn>
-                    </div>
-                  )}
-                </div>
               )}
             </div>
           );
@@ -483,10 +469,11 @@ export function PanelMercado() {
         </div>
       )}
       {equipoDetalle && <Modal fit title={presentarEquipo(equipoDetalle, locale).nombre} onClose={() => setEquipoDetalle(null)}>
-        <TextoPaginado capacidad={40} texto={[presentarEquipo(equipoDetalle, locale).desc, presentarEquipo(equipoDetalle, locale).efecto, equipoDetalle === "estudioMarca" && state.marcaRopa ? t("market.brand", { name: state.marcaRopa }) : ""].filter(Boolean).join("\n")} />
+        <div className="bounded-detail"><div>
         <p className="my-2">{fmt(EQUIPOS[equipoDetalle].costo)}</p>
         {state.equipamiento.includes(equipoDetalle) ? <p>{t("market.installedLabel")}</p> : <Btn disabled={state.dinero < EQUIPOS[equipoDetalle].costo || (equipoDetalle === "zonaElite" && !state.cursos.includes("altoRendimiento"))} onClick={() => dispatch({ type: "COMPRAR_EQUIPO", id: equipoDetalle })}>{equipoDetalle === "zonaElite" && !state.cursos.includes("altoRendimiento") ? t("market.highPerformance") : t("action.buy", { price: fmt(EQUIPOS[equipoDetalle].costo) })}</Btn>}
         {equipoDetalle === "estudioMarca" && state.equipamiento.includes(equipoDetalle) && !state.marcaRopa && <div className="mt-2 flex flex-wrap gap-2"><input className="r4-select" value={nombreMarca} onChange={e => setNombreMarca(e.target.value)} maxLength={16} aria-label={t("market.brandName")} placeholder={t("market.brandName")} /><Btn onClick={() => dispatch({ type: "CREAR_MARCA", nombre: nombreMarca })}>{t("market.launch")}</Btn></div>}
+        </div><TextoPaginado capacidad={mercadoApaisado ? 20 : 40} texto={[presentarEquipo(equipoDetalle, locale).desc, presentarEquipo(equipoDetalle, locale).efecto, equipoDetalle === "estudioMarca" && state.marcaRopa ? t("market.brand", { name: state.marcaRopa }) : ""].filter(Boolean).join("\n")} /></div>
       </Modal>}
     </div>
   );
@@ -503,6 +490,8 @@ export function PanelPerfil() {
   const [seccionPerfil, setSeccionPerfil] = useState<"cursos" | "bienes">("cursos");
   const [ramaActiva, setRamaActiva] = useState<RamaCurso>("deportiva");
   const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
+  const variosCursos = useResponsiveCapacity("(min-width: 900px) and (min-height: 650px)");
+  const cursoUnico = compacto && !variosCursos;
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [paginaCursos, setPaginaCursos] = useState(0);
   const [cursoDetalle, setCursoDetalle] = useState<CursoId | null>(null);
@@ -567,8 +556,8 @@ export function PanelPerfil() {
         <div className="profile-branch-panel grid min-h-0 flex-1 gap-2">
           {ramas.filter(rama => rama.id === ramaActiva).map(rama => (
             <div key={rama.id} className="profile-branch-card panel flex min-h-0 w-full flex-col p-2">
-              <div className={`profile-course-grid grid ${compacto ? "grid-cols-1" : "grid-cols-3"} gap-2`}>
-                {cursosDeRama.slice(compacto ? paginaCursos : 0, compacto ? paginaCursos + 1 : cursosDeRama.length)
+              <div className={`profile-course-grid grid ${cursoUnico ? "grid-cols-1" : "grid-cols-3"} gap-2`}>
+                {cursosDeRama.slice(cursoUnico ? paginaCursos : 0, cursoUnico ? paginaCursos + 1 : cursosDeRama.length)
                   .map(cid => {
                     const c = CURSOS[cid];
                     const aprobado = state.cursos.includes(cid);
@@ -593,7 +582,7 @@ export function PanelPerfil() {
             </div>
           ))}
         </div>
-        {compacto && <div className="profile-pagination flex shrink-0 items-center justify-center gap-2 py-1"><Btn small variant="ghost" disabled={paginaCursos === 0} onClick={() => setPaginaCursos(p => p - 1)}>{t("action.previous")}</Btn><span className="text-xs text-sand">{paginaCursos + 1}/{cursosDeRama.length}</span><Btn small variant="ghost" disabled={paginaCursos + 1 >= cursosDeRama.length} onClick={() => setPaginaCursos(p => p + 1)}>{t("action.next")}</Btn></div>}
+        {cursoUnico && <div className="profile-pagination flex shrink-0 items-center justify-center gap-2 py-1"><Btn small variant="ghost" disabled={paginaCursos === 0} onClick={() => setPaginaCursos(p => p - 1)}>{t("action.previous")}</Btn><span className="text-xs text-sand">{paginaCursos + 1}/{cursosDeRama.length}</span><Btn small variant="ghost" disabled={paginaCursos + 1 >= cursosDeRama.length} onClick={() => setPaginaCursos(p => p + 1)}>{t("action.next")}</Btn></div>}
       </section>}
 
       {cursoDetalle && <Modal fit title={presentarCurso(cursoDetalle, locale).nombre} onClose={() => setCursoDetalle(null)}>
@@ -669,8 +658,9 @@ export function PanelPersonal() {
   const [empleadoId, setEmpleadoId] = useState("");
   const apaisado = useResponsiveCapacity("(max-height: 450px)");
   const capacidadEscritorio = useResponsiveCapacity("(min-width: 1100px) and (min-height: 650px)");
+  const capacidadMedia = useResponsiveCapacity("(min-width: 640px) and (min-height: 451px)");
   const canvasEstrecho = useResponsiveCapacity("(max-width: 639px), (max-height: 650px)");
-  const porPagina = canvasEstrecho ? 1 : capacidadEscritorio ? 4 : 2;
+  const porPagina = capacidadEscritorio ? 8 : capacidadMedia ? 2 : 1;
   useEffect(() => setPagina(p => Math.min(p, Math.max(0, Math.ceil(tipos.length / porPagina) - 1))), [porPagina, tipos.length]);
   const flujoActual = proyeccionSemanalRecurrente(state).total;
   const saldoTexto = (amount: number) => mensaje(amount < 0 ? "staff.negative" : "staff.positive", { price: fmt(Math.abs(amount)) });
@@ -695,7 +685,7 @@ export function PanelPersonal() {
         <Btn small onClick={() => setNominaAbierta(true)}>{mensaje("staff.payroll")}</Btn>
       </div>}
     {nominaAbierta && <Modal fit title={mensaje("staff.payroll")} onClose={() => setNominaAbierta(false)}><TextoPaginado texto={resumen} capacidad={40} /></Modal>}
-    <div className="staff-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <div style={porPagina>4 ? {gridTemplateColumns:"repeat(4,minmax(0,1fr))",gridTemplateRows:"repeat(2,minmax(0,1fr))"} : undefined} className="staff-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
       {tipos.slice(pagina * porPagina, pagina * porPagina + porPagina).map(tipo => {
         const info = presentarPersonal(tipo, locale);
         const contratados = state.personal.filter(p => p.tipo === tipo);
@@ -705,7 +695,7 @@ export function PanelPersonal() {
             <div className="min-w-0"><div className="font-display text-lg tracking-wide text-cream">{info.nombre}</div><div className="font-cond text-sm text-gold">{mensaje("staff.cost", { price: fmt(info.sueldo) })}</div></div>
             <div className="grid h-9 w-9 shrink-0 place-items-center border border-line bg-ink text-sand"><I n={info.icono} className="h-4 w-4" /></div>
           </div>
-          {!canvasEstrecho && <p className="staff-desc font-cond text-sm text-sand">{info.desc}</p>}
+          {!canvasEstrecho && porPagina<=4 && <p className="staff-desc font-cond text-sm text-sand">{info.desc}</p>}
           {contratados.length > 0 && <p className="text-sm text-win">{mensaje("staff.hiredLabel")} · {contratados.length}</p>}
           <Btn className="mt-auto" onClick={() => { setDetallePuesto(tipo); setVistaPuesto("funcion"); }}>{mensaje("action.detail")}</Btn>
           {!canvasEstrecho && disponibilidad.ok && <Btn variant="gold" onClick={() => contratar(tipo)}><I n="case" />{mensaje("staff.hire")}</Btn>}
@@ -790,7 +780,7 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
     const guardada = guardarEnRanura({ ...state, nombrePartida: nombre }, nombre);
     if (guardada) {
       setMensaje(t("settings.saved"));
-      dispatch({ type: "TOAST", texto: "Partida guardada correctamente.", tono: "ok" });
+      dispatch({ type: "TOAST", ...contenidoMensaje("toast.saved"), tono: "ok" });
     } else {
       setMensaje(t("settings.saveError"));
     }
@@ -800,8 +790,9 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
     <Modal title={t("settings.title")} icon="gear" onClose={onCerrar} fit wide className="settings-dialog">
       <div className="settings-screen space-y-2 text-sm">
         <select aria-label={t("settings.section")} value={seccion} onChange={e => setSeccion(e.target.value)} className="r4-select">
-          <option value="partida">{t("settings.save")}</option><option value="lectura">{t("settings.reading")}</option><option value="sonido">{t("settings.sound")}</option><option value="atajos">{t("settings.shortcuts")}</option><option value="atajos-guardar">{t("settings.shortcutSave")} / {t("settings.shortcutRestore")}</option><option value="riesgo">{t("settings.reset")}</option>
+          <option value="partida">{t("settings.save")}</option><option value="idioma">{t("language.label")}</option><option value="lectura">{t("settings.reading")}</option><option value="sonido">{t("settings.sound")}</option><option value="atajos">{t("settings.shortcuts")}</option><option value="atajos-ayuda">{t("settings.shortcuts")} · {t("intro.help")}</option><option value="atajos-guardar">{t("settings.shortcutSave")} / {t("settings.shortcutRestore")}</option><option value="riesgo">{t("settings.reset")}</option>
         </select>
+        {seccion === "idioma" && <LanguagePicker/>}
         {seccion === "partida" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
           <p className="font-cond text-xs text-sand">{t("settings.saveHelp")}</p>
           <input value={nombrePartida} onChange={e => setNombrePartida(e.target.value)} maxLength={32} aria-label={t("settings.saveName")}
@@ -851,8 +842,8 @@ export function ModalAjustes({ onCerrar, atajos, onCambiarAtajos }: { onCerrar: 
           </Btn>
         </div>}
 
+        {seccion === "atajos-ayuda" && <TextoPaginado capacidad={40} texto={t("settings.shortcutHelp")}/>}
         {seccion === "atajos" && <div className="border border-line bg-panel2 p-2.5 rounded-xl">
-          <p className="mt-1 font-cond text-xs text-sand">{t("settings.shortcutHelp")}</p>
           <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
             {ATAJOS_LABELS.slice(Math.min(paginaAtajos, totalPaginasAtajos - 1) * cantidadAtajos, (Math.min(paginaAtajos, totalPaginasAtajos - 1) + 1) * cantidadAtajos).map(([id]) => (
               <label key={id} className="grid gap-1 font-cond text-sm uppercase tracking-wide text-mut">

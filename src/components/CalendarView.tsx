@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { fechaDelJuego, fmt, peleasVencidas } from "../game/engine";
+import { fechaDelJuego, peleasVencidas } from "../game/engine";
 import { useGame } from "../game/state";
 import { Btn, TextoPaginado } from "./ui";
 import { EventDetail } from "./EventDetail";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
-import { formatearFecha, useMessages } from "../i18n";
+import { formatearDineroJuego as fmt, formatearFecha, useMessages } from "../i18n";
 import { presentarEvento } from "../i18n/events";
 import { presentarActividad } from "../i18n/presentation";
 import { COMUNITARIOS } from "../game/data";
@@ -29,7 +29,7 @@ export default function CalendarioView() {
     })),
     ...(state.veladaProgramada ? [{ id: "velada", dia: 6, semana: state.semana, texto: t("calendar.show"), pelea: null, evento: null }] : []),
     ...state.comunitarios.map((c, i) => ({ id: `social:${i}`, dia: 7, semana: state.semana, texto: `${c.nombre===COMUNITARIOS[c.tipo].nombre ? presentarActividad(c.tipo,locale).nombre : `${t("record.historical")}\n${c.nombre}`}\n${t("calendar.social")}`, pelea: null, evento: null })),
-    ...state.eventos.map(e => {const copy=presentarEvento(e,locale);return { id: `evento:${e.id}`, dia: state.dia, semana: state.semana, texto: `${copy.historico ? t("record.historical") + "\n" : ""}${copy.titulo}\n${copy.de}\n${t(e.venceEn === 1 ? "event.expiry.one" : "event.expiry", { days: e.venceEn })}\n${copy.texto}`, pelea: null, evento: e };}),
+    ...state.eventos.map(e => {const copy=presentarEvento(e,locale);return { id: `evento:${e.id}`, dia: state.dia, semana: state.semana, texto: `${copy.historico ? t("record.historical") + "\n" : ""}${copy.titulo}\n${copy.de}\n${e.venceEn<=0?t("event.expired"):t(e.venceEn === 1 ? "event.expiry.one" : "event.expiry", { days: e.venceEn })}\n${copy.texto}`, pelea: null, evento: e };}),
   ];
   const seleccionado = agenda[Math.min(indice, Math.max(0, agenda.length - 1))];
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function CalendarioView() {
         {seleccionado.pelea ? confirmarBajaId === seleccionado.pelea
           ? <><p>{t("calendar.cancelQuestion")}</p><div className="flex gap-2"><Btn variant="blood" onClick={() => { dispatch({ type: "CANCELAR_PELEA", peleaId: seleccionado.pelea! }); setConfirmarBajaId(null); setVista("agenda"); }}>{t("calendar.cancelConfirm")}</Btn><Btn variant="ghost" onClick={() => setConfirmarBajaId(null)}>{t("calendar.keep")}</Btn></div></>
           : <Btn onClick={() => setConfirmarBajaId(seleccionado.pelea)}>{t("calendar.cancel")}</Btn>
-          : seleccionado.evento ? <EventDetail key={seleccionado.id} initialResponse event={seleccionado.evento} /> : <p>{t("calendar.settlement")}</p>}
+          : seleccionado.evento ? <EventDetail key={seleccionado.id} initialResponse responseOnly event={seleccionado.evento} /> : <p>{t("calendar.settlement")}</p>}
       </div>}
     </section>
   </div>;

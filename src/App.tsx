@@ -9,23 +9,25 @@ import Intro from "./components/Intro";
 import DockLateral, { type PestanaDock } from "./components/Phone";
 import { ModalAjustes, PanelMercado, PanelPerfil, PanelPersonal, PanelPlantel } from "./components/panels";
 import TopBar from "./components/TopBar";
-import { Btn, ContenedorToast, I, Modal } from "./components/ui";
+import { Btn, ContenedorToast, I, Modal, TextoPaginado } from "./components/ui";
 import { iniciarAudio, monedas } from "./game/audio";
 import { OfferDetail } from "./components/OfferDetail";
 import { WeeklyBalance } from "./components/WeeklyBalance";
-import { fmt, puedeHabilitar, proyeccionSemanal, peleasVencidas } from "./game/engine";
+import { PlanningDetail } from "./components/PlanningDetail";
+import { puedeHabilitar, proyeccionSemanal, peleasVencidas } from "./game/engine";
 import { cargarAtajos, guardarAtajos, teclaCoincide, type Atajos } from "./game/shortcuts";
 import { GameProvider, useGame } from "./game/state";
 import type { ResultadoPelea } from "./game/types";
 import { dialogOpen } from "./ui/dialogs";
-import { useMessages } from "./i18n";
+import { formatearDineroJuego as fmt, useMessages } from "./i18n";
+import { presentarContenido } from "./i18n/content";
 import { useResponsiveCapacity } from "./components/useResponsiveCapacity";
 
 export type Pestana = "gimnasio" | "ciudad" | "plantel" | "mercado" | "perfil" | "personal" | "calendario";
 
-function PantallaPrincipal() {
+function PantallaPrincipal({errorGuardado}:{errorGuardado?:React.ReactNode}) {
   const { state, dispatch } = useGame();
-  const { t } = useMessages();
+  const { t,locale } = useMessages();
   const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 950px)");
   const [planificacionAbierta, setPlanificacionAbierta] = useState(false);
   const [panelClubAbierto, setPanelClubAbierto] = useState(false);
@@ -166,6 +168,7 @@ function PantallaPrincipal() {
     <div className="fondo-app flex h-dvh min-h-0 flex-col overflow-hidden select-none">
       {/* BARRA SUPERIOR DE ESTADO Y CABECERA */}
       <TopBar
+        errorGuardado={errorGuardado}
         onAjustes={() => setAjustes(true)}
         pulsoAvanzar={state.dia === 6 && state.pendientes.length > 0}
       />
@@ -283,7 +286,7 @@ function PantallaPrincipal() {
             <div className="forecast-strip mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-panel/70 px-4 py-2.5 font-cond text-sm">
               <span className="font-display uppercase tracking-wide text-sand">{t("forecast.title")}</span>
               <span className="text-win" title={t("forecast.guard")}>{t("forecast.income",{amount:fmt(ingresosEstimados)})}</span>
-              {proyeccion.estimados.length > 0 && <span className="text-gold" title={proyeccion.estimados.map(l => `${l.concepto}: ${fmt(l.min)}–${fmt(l.max)}; media ${fmt(l.mean)}`).join("\n")}>{t("forecast.variables",{amount:fmt(adicionalesEstimados)})}</span>}
+              {proyeccion.estimados.length > 0 && <span className="text-gold" title={proyeccion.estimados.map(l => t("forecast.range",{label:presentarContenido(l.concepto,l.presentacion,locale).texto,min:fmt(l.min),max:fmt(l.max),mean:fmt(l.mean)})).join("\n")}>{t("forecast.variables",{amount:fmt(adicionalesEstimados)})}</span>}
               <span className="text-blood">{t("forecast.expenses",{amount:fmt(gastosEstimados)})}</span>
               <span className={balanceEstimado >= 0 ? "text-gold font-bold" : "text-blood font-bold"}>
                 {t(balanceEstimado >= 0 ? "forecast.plus" : "forecast.minus")} {balanceEstimado >= 0 ? "+" : "−"}{fmt(Math.abs(balanceEstimado))}
@@ -321,18 +324,13 @@ function PantallaPrincipal() {
         <DockLateral pestana={pestanaDock} setPestana={setPestanaDock} lado="movil" abierto={panelClubAbierto} onCerrar={() => setPanelClubAbierto(false)} accesoEnNavegacion={compacto} onNavegarPestana={setPestana} onSeleccionarBoxeador={setFichaId} />
       </div>
 
+      <ContenedorToast toasts={state.toasts} onCerrar={(id)=>dispatch({type:"QUITAR_TOAST",id})}/>
       <footer data-text-role="secondary" className="app-footer shrink-0 border-t border-line/80 px-4 py-1 text-center font-cond text-xs uppercase tracking-[0.28em] text-mut">
         MadArt Studios
       </footer>
 
-      {planificacionAbierta && <Modal title={t("plan.title")} icon="calendar" onClose={() => setPlanificacionAbierta(false)}>
-        <div className="space-y-2 text-sm text-cream">
-          {siguientePaso && <p>{siguientePaso.texto}</p>}
-          {guiaInicial.map((h, i) => <Btn key={h.texto} small variant={h.hecho ? "dark" : "gold"} disabled={h.hecho} className="w-full" onClick={() => { setPestana(h.tab); setPlanificacionAbierta(false); }}>{h.hecho ? "✓" : i + 1} {h.texto}</Btn>)}
-          <p>{t("forecast.summary",{income:fmt(ingresosEstimados),expenses:fmt(gastosEstimados),net:fmt(balanceEstimado)})}</p>
-          {proyeccion.estimados.map((l, i) => <p key={i}>{t("forecast.range",{label:l.concepto,min:fmt(l.min),max:fmt(l.max),mean:fmt(l.mean)})}</p>)}
-          <p>{t("forecast.notGuaranteed")}</p>
-        </div>
+      {planificacionAbierta && <Modal wide fit title={t("plan.title")} icon="calendar" onClose={() => setPlanificacionAbierta(false)}>
+        <PlanningDetail steps={guiaInicial} projection={proyeccion} onOpen={tab=>{setPestana(tab);setPlanificacionAbierta(false);}}/>
       </Modal>}
 
       {/* PANTALLA DE COMBATE EN VIVO */}
@@ -365,25 +363,26 @@ function PantallaPrincipal() {
       {/* AJUSTES & PERSISTENCIA JSON */}
       {ajustes && <ModalAjustes onCerrar={() => setAjustes(false)} atajos={atajos} onCambiarAtajos={setAtajos} />}
 
-      {/* TOASTS DEL SISTEMA */}
-      <ContenedorToast
-        toasts={state.toasts}
-        onCerrar={(id) => dispatch({ type: "QUITAR_TOAST", id })}
-      />
     </div>
   );
 }
 
 function Raiz() {
-  const { t } = useMessages();
+  const { t,locale } = useMessages();
   const { state, guardado, reintentarGuardado } = useGame();
-  return <>
-    {state.creado ? <PantallaPrincipal /> : <Intro />}
-    {!guardado.ok && <div role="alert" data-testid="save-error" className="pointer-events-none fixed inset-x-3 top-2 z-[100] mx-auto max-w-2xl rounded-xl border border-blood bg-ink p-3 text-cream shadow-xl">
-      <p className="font-cond text-sm">{guardado.mensaje}</p>
-      <Btn small className="pointer-events-auto mt-2" onClick={reintentarGuardado}>{t("save.retry")}</Btn>
-    </div>}
-  </>;
+  const [detalle,setDetalle]=useState(false);
+  const horizontal=useResponsiveCapacity("(max-height: 500px)");
+  const aviso=!guardado.ok&&<div role="alert" data-testid="save-error" className="shrink-0"><button
+    className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-blood bg-blood text-cream"
+    title={t("save.failedBrief")} aria-label={`${t("save.failedBrief")} · ${t("action.detail")}`} onClick={()=>setDetalle(true)}>!</button></div>;
+  return <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
+    {!state.creado&&aviso&&<div className="shrink-0 px-2 py-1">{aviso}</div>}
+    <div className="game-host min-h-0 flex-1 overflow-hidden">{state.creado ? <PantallaPrincipal errorGuardado={aviso||undefined}/> : <Intro />}</div>
+    {!guardado.ok&&detalle&&<Modal fit title={t("save.failedBrief")} onClose={()=>setDetalle(false)}><div className="bounded-detail">
+      <TextoPaginado capacidad={horizontal?20:40} texto={presentarContenido(guardado.mensaje,guardado.presentacion,locale).texto}/>
+      <Btn small onClick={reintentarGuardado}>{t("save.retry")}</Btn>
+    </div></Modal>}
+  </div>;
 }
 
 export default function App() {

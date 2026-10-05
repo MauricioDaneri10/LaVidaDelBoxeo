@@ -1,10 +1,20 @@
 import { beforeAll, expect, it, vi } from "vitest";
 import { es, registrarCatalogo, translate, type MessageKey } from "./catalog";
+import { formatearDineroJuego } from "./index";
 
 beforeAll(async () => {
   const { readFileSync } = await vi.importActual<{ readFileSync: (url: URL, encoding: string) => string }>("node:fs");
   for (const locale of ["en", "pt-BR"] as const)
     registrarCatalogo(locale, JSON.parse(readFileSync(new URL(`../../public/i18n/${locale}.json`, import.meta.url), "utf8")));
+});
+it("el formato monetario cambia separadores, no convierte ni modifica los ceros",()=>{
+  expect(formatearDineroJuego(1500,"es")).toBe("$1.500");
+  expect(formatearDineroJuego(1500,"en")).toBe("$1,500");
+  expect(formatearDineroJuego(1500,"pt-BR")).toBe("$1.500");
+  for(const locale of ["es","en","pt-BR"] as const) {
+    expect(formatearDineroJuego(0,locale)).toBe("$0");
+    expect(formatearDineroJuego(-143,locale)).toBe("$-143");
+  }
 });
 
 it.each(["es", "en", "pt-BR"] as const)("%s cubre inicio, emblemas y recuperación sin promesas falsas", locale => {

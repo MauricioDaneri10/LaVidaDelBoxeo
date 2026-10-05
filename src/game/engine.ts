@@ -11,6 +11,7 @@ import type {
 import { conFuenteAzar, numeroAleatorio } from "./random";
 import { ATRIBUTOS_BASE, SCHEMA_ACTUAL, validarEstado } from "./saveValidation";
 import { socialActivityRange, weeklyEconomy } from "./economy";
+import { contenidoMensaje,contenidoLibro,type PresentacionContenido } from "./messageContent";
 import { CONTENIDO_COMISION, contenidoProspecto, contenidoExhibicion, contenidoPatrocinio } from "./eventContent";
 import type { EstimatedIncome, WeeklyEconomy } from "./economy";
 
@@ -165,25 +166,23 @@ export function sucursales(e: EstadoJuego): number {
 export type BloqueoPersonal = "funcionPendiente" | "cubierto" | "sinSucursales" | "cupoAdministrativo" | "cupoEntrenador" | "semana" | "fama" | "curso";
 
 /** Disponibilidad de nuevas altas; no altera contratos ni sustituye la confirmación financiera. */
-export function puedeContratarPersonal(e: EstadoJuego, tipo: PersonalId): { ok: boolean; motivo?: BloqueoPersonal; mensaje?: string } {
-  if (tipo === "coordinadorSucursal") return {
-    ok: false, motivo: "funcionPendiente",
-    mensaje: "Nuevas contrataciones no disponibles: falta definir una función diferenciada para este puesto. Los coordinadores existentes conservan su contrato.",
-  };
+export function puedeContratarPersonal(e: EstadoJuego, tipo: PersonalId): { ok: boolean; motivo?: BloqueoPersonal; mensaje?: string; presentacion?:PresentacionContenido } {
+  const blocked=(motivo:BloqueoPersonal,copy:ReturnType<typeof contenidoMensaje>)=>({ok:false,motivo,mensaje:copy.texto,presentacion:copy.presentacion});
+  if (tipo === "coordinadorSucursal") return blocked("funcionPendiente",contenidoMensaje("toast.staffFunction"));
   const info = PERSONAL_INFO[tipo];
-  if (!info.multiple && e.personal.some(p => p.tipo === tipo)) return { ok: false, motivo: "cubierto", mensaje: "Ese puesto ya está cubierto." };
+  if (!info.multiple && e.personal.some(p => p.tipo === tipo)) return blocked("cubierto",contenidoMensaje("toast.staffCovered"));
   if (tipo === "gerente" || tipo === "entrenadorLocal") {
     const capacidad = sucursales(e);
-    if (capacidad === 0) return { ok: false, motivo: "sinSucursales", mensaje: "Este puesto requiere una sucursal." };
+    if (capacidad === 0) return blocked("sinSucursales",contenidoMensaje("toast.staffNoBranch"));
     const administrativos = e.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
     const entrenadores = e.personal.filter(p => p.tipo === "entrenadorLocal").length;
-    if (tipo === "gerente" && administrativos >= capacidad) return { ok: false, motivo: "cupoAdministrativo", mensaje: "El cupo administrativo de las sucursales está cubierto por gerentes y coordinadores existentes." };
-    if (tipo === "entrenadorLocal" && entrenadores >= capacidad) return { ok: false, motivo: "cupoEntrenador", mensaje: "El cupo de entrenadores locales de las sucursales está cubierto." };
+    if (tipo === "gerente" && administrativos >= capacidad) return blocked("cupoAdministrativo",contenidoMensaje("toast.staffAdminFull"));
+    if (tipo === "entrenadorLocal" && entrenadores >= capacidad) return blocked("cupoEntrenador",contenidoMensaje("toast.staffCoachFull"));
   }
   const req = info.requisito;
-  if (req?.semana && e.semana < req.semana) return { ok: false, motivo: "semana", mensaje: `${info.nombre} se habilita a partir de la semana ${req.semana}.` };
-  if (req?.fama && e.fama < req.fama) return { ok: false, motivo: "fama", mensaje: `${info.nombre} requiere ${req.fama} de fama.` };
-  if (req?.curso && !e.cursos.includes(req.curso)) return { ok: false, motivo: "curso", mensaje: `Necesitás el curso ${CURSOS[req.curso].nombre}.` };
+  if (req?.semana && e.semana < req.semana) return blocked("semana",contenidoMensaje("toast.staffWeek",{employee:tipo,week:req.semana}));
+  if (req?.fama && e.fama < req.fama) return blocked("fama",contenidoMensaje("toast.staffFame",{employee:tipo,fame:req.fama}));
+  if (req?.curso && !e.cursos.includes(req.curso)) return blocked("curso",contenidoMensaje("toast.staffCourse",{course:req.curso}));
   return { ok: true };
 }
 export function capacidadAlumnos(e: EstadoJuego): number {
@@ -262,7 +261,8 @@ export function proyeccionSemanal(e: EstadoJuego): WeeklyEconomy & { estimados: 
   const mods = calcularModificadores(e);
   const garantizados = weeklyEconomy(e, { nivel: nivelGimnasio(e), multiplicadorMarca: mods.multiplicadorMarca });
   const estimados = e.comunitarios.map(c => ({
-    concepto: `Dividendos estimados: ${c.nombre}`,
+    concepto:`Dividendos estimados: ${c.nombre}`,
+    ...(c.nombre===COMUNITARIOS[c.tipo].nombre?{presentacion:contenidoLibro("ledger.estimated",0,{activity:c.tipo}).presentacion}:{}),
     ...socialActivityRange(c.tipo, mods.multiplicadorEventos),
   }));
   return { ...garantizados, estimados };
@@ -741,9 +741,7 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
   let fama = gane ? clamp(2 + Math.round((vgRival - vgMio + 10) / 6) + e.pelea.esTitulo * 2, 2, 12) : empate ? 1 : 1;
   if (gane && e.A.p.rasgo === "volcan") fama += 1;
   const tarjetas = e.tarjetas.map(t => ({ a: t.a, b: t.b }));
-  const resumen = e.ko
-    ? `${metodo} en el asalto ${e.asalto}`
-    : `${metodo} (${tarjetas.map(t => `${t.a}-${t.b}`).join(", ")})`;
+  const descripcion = contenidoMensaje(e.ko?"result.ko":"result.cards",e.ko?{method:metodo,round:e.asalto}:{method:metodo,scores:tarjetas.map(t=>`${t.a}-${t.b}`).join(", ")});
   const resultado: ResultadoPelea = {
     miId: e.A.p.id,
     rivalNombre: e.B.p.nombre,
@@ -753,7 +751,7 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
     bolsa: gane ? e.pelea.bolsa : Math.round(e.pelea.bolsa * 0.3),
     fama,
     tituloGanado: gane && e.pelea.esTitulo > 0 ? e.pelea.esTitulo : 0,
-    resumen,
+    resumen:descripcion.texto,presentacion:descripcion.presentacion,
   };
   if (e.ko || e.asaltosCerrados >= e.totalAsaltos) resultadosEmitidos.set(resultado, {
     resultado: JSON.stringify(resultado), pelea: JSON.stringify(e.pelea), pugil: JSON.stringify(e.A.p), sesion: JSON.stringify(e),

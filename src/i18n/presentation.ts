@@ -3,6 +3,8 @@ import type { CategoriaMercado, CursoId, GearId, PersonalId, PropiedadId, TipoCo
 import { translate, type CatalogLocale, type MessageKey } from "./catalog";
 import { estadoRecord, puedeContratarPersonal } from "../game/engine";
 import type { EstadoJuego, OfertaRival, Pugilista, ResultadoPelea } from "../game/types";
+import { presentarContenido } from "./content";
+import { metadataResultadoFiable } from "../game/messageContent";
 
 export function presentarOferta(offer: OfertaRival, locale: CatalogLocale) {
   const original=OFERTAS_CONTENIDO[offer.nivel];
@@ -44,10 +46,17 @@ export function presentarEstadoRecord(boxer: Pugilista, locale: CatalogLocale) {
   return {...record,etiqueta:key ? translate(locale,key) : record.etiqueta};
 }
 /** Only for a result freshly emitted from a known fight checkpoint, never raw history. */
+const methodKeys: Record<ResultadoPelea["metodo"], MessageKey>={"Nocaut":"method.ko","Nocaut Técnico":"method.tko","Empate":"method.draw","Decisión Unánime":"method.unanimous","Decisión Mayoritaria":"method.majority","Decisión Dividida":"method.split"};
 export function presentarResultadoActual(result: ResultadoPelea, round: number, ko: boolean, locale: CatalogLocale) {
-  const keys: Record<ResultadoPelea["metodo"], MessageKey>={"Nocaut":"method.ko","Nocaut Técnico":"method.tko","Empate":"method.draw","Decisión Unánime":"method.unanimous","Decisión Mayoritaria":"method.majority","Decisión Dividida":"method.split"};
-  const method=translate(locale,keys[result.metodo]);
+  const method=translate(locale,methodKeys[result.metodo]);
   return { method, summary: ko ? translate(locale,"fight.summaryKO",{method,round}) : translate(locale,"fight.summaryCards",{method,scores:result.tarjetas.map(card=>`${card.a}-${card.b}`).join(", ")}) };
+}
+
+export function presentarResultadoHistorico(result:ResultadoPelea,locale:CatalogLocale) {
+  const meta=result.presentacion;
+  const reliable=metadataResultadoFiable(result);
+  const lectura=presentarContenido(result.resumen,reliable?meta:undefined,locale);
+  return {method:lectura.historico?result.metodo:translate(locale,methodKeys[result.metodo]),summary:lectura.texto,historico:lectura.historico};
 }
 
 const logoKeys = {

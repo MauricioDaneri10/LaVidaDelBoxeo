@@ -9,7 +9,7 @@ describe("R4 — identidad contable independiente de etiquetas", () => {
   it("un desembolso nuevo tiene identidad financiera y traducir su etiqueta no lo vuelve ingreso ganado", () => {
     const base={...crearEstadoBase(), creado:true, dinero:-143};
     const borrowed=reductor(base,{type:"PEDIR_PRESTAMO"});
-    expect(borrowed.libroIngresos).toEqual([{concepto:"Desembolso del préstamo",monto:500,claseContable:"financiacion"}]);
+    expect(borrowed.libroIngresos).toEqual([{concepto:"Desembolso del préstamo",monto:500,claseContable:"financiacion",presentacion:{id:"ledger.disbursement",parametros:{}}}]);
     const renamed=structuredClone(borrowed);
     renamed.libroIngresos[0].concepto="Loan disbursement / Empréstimo / texto histórico";
     const settle=(s: typeof base)=>conFuenteAzar(()=>0.75,()=>{
@@ -30,7 +30,7 @@ describe("R4 — identidad contable independiente de etiquetas", () => {
       {concepto:"Desembolso externo desconocido",monto:0,extension:["intacto"]},
     ]};
     const migrated=migrarGuardado(old).estado as typeof old;
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migrated.libroIngresos).toEqual([{...old.libroIngresos[0],claseContable:"financiacion"},old.libroIngresos[1]]);
     expect(migrarGuardado(migrated)).toEqual({estado:migrated,migrado:false});
     expect(old.libroIngresos[0]).not.toHaveProperty("claseContable");
@@ -42,7 +42,7 @@ describe("R4 — identidad contable independiente de etiquetas", () => {
     const bytes=new Map([[K,raw],[`${K}:respaldo`,backup]]);
     const adapter={durable:true,getItem:(k:string)=>bytes.get(k)??null,setItem:(k:string,v:string)=>{bytes.set(k,v);},removeItem:(k:string)=>{bytes.delete(k);}};
     const repo=new RepositorioPartidas(adapter),loaded=repo.cargar();
-    expect(loaded.schemaVersion).toBe(9);
+    expect(loaded.schemaVersion).toBe(10);
     expect(bytes.get(K)).toBe(raw);
     expect(bytes.get(`${K}:respaldo`)).toBe(backup);
     expect(loaded.resumen?.ingresos).toEqual([{concepto:"Desembolso del préstamo",monto:0,claseContable:"financiacion"}]);

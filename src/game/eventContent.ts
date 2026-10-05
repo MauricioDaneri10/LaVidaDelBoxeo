@@ -1,4 +1,31 @@
 import type { EventoJuego } from "./types";
+function sameOptions(a:EventoJuego["opciones"],b:EventoJuego["opciones"]) {
+  return a.length===b.length && a.every((o,i)=>o.texto===b[i].texto &&
+    Object.keys(o.accion).sort().join("|")===Object.keys(b[i].accion).sort().join("|") &&
+    Object.entries(o.accion).every(([key,value])=>value===(b[i].accion as unknown as Record<string,unknown>)[key]));
+}
+/** Reliable presentation identity only; never a command, RNG source or migration. */
+export function identidadEventoFiable(event:EventoJuego) {
+  let id: "reparacion"|"entrevista"|"colecta"|"prospecto"|"desafio"|"patrocinio"|undefined;
+  let template:Omit<EventoJuego,"id"|"venceEn">|undefined;
+  for(const key of ["reparacion","entrevista","colecta"] as const) {
+    const content=CONTENIDO_COMISION[key];
+    if(event.tipo===content.tipoEvento) {
+      id=key;template={tipo:content.tipoEvento,de:"Comisión del Club",titulo:content.titulo,texto:content.texto,opciones:content.opciones.map(o=>({...o,accion:{...o.accion}}))};
+    }
+  }
+  if(event.tipo==="prospecto") {id="prospecto";template=contenidoProspecto(event.de);}
+  if(event.tipo==="desafio") {id="desafio";template=contenidoExhibicion();}
+  const action=event.opciones[0]?.accion;
+  if(event.tipo==="patrocinio" && action?.tipo==="aceptarPatrocinio" && typeof action.nombre==="string" &&
+     Number.isFinite(action.monto) && Number.isInteger(action.semanas)) {
+    id="patrocinio";template=contenidoPatrocinio(action.nombre,action.monto!,action.semanas!,"$"+Math.round(action.monto!).toLocaleString("es-AR"));
+  }
+  if(!id||!template||event.de!==template.de||event.titulo!==template.titulo||event.texto!==template.texto||!sameOptions(event.opciones,template.opciones))
+    return null;
+  return id;
+}
+
 
 /** Original content only. No RNG, payment or game decisions. */
 export const CONTENIDO_COMISION = {

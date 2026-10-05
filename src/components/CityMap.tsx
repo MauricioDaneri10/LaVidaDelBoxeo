@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { m as motion } from "framer-motion";
 import { GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
-import { fmt, rankingMundial, sucursales } from "../game/engine";
+import { rankingMundial, sucursales } from "../game/engine";
 import { useGame } from "../game/state";
 import type { PropiedadId } from "../game/types";
 import { BotonBrillante, Btn, Modal, TextoPaginado } from "./ui";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
-import { useMessages } from "../i18n";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
 import { presentarCurso, presentarDivision, presentarPropiedad } from "../i18n/presentation";
 
 interface CityMapProps {

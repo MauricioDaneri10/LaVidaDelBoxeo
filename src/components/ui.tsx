@@ -1,9 +1,10 @@
-import React, { useEffect, useId, useRef, type ReactNode } from "react";
+import React, { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, m as motion, useReducedMotion } from "framer-motion";
 import { mountDialog } from "../ui/dialogs";
 import { paginasTexto } from "../ui/textPages";
 import { useMessages } from "../i18n";
+import { presentarContenido } from "../i18n/content";
 import type { Atributos, Pugilista } from "../game/types";
 
 // ============================================================================
@@ -14,15 +15,18 @@ export interface MensajeToast {
   texto: string;
   tono?: "oro" | "ok" | "alerta" | "info";
   tiempo?: number;
+  presentacion?: import("../game/messageContent").PresentacionContenido;
 }
 
 /** Literal detail pages are separate from saved content and game progression. */
 export function TextoPaginado({ texto, capacidad = 90 }: { texto: string; capacidad?: number }) {
   const { t } = useMessages();
-  const [pagina, setPagina] = React.useState(0);
+  const [lectura, setLectura] = React.useState({texto,capacidad,pagina:0});
+  const vigente=lectura.texto===texto&&lectura.capacidad===capacidad;
+  if(!vigente)setLectura({texto,capacidad,pagina:0});
   const paginas = paginasTexto(texto, capacidad);
-  const actual = Math.min(pagina, paginas.length - 1);
-  useEffect(() => setPagina(0), [texto]);
+  const actual = Math.min(vigente?lectura.pagina:0, paginas.length - 1);
+  const setPagina=(pagina:number)=>setLectura({texto,capacidad,pagina});
   return <div className="space-y-2 text-sm">
     <p className="whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="literal-text-page">{paginas[actual]}</p>
     {paginas.length > 1 && <div className="grid grid-cols-2 gap-2">
@@ -498,7 +502,7 @@ export function RostroBoxeador({ atleta, className = "w-14 h-14" }: { atleta: Da
 }
 
 // ============================================================================
-// CONTENEDOR TOAST PARA NOTIFICACIONES FLOTANTES (MINIMALISTA)
+// NOTIFICACIONES EN FLUJO: LECTURA COMPLETA SIN OCLUIR CONTROLES
 // ============================================================================
 
 export function ContenedorToast({
@@ -508,7 +512,9 @@ export function ContenedorToast({
   toasts: MensajeToast[];
   onCerrar: (id: number) => void;
 }) {
-  const { t: mensaje } = useMessages();
+  const { t: mensaje,locale } = useMessages();
+  const [lectura,setLectura]=useState<MensajeToast[]|null>(null);
+  const [seleccion,setSeleccion]=useState(0);
   const cerrar = useRef(onCerrar);
   cerrar.current = onCerrar;
   const timers = useRef(new Map<number, number>());
@@ -523,41 +529,14 @@ export function ContenedorToast({
   }, [toasts]);
   useEffect(() => () => { timers.current.forEach(window.clearTimeout); timers.current.clear(); }, []);
 
-  if (!toasts || toasts.length === 0) return null;
-
-  return (
-    <div aria-live="polite" aria-relevant="additions" className="fixed bottom-8 right-3 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col gap-2.5 pointer-events-none">
-      <AnimatePresence initial={false}>
-      {toasts.map(t => (
-        <motion.div
-          key={t.id}
-          initial={{ opacity: 0, y: 12, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.98 }}
-          transition={{ duration: 0.2 }}
-          className={`pointer-events-auto px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-sm font-bold transition-all duration-300 ${
-            t.tono === "oro"
-              ? "bg-[#141208]/95 text-amber-300 border-amber-500/50 shadow-black/80"
-              : t.tono === "ok"
-              ? "bg-[#08140f]/95 text-emerald-300 border-emerald-500/50 shadow-black/80"
-              : t.tono === "alerta"
-              ? "bg-[#140808]/95 text-rose-300 border-rose-500/50 shadow-black/80"
-              : "bg-[#0e131d]/95 text-slate-200 border-slate-700/80 shadow-black/80"
-          }`}
-        >
-          <span>{t.texto}</span>
-          <button
-            onClick={() => onCerrar(t.id)}
-            aria-label={mensaje("notification.dismiss")}
-            className="min-h-11 min-w-11 shrink-0 text-slate-400 hover:text-white text-sm font-bold ml-2 cursor-pointer p-1"
-          >
-            ✕
-          </button>
-        </motion.div>
-      ))}
-      </AnimatePresence>
-    </div>
-  );
+    const copy=lectura?.[seleccion];
+    const presented=copy?presentarContenido(copy.texto,copy.presentacion,locale):null;
+    return <>
+      <div aria-live="polite" aria-relevant="additions text" className={toasts.length>0?"notification-lane shrink-0 border-t border-line px-2 py-1":"sr-only"}>{toasts.length>0&&<Btn small onClick={()=>{setSeleccion(0);setLectura(toasts.map(t=>({...t})));}}>{mensaje("notification.count",{count:toasts.length})}</Btn>}</div>
+      {lectura&&copy&&presented&&<Modal fit title={mensaje("notification.title")} onClose={()=>setLectura(null)}><div className="bounded-detail"><select className="r4-select" aria-label={mensaje("notification.picker")} value={seleccion} onChange={e=>setSeleccion(Number(e.target.value))}>{lectura.map((t,i)=><option key={t.id} value={i}>{i+1}/{lectura.length}</option>)}</select><TextoPaginado capacidad={40} texto={`${presented.historico?mensaje("record.historical")+"\n":""}${presented.texto}`}/><Btn small disabled={!toasts.some(t=>t.id===copy.id)} onClick={()=>{
+        window.clearTimeout(timers.current.get(copy.id));timers.current.delete(copy.id);cerrar.current(copy.id);setLectura(null);
+      }}>{mensaje("notification.dismiss")}</Btn></div></Modal>}
+    </>;
 }
 
 // ============================================================================

@@ -98,7 +98,10 @@ def run():
     global URL
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build-ready',action='store_true',required=True)
+    parser.add_argument('--dist',type=Path,default=ROOT/'dist',help='Immutable build; fingerprint every asset')
     parser.add_argument('--all-states',action='store_true')
+    parser.add_argument('--locale',choices=['es','en','pt-BR'],default='es',help='Actual verified catalog, independent of DOM pseudo-localization')
+    parser.add_argument('--density-states',action='store_true',help='Also exercise one, four and ten pupils and the waiting list')
     parser.add_argument('--capture-states',action='store_true',help='Capture empty and maximum green states at the two inspection sizes too')
     parser.add_argument('--text-audit',action='store_true',help='Assert font floors on visible non-interactive copy too')
     parser.add_argument('--text-bounds',action='store_true',help='Also assert actual text ranges fit viewport and clipping ancestors')
@@ -110,7 +113,7 @@ def run():
     args=parser.parse_args()
     URL=f'http://127.0.0.1:{args.port}/'
     started=time.perf_counter()
-    dist=ROOT/'dist'
+    dist=args.dist.resolve()
     fingerprint={str(p.relative_to(dist)):hashlib.sha256(p.read_bytes()).hexdigest() for p in dist.rglob('*') if p.is_file()}
     output=Path(tempfile.mkdtemp(prefix='r4-canvas-'))
     with socket.socket() as probe: probe.bind(('127.0.0.1',args.port))
@@ -134,12 +137,19 @@ def run():
             base=state(page);context.close()
             for w,h in ([tuple(args.viewport)] if args.viewport else SIZES):
                 states=['normal','empty','maximum'] if args.all_states else ['normal']
+                if args.density_states:states+=['one','four','ten','waiting']
                 for mode in states:
                     fixture=copy.deepcopy(base)
                     fixture.update(creado=True,partidaId='r4-canvas-synthetic',dia=2,eventos=[],prensa=[],toasts=[],ofertas=[],ofertasPara=None,pendientes=[],resumen=None,combateActivo=None)
                     fixture['nombreGimnasio']='Club de los Campeones de Nombres Extraordinariamente Largos'
                     fixture['nombreJugador']='Entrenador de Apellido Compuesto Muy Largo'
                     if mode=='empty': fixture['plantel']=[]
+                    if mode in ['one','four','ten','waiting']:
+                        count={'one':1,'four':4,'ten':10,'waiting':11}[mode]
+                        fixture['plantel']=[]
+                        for i in range(count):
+                            pupil=copy.deepcopy(base['plantel'][i%len(base['plantel'])]);pupil.update(id=f'r4-density-{i}',nombre=f'Alumna de Nombre Extenso Compuesto {i}',rol='alumno',enEspera=(mode=='waiting' and i==10))
+                            fixture['plantel'].append(pupil)
                     if mode=='maximum':
                         students=[]
                         for i in range(10):
@@ -153,6 +163,7 @@ def run():
                     ctx.add_init_script(DETERMINISTIC)
                     ctx.add_init_script('window.__r4TextAudit='+str(args.text_audit or args.text_bounds).lower()+';window.__r4TextBounds='+str(args.text_bounds).lower()+';')
                     ctx.add_init_script('localStorage.setItem('+json.dumps(KEY)+','+json.dumps(json.dumps(fixture,ensure_ascii=False))+');')
+                    ctx.add_init_script('localStorage.setItem("vida-del-boxeo:idioma",'+json.dumps(args.locale)+');')
                     page=ctx.new_page();page.goto(URL,wait_until='domcontentloaded')
                     page.locator('.app-nav').wait_for()
                     if mode=='maximum':
@@ -161,12 +172,15 @@ def run():
                         assert sum(p.get('rol')=='boxeador' and p.get('circuito')=='pro' for p in loaded['plantel'])==10, 'Maximum fixture must retain ten professionals'
                     page.evaluate('document.fonts.ready')
                     for tab in ([args.tab] if args.tab else TABS):
-                        case={'size':[w,h],'mode':mode,'tab':tab}
+                        case={'size':[w,h],'mode':mode,'tab':tab,'locale':args.locale}
                         try:
                             navigation=page.locator('.app-nav')
                             selector=navigation.locator('select')
                             if selector.count(): selector.select_option(value=TAB_IDS[TABS.index(tab)])
-                            else: navigation.get_by_role('button',name=re.compile('^'+re.escape(tab)+r'(?:\s|$)')).click(timeout=1500)
+                            else:
+                                labels=dict(zip(TABS,['nav.gym','nav.city','nav.roster','nav.market','nav.profile','nav.staff','nav.calendar']))
+                                localized=tab if args.locale=='es' else json.loads((ROOT/'public'/'i18n'/f'{args.locale}.json').read_text(encoding='utf-8'))[labels[tab]]
+                                navigation.get_by_role('button',name=re.compile('^'+re.escape(localized)+r'(?:\s|$)')).click(timeout=1500)
                             page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
                             if args.pseudo:
                                 page.evaluate(EXPAND)
@@ -175,7 +189,7 @@ def run():
                             if tab=='Plantel' and mode!='empty':
                                 grid=page.locator('.plantel-grid')
                                 width=grid.bounding_box()['width']
-                                required=min(len(fixture['plantel']),5,max(1,int((width+8)/308)))
+                                required=min(len([p for p in fixture['plantel'] if not p.get('enEspera')]),5,max(1,int((width+8)/308)))
                                 count=grid.locator('article').count()
                                 case['density']={'required_first_row':required,'visible_cards':count,'width':width}
                                 if count<required: case['failures'].append({'kind':'roster-capacity-unused','required':required,'actual':count})

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGame } from "../game/state";
-import { fmt, ofertaValidaPara, valoracion } from "../game/engine";
-import { useMessages } from "../i18n";
+import { ofertaValidaPara, valoracion } from "../game/engine";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
 import { presentarDivision, presentarOferta, presentarTitulo } from "../i18n/presentation";
 import { Btn, TextoPaginado } from "./ui";
 import { useResponsiveCapacity } from "./useResponsiveCapacity";
