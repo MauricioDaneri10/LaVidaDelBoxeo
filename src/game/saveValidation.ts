@@ -93,7 +93,7 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
       const confirmados = iniciales.filter(p => p.combo !== "acondicionamiento").map(p => p.id);
       return { ...x, guiaClub: { alumnosIniciales: iniciales.map(p => p.id), enfoquesConfirmados: confirmados,
         enfoques: licencia || (iniciales.length > 0 && iniciales.every(p => confirmados.includes(p.id))),
-        equipo: licencia || Array.isArray(x.equipamiento) && x.equipamiento.some(id => typeof id === "string" && id in EQUIPOS),
+        equipo: licencia || Array.isArray(x.equipamiento) && x.equipamiento.some(id => typeof id === "string" && Object.prototype.hasOwnProperty.call(EQUIPOS,id)),
         guanteos: licencia || sanos.some(p => p.guanteosRealizados >= 10), licencia }, schemaVersion: 8 };
     },
   };
@@ -148,8 +148,9 @@ function fields(rules: Record<string, Rule>, defaults: Obj = {}, required: strin
     if (!objeto(v)) return invalid(path, issues);
     if (required.some(k => !(k in v) || rules[k](v[k], `${path}.${k}`, []) === BAD)) return invalid(path, issues);
     const result: Obj = {};
-    for (const [k, x] of Object.entries(v)) if (!(k in rules)) {
-      const y = json(x, `${path}.${k}`, issues); if (y !== BAD) result[k] = y;
+    for (const [k, x] of Object.entries(v)) if (!Object.prototype.hasOwnProperty.call(rules,k)) {
+      const y = json(x, `${path}.${k}`, issues);
+      if (y !== BAD) Object.defineProperty(result,k,{value:y,enumerable:true,writable:true,configurable:true});
     }
     for (const [k, rule] of Object.entries(rules)) {
       const y = rule(v[k], `${path}.${k}`, issues);

@@ -151,7 +151,7 @@ def context_case(page):
 
 def hiring_case(page):
     before=state(page)
-    page.locator('.app-nav select').select_option(value='personal')
+    go_tab(page,'personal','Personal')
     def request_hire():
         hire=page.get_by_role('button',name=re.compile(r'^Contratar(?:\s|$)')).first
         if not hire.count():
@@ -162,13 +162,17 @@ def hiring_case(page):
     dialog.wait_for()
     assert state(page)==before, 'Opening financial confirmation hired someone'
     assert dialog.evaluate('e=>e.contains(document.activeElement)')
+    assert not measure_detail(page)['failures'], 'Financial confirmation has inaccessible controls'
     page.keyboard.press('Escape')
     dialog.wait_for(state='detached')
     assert state(page)==before, 'Cancelling confirmation mutated game'
     request_hire()
     dialog.get_by_role('button',name=re.compile(r'^Contratar igualmente(?:\s|$)')).click()
     dialog.wait_for(state='detached')
-    if page.get_by_role('dialog').count(): page.keyboard.press('Escape')
+    if page.get_by_role('dialog').count():
+        parent=page.get_by_role('dialog')
+        assert parent.evaluate('e=>e.contains(document.activeElement) && !document.activeElement.matches(":disabled")'), 'Hiring disabled the trigger and lost focus outside the remaining dialog'
+        page.keyboard.press('Escape')
     page.get_by_text(re.compile(r'^Contratado · 1(?:\s|$)')).wait_for()
     assert len(state(page)['personal'])==1
     assert state(page)['personal'][0]['tipo']=='directorTecnico'
@@ -758,6 +762,28 @@ def language_failure_case(page):
     assert dialog.get_by_role('alert').inner_text()=='No se cambió el idioma. Revisá la conexión o el almacenamiento y volvé a intentarlo.'
     assert language.input_value()=='es' and state(page)==before
     page.keyboard.press('Escape')
+    # A different window may change the preference while startup fetch is pending.
+    # No GameProvider/autosave may initialize with an unvalidated current locale.
+    page.unroute('**/i18n/pt-BR.json')
+    pending=[]
+    def hold_english(route): pending.append(route)
+    page.route('**/i18n/en.json',hold_english)
+    page.add_init_script("const originalFetch=window.fetch;window.fetch=function(...args){if(String(args[0]).endsWith('/en.json'))window.__restoreRequested=true;return originalFetch.apply(this,args);};")
+    page.evaluate('localStorage.setItem("vida-del-boxeo:idioma","en")')
+    original=page.evaluate('localStorage.getItem("vida-del-boxeo-v2")')
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_function('window.__restoreRequested===true')
+    assert len(pending)==1
+    page.evaluate('localStorage.setItem("vida-del-boxeo:idioma","pt-BR")')
+    pending[0].fulfill(status=200,content_type='application/json',body=(ROOT/'public/i18n/en.json').read_text(encoding='utf-8'))
+    page.wait_for_function("document.querySelector('.app-nav') || [...document.querySelectorAll('button')].some(e=>e.textContent.includes('Usar español esta vez'))")
+    assert page.locator('.app-nav').count()==0, 'Concurrent unloaded preference silently initialized the game'
+    assert page.evaluate('localStorage.getItem("vida-del-boxeo-v2")')==original, 'Startup race wrote the career before validating its current locale'
+    page.get_by_role('button',name='Volver a intentar',exact=True).click()
+    portuguese=json.loads((ROOT/'public/i18n/pt-BR.json').read_text(encoding='utf-8'))
+    page.get_by_role('button',name=portuguese['top.settings'],exact=True).wait_for()
+    assert state(page)==before and page.evaluate('localStorage.getItem("vida-del-boxeo:idioma")')=='pt-BR'
+    page.unroute('**/i18n/en.json',hold_english)
 
 
 def archive_case(page):
@@ -1969,6 +1995,7 @@ def run():
                 families=[('settings',settings_bounds_case),('gym-detail',gym_drawer_case),('gym-belts',gym_belts_case),('city-detail',city_detail_case),('city-records',city_records_case),('boxer-detail',boxer_detail_case),('archive',archive_case),('intro',intro_case),('club-status',club_status_case),('roster-views',roster_views_case),('courses',courses_case),('calendar-views',calendar_views_case),('event-panel',event_panel_case),('event-response',event_response_case),('transfer-cancel',transfer_cancel_case),('press-panel',press_panel_case),('advice-panel',advice_panel_case),('sponsor-panel',sponsor_panel_case),('advice-payment',advice_payment_case),('event-expired',expired_event_case),('fight-screen',fight_screen_case),('fight-screen-final-draw',fight_final_case),('fight-screen-final-ko',fight_final_case),('fight-screen-count',fight_count_case),('fight-screen-reduced',fight_screen_case),('planning',planning_case),('language-switch',language_case),('language-failure',language_failure_case),('save-error',save_error_case),('market-extremes',market_extremes_case),('staff-extremes',staff_extremes_case),('properties-extremes',properties_extremes_case),('profile-belt',profile_decisions_case),('profile-title-only',profile_decisions_case),('fundraising',fundraising_case),('weekly-balance',weekly_balance_case),('selector-detail',offers_detail_case),('selector-sign',selector_action_case),('selector-regenerate',selector_action_case)]
                 families.extend([('localized-english',localized_details_case),('localized-portuguese',localized_details_case),('save-error-intro',save_error_case),('career-closure-confirm',career_confirm_case),('career-legacy-confirm',career_confirm_case),('render-recovery',recovery_case)])
                 families.extend((f'transaction-{kind}',transaction_case) for kind in ['gear','course','staff','activity','property','brand'])
+                families.append(('hiring-confirmation',hiring_case))
                 cases=[(f'{name}-{w}x{h}',check,(w,h)) for w,h in SIZES for name,check in families]
             if args.case:
                 if args.matrix and args.case in ['press-panel','advice-panel','sponsor-panel']:

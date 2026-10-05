@@ -12,6 +12,24 @@ function isolated(state:unknown) {
   return {repo,bytes,original,raw};
 }
 describe("R4 — metadata de presentación no altera dinero ni historia",()=>{
+  it.each([7,8,9,10])("schema %s conserva extensiones JSON cuyo nombre coincide con Object.prototype",version=>{
+    const extension=JSON.parse('{"constructor":"Registro histórico","toString":0,"__proto__":{"literal":0}}');
+    const saved={...crearEstadoBase(),...extension,schemaVersion:version};
+    if(version===7)delete saved.guiaClub;
+    else saved.guiaClub={...saved.guiaClub,...extension};
+    const {repo,bytes,raw}=isolated(saved);
+    const loaded=repo.cargar();
+    for(const key of Object.keys(extension)) {
+      expect(Object.prototype.hasOwnProperty.call(loaded,key),key).toBe(true);
+      expect((loaded as unknown as Record<string,unknown>)[key],key).toEqual(extension[key]);
+      if(version>=8)expect((loaded.guiaClub as unknown as Record<string,unknown>)[key],`guide.${key}`).toEqual(extension[key]);
+    }
+    expect(repo.guardar(loaded)).toBe(true);
+    expect(repo.cargar()).toEqual(loaded);
+    if(version<10)expect(bytes.get(`${K}:recuperacion:${hashTexto(raw)}`)).toBe(raw);
+    expect(Object.getPrototypeOf(loaded)).toBe(Object.prototype);
+    expect(Object.prototype).not.toHaveProperty("literal");
+  });
   it("9→10 es explícita, idempotente y no infiere identidad de texto antiguo",()=>{
     const old={...crearEstadoBase(),schemaVersion:9,libroIngresos:[{concepto:"Cuotas de alumnos (0 × $18)",monto:0,extension:["{nombre}",0]}]};
     const migrated=migrarGuardado(old);

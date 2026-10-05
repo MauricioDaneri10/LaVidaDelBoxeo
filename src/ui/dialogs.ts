@@ -77,9 +77,14 @@ export function mountDialog(element: HTMLElement, dialog: HTMLElement, close: ()
     }
     if (wasTop) {
       const top = layers[layers.length - 1];
-      if (trigger?.isConnected && (!top || top.dialog.contains(trigger))) trigger.focus({ preventScroll: true });
-      else if (top) focusTop();
-      else document.querySelector<HTMLElement>("#root nav button, #root button:not(:disabled)")?.focus({ preventScroll: true });
+      if (trigger?.isConnected && !trigger.matches(":disabled") && (!top || top.dialog.contains(trigger))) trigger.focus({ preventScroll: true });
+      if (document.activeElement !== trigger) {
+        if (top) focusTop();
+        else {
+          const root=document.getElementById("root");
+          if(root)available(root)[0]?.focus({preventScroll:true});
+        }
+      }
     }
   };
 }

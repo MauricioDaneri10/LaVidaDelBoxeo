@@ -10,6 +10,46 @@ function isolated(initial:string|null) {
   vi.stubGlobal("window",{dispatchEvent:dispatch});
   return {entries,write,dispatch};
 }
+it("solo la última selección simultánea puede persistir o notificar, aunque termine primero",async()=>{
+  const {entries,write,dispatch}=isolated("es");
+  let finishEnglish!:(value:unknown)=>void,finishPortuguese!:(value:unknown)=>void;
+  vi.stubGlobal("fetch",vi.fn((url:string)=>new Promise(resolve=>{
+    if(String(url).endsWith('/en.json'))finishEnglish=resolve;else finishPortuguese=resolve;
+  })));
+  const english=seleccionarIdioma("en","https://example.invalid/game/");
+  const portuguese=seleccionarIdioma("pt-BR","https://example.invalid/game/");
+  finishPortuguese({ok:true,json:async()=>({...es})});
+  expect(await portuguese).toBe(true);
+  finishEnglish({ok:true,json:async()=>({...es})});
+  expect(await english).toBe(false);
+  expect(write.mock.calls).toEqual([["vida-del-boxeo:idioma","pt-BR"]]);
+  expect(dispatch).toHaveBeenCalledTimes(1);expect(cargarIdioma()).toBe("pt-BR");
+  expect(entries.get("vida-del-boxeo-v2")).toBe("partida intacta");
+});
+it("una selección antigua no se activa cuando la última solicitud falla",async()=>{
+  const {write,dispatch}=isolated("es");
+  let finishEnglish!:(value:unknown)=>void;
+  vi.stubGlobal("fetch",vi.fn((url:string)=>String(url).endsWith('/en.json')?new Promise(resolve=>{finishEnglish=resolve;}):Promise.resolve({ok:false,status:404})));
+  const english=seleccionarIdioma("en","https://example.invalid/game/");
+  expect(await seleccionarIdioma("pt-BR","https://example.invalid/game/")).toBe(false);
+  finishEnglish({ok:true,json:async()=>({...es})});expect(await english).toBe(false);
+  expect(cargarIdioma()).toBe("es");expect(write).not.toHaveBeenCalled();expect(dispatch).not.toHaveBeenCalled();
+});
+it("restauración pendiente no abre autosave con una preferencia concurrente aún sin catálogo",async()=>{
+  const {entries,write,dispatch}=isolated("en");
+  let finish!:(value:unknown)=>void;
+  vi.stubGlobal("fetch",vi.fn(()=>new Promise(resolve=>{finish=resolve;})));
+  const restore=restaurarIdioma("https://example.invalid/game/");
+  entries.set("vida-del-boxeo:idioma","pt-BR");
+  finish({ok:true,json:async()=>({...es})});
+  expect(await restore).toBe(false);
+  expect(dispatch).not.toHaveBeenCalled();expect(write).not.toHaveBeenCalled();
+  expect(entries.get("vida-del-boxeo:idioma")).toBe("pt-BR");
+  expect(entries.get("vida-del-boxeo-v2")).toBe("partida intacta");
+  vi.stubGlobal("fetch",vi.fn().mockResolvedValue({ok:true,json:async()=>({...es})}));
+  expect(await restaurarIdioma("https://example.invalid/game/")).toBe(true);
+  expect(cargarIdioma()).toBe("pt-BR");expect(dispatch).toHaveBeenCalledTimes(1);expect(write).not.toHaveBeenCalled();
+});
 it("solo ofrece los tres catálogos completos, y no devuelve un locale sin recurso validado",()=>{
   isolated("en");
   expect(IDIOMAS_HABILITADOS).toEqual(["es","en","pt-BR"]);

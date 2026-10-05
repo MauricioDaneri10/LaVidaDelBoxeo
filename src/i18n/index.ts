@@ -38,7 +38,7 @@ export async function seleccionarIdioma(locale:Locale,baseURL?:string):Promise<b
   catch {return false;}
 }
 export async function restaurarIdioma(baseURL?:string):Promise<boolean> {
-  try {await cargarCatalogo(idiomaPreferido(),baseURL);window.dispatchEvent(new Event(CAMBIO_IDIOMA));return true;}
+  try {await cargarCatalogo(idiomaPreferido(),baseURL);if(!catalogs[idiomaPreferido()])return false;window.dispatchEvent(new Event(CAMBIO_IDIOMA));return true;}
   catch {return false;}
 }
 
