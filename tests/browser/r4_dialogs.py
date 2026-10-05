@@ -162,7 +162,9 @@ def hiring_case(page):
     dialog.wait_for()
     assert state(page)==before, 'Opening financial confirmation hired someone'
     assert dialog.evaluate('e=>e.contains(document.activeElement)')
-    assert not measure_detail(page)['failures'], 'Financial confirmation has inaccessible controls'
+    page.wait_for_function("() => [...document.querySelectorAll('[role=dialog]')].every(e=>e.dataset.animationReady==='true')")
+    measurement=measure_detail(page)
+    assert not measurement['failures'], ('Financial confirmation has inaccessible controls',measurement['failures'])
     page.keyboard.press('Escape')
     dialog.wait_for(state='detached')
     assert state(page)==before, 'Cancelling confirmation mutated game'
