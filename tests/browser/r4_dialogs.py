@@ -1578,6 +1578,7 @@ def career_confirm_case(page):
     """The visible destructive confirmation performs exactly the existing rule."""
     before=state(page)
     go_tab(page,'perfil','Mi Perfil')
+    page.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
     picker=page.get_by_role('combobox',name='Sección del perfil',exact=True)
     if picker.count():
         picker.select_option('resumen')
