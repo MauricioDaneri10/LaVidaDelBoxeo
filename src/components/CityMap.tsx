@@ -1,32 +1,55 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { COMUNITARIOS, GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
-import { fmt, rankingMundial, sucursales } from "../game/engine";
+import { useEffect, useRef, useState } from "react";
+import { m as motion } from "framer-motion";
+import { GIMNASIOS_RIVALES, PROPIEDADES } from "../game/data";
+import { rankingMundial, sucursales } from "../game/engine";
 import { useGame } from "../game/state";
 import type { PropiedadId } from "../game/types";
-import { BotonBrillante, Btn, I, Modal } from "./ui";
+import { BotonBrillante, Btn, Modal, TextoPaginado } from "./ui";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import { formatearDineroJuego as fmt, useMessages } from "../i18n";
+import { presentarCurso, presentarDivision, presentarPropiedad } from "../i18n/presentation";
 
 interface CityMapProps {
   onIrAPestaña?: (pestana: string) => void;
 }
 
 export function CityMap({ onIrAPestaña }: CityMapProps) {
+  const { t, locale } = useMessages();
   const { state, dispatch, nivel } = useGame();
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState<PropiedadId>("arena");
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const [rankingPagina, setRankingPagina] = useState(0);
   const [salonAbierto, setSalonAbierto] = useState(false);
+  const [salonPagina, setSalonPagina] = useState(0);
+  const horizontal = useResponsiveCapacity("(max-height: 450px)");
+  const [inspectorAbierto, setInspectorAbierto] = useState(false);
+  const [seccionInmueble, setSeccionInmueble] = useState("detalle");
+  const compacto = useResponsiveCapacity("(max-width: 1100px), (max-height: 800px)");
+  const mapaRef = useRef<SVGSVGElement>(null);
+  const [radioAccion, setRadioAccion] = useState(36);
+  useEffect(() => {
+    const svg = mapaRef.current;
+    if (!svg) return;
+    const ajustar = () => {
+      const scale = Math.min(svg.clientWidth / 1000, svg.clientHeight / 600);
+      if (scale > 0) setRadioAccion(Math.max(22, 24 / scale));
+    };
+    const observer = new ResizeObserver(ajustar);
+    observer.observe(svg);
+    ajustar();
+    return () => observer.disconnect();
+  }, []);
 
-  const nSuc = sucursales(state);
   const ranking = rankingMundial(state);
-  const propActual = PROPIEDADES[propiedadSeleccionada];
+  const nSuc = sucursales(state);
+  const propActual = presentarPropiedad(propiedadSeleccionada,locale);
   const esPropiedadMia = state.propiedades.includes(propiedadSeleccionada);
   const requisitoPropiedad = propiedadSeleccionada === "terreno" && !state.cursos.includes("clubes")
-    ? "Requiere el curso Gestión de Clubes."
+    ? t("city.requiresCourse",{course:presentarCurso("clubes",locale).nombre})
     : propiedadSeleccionada === "sucursal" && !state.propiedades.includes("terreno")
-    ? "Primero necesitás comprar un terreno."
+    ? t("city.requiresLand")
     : propiedadSeleccionada === "arena" && !state.cursos.includes("tv")
-    ? "Requiere el curso Televisión Estelar."
+    ? t("city.requiresCourse",{course:presentarCurso("tv",locale).nombre})
     : null;
   const puedeComprar = state.dinero >= propActual.costo && !esPropiedadMia && !requisitoPropiedad;
 
@@ -36,33 +59,44 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
 
   const propiedadesList: { id: PropiedadId; data: typeof PROPIEDADES[PropiedadId] }[] = (
     Object.keys(PROPIEDADES) as PropiedadId[]
-  ).map(id => ({ id, data: PROPIEDADES[id] }));
+  ).map(id => ({ id, data: presentarPropiedad(id,locale) }));
 
+  const propertyCopy = seccionInmueble === "detalle"
+    ? [propActual.distrito,fmt(propActual.costo),propActual.desc,!esPropiedadMia && requisitoPropiedad].filter(Boolean).join(" · ")
+    : seccionInmueble === "beneficio"
+    ? [propActual.beneficio,!esPropiedadMia && t("city.afterPurchase",{cash:fmt(state.dinero-propActual.costo)}),propiedadSeleccionada==="sucursal" && t("city.branches",{count:nSuc})].filter(Boolean).join(" · ")
+    : [t(esPropiedadMia ? "property.deeded" : "property.notOwned"),!esPropiedadMia && requisitoPropiedad].filter(Boolean).join(" · ");
+  const inspector = <div className="city-property-details min-h-0 space-y-2">
+    <TextoPaginado texto={propertyCopy} capacidad={horizontal ? 20 : compacto ? 40 : 160}/>
+    {seccionInmueble === "compra" && <BotonBrillante onClick={()=>comprar(propiedadSeleccionada)} disabled={!puedeComprar} variante={esPropiedadMia ? "secundario" : "dorado"} className="w-full">
+      {esPropiedadMia ? t("city.owned") : requisitoPropiedad ? t("city.requirementPending") : puedeComprar ? t("action.buy",{price:fmt(propActual.costo)}) : t("city.noFunds")}
+    </BotonBrillante>}
+  </div>;
   return (
     <div className="game-screen relative grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden rounded-3xl border border-line bg-ink/90 p-3 text-sand shadow-2xl backdrop-blur-xl select-none">
       
       {/* CABECERA URBANÍSTICA */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-2">
+      <div className="city-header flex flex-wrap items-center justify-between gap-4 border-b border-line pb-2">
         <div>
-          <div className="flex items-center gap-2.5">
+          {!compacto && <div className="flex items-center gap-2.5">
             <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-gold/10 text-gold border border-gold/40 font-mono-data">
-              PLANO URBANÍSTICO DE LA METRÓPOLI
+              {t("city.plan")}
             </span>
-            <span className="text-xs text-mut font-cond">Distritos, Bienes Inmuebles & Clubes Rivales</span>
-          </div>
+            <span className="text-xs text-mut font-cond">{t("city.subtitle")}</span>
+          </div>}
           <h2 className="text-xl sm:text-2xl font-display uppercase tracking-wide text-cream mt-1">
-            Ciudad de Campeones
+            {t("city.title")}
           </h2>
         </div>
 
       </div>
 
       {/* PLANO URBANÍSTICO VECTORIAL ISOMÉTRICO 1000x600 + PANEL LATERAL */}
-      <div className="grid min-h-0 grid-cols-1 md:grid-cols-12 gap-2 items-stretch overflow-hidden">
+      <div className={`city-map-area grid min-h-0 gap-2 items-stretch overflow-hidden ${compacto ? "grid-cols-1" : "md:grid-cols-12"}`}>
         
         {/* COLUMNA IZQUIERDA: MAPA ISOMÉTRICO (8 COLS) */}
-        <div className="md:col-span-8 h-full min-h-0 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2">
-          <svg viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        <div className={`${compacto ? "" : "md:col-span-8"} h-full min-h-0 bg-[#090d16] border border-line rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center p-2`}>
+          <svg ref={mapaRef} viewBox="0 0 1000 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet" role={compacto ? "img" : undefined} aria-label={compacto ? t("city.mapLabel") : undefined}>
             <defs>
               <linearGradient id="gradRioRetro" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#0369a1" />
@@ -80,7 +114,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             {/* Río Metropolitano */}
             <path d="M-50 220 Q300 350 600 200 T1050 300 L1050 380 Q600 280 300 430 T-50 300 Z" fill="url(#gradRioRetro)" opacity="0.75" />
             <text x="450" y="270" fill="#38bdf8" fontSize="11" fontWeight="bold" opacity="0.45" letterSpacing="3" fontFamily="var(--font-cond)">
-              RÍO METROPOLITANO
+              {t("city.river")}
             </text>
 
             {/* Red de Avenidas y Calles Principales */}
@@ -121,18 +155,18 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
             {/* Distrito Norte: Lomas y Colinas */}
             <path d="M550 160 Q750 60 1000 120 L1000 0 L550 0 Z" fill="#063828" opacity="0.6" />
             <text x="800" y="60" fill="#34d399" fontSize="12" fontWeight="900" letterSpacing="2" fontFamily="var(--font-cond)">
-              DISTRITO LAS LOMAS
+              {t("city.hills")}
             </text>
 
             {/* ETIQUETAS DE DISTRITOS */}
             <rect x="60" y="540" width="280" height="30" rx="6" fill="#0c1018" stroke="#2a3344" strokeWidth="1.5" />
             <text x="200" y="560" fill="#c9b896" fontSize="11" fontWeight="bold" textAnchor="middle" fontFamily="var(--font-cond)">
-              SUR · BARRIO TRADICIONAL & GIMNASIOS
+              {t("city.south")}
             </text>
 
             <rect x="600" y="320" width="280" height="30" rx="6" fill="#0c1018" stroke="#2a3344" strokeWidth="1.5" />
             <text x="740" y="340" fill="#c9b896" fontSize="11" fontWeight="bold" textAnchor="middle" fontFamily="var(--font-cond)">
-              CENTRO · ESPECTÁCULOS & FINANZAS
+              {t("city.centre")}
             </text>
 
             {/* PIN: SEDE CENTRAL DEL JUGADOR */}
@@ -142,7 +176,7 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
               <g transform="translate(0, -32)">
                 <rect x="-85" y="-12" width="170" height="24" rx="6" fill="#0c1018" stroke="#e8b23a" strokeWidth="1.5" />
                 <text x="0" y="4" fill="#e8b23a" fontSize="10" fontWeight="900" textAnchor="middle" fontFamily="var(--font-cond)">
-                  {state.nombreGimnasio.toUpperCase()} (NIVEL {nivel})
+                  {t("city.clubLevel",{club:state.nombreGimnasio,level:nivel})}
                 </text>
               </g>
             </g>
@@ -177,19 +211,20 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
                 <g
                   key={id}
                   transform={`translate(${coords.x}, ${coords.y})`}
-                  onClick={() => setPropiedadSeleccionada(id)}
+                  onClick={compacto ? undefined : () => setPropiedadSeleccionada(id)}
                   onKeyDown={event => {
-                    if (event.key === "Enter" || event.key === " ") {
+                    if (!compacto && (event.key === "Enter" || event.key === " ")) {
                       event.preventDefault();
                       setPropiedadSeleccionada(id);
                     }
                   }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${data.nombre}, ${esMio ? "propiedad del club" : `disponible por ${fmt(data.costo)}`}`}
-                  aria-pressed={esSeleccionado}
-                  className="cursor-pointer group outline-none"
+                  role={compacto ? undefined : "button"}
+                  tabIndex={compacto ? undefined : 0}
+                  aria-label={`${data.nombre} · ${esMio ? t("city.owned") : fmt(data.costo)}`}
+                  aria-pressed={compacto ? undefined : esSeleccionado}
+                  className={`${compacto ? "" : "cursor-pointer"} group outline-none`}
                 >
+                  {!compacto && <circle r={radioAccion} fill="transparent" />}
                   {/* Halo animado de selección */}
                   {esSeleccionado && (
                     <circle cx="0" cy="0" r="32" fill="#e8b23a" opacity="0.25" className="animate-ping" />
@@ -250,235 +285,67 @@ export function CityMap({ onIrAPestaña }: CityMapProps) {
         </div>
 
         {/* COLUMNA DERECHA: INSPECTOR DE PROPIEDAD SELECCIONADA (4 COLS) */}
-        <div className="md:col-span-4 h-full min-h-0 bg-panel border border-line rounded-3xl p-2.5 flex flex-col justify-between gap-2 shadow-2xl min-w-0 overflow-hidden">
-          {propActual ? (
-            <>
-              <div className="city-inspector-copy shrink-0 space-y-1 text-[11px]">
-                <div className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-line pb-1">
-                  <span className="max-w-[70%] break-words text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2 py-1 rounded border border-gold/40">
-                    {propActual.distrito || "Distrito Metropolitano"}
-                  </span>
-                  <span className="shrink-0 text-sm font-black text-gold font-mono-data">
-                    {fmt(propActual.costo)}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <h3 className="text-base font-display uppercase tracking-wide text-cream">
-                    {propActual.nombre}
-                  </h3>
-                  <p className="text-[10px] text-sand font-cond leading-tight">
-                    {propActual.desc}
-                  </p>
-                  {requisitoPropiedad && !esPropiedadMia && (
-                    <p className="text-[10px] font-cond font-bold text-gold" role="status">
-                      {requisitoPropiedad}
-                    </p>
-                  )}
-                </div>
-
-                <div className="hidden p-1.5 rounded-xl bg-panel2 border border-line space-y-0.5 text-[10px]">
-                  <span className="text-[10px] font-black uppercase text-emerald-400 font-mono-data">
-                    BENEFICIO ESTRATÉGICO
-                  </span>
-                  <p className="font-cond font-bold text-cream leading-tight">
-                    {propActual.beneficio || "Incrementa el patrimonio y reputación del club."}
-                  </p>
-                  {!esPropiedadMia && (
-                    <p className="pt-1 font-cond text-mut">
-                      Caja después de comprar: <b className={puedeComprar ? "text-cream" : "text-blood"}>{fmt(state.dinero - propActual.costo)}</b>
-                    </p>
-                  )}
-                  {propiedadSeleccionada === "sucursal" && (
-                    <p className="pt-1 font-cond text-mut">
-                      Recuperación estimada: <b className="text-gold">{state.personal.some(p => p.tipo === "gerente") ? "aprox. 2 semanas" : "primero necesitás un gerente"}</b>
-                    </p>
-                  )}
-                </div>
-
-                <div className="hidden p-2 rounded-xl bg-ink/70 border border-line items-center text-[10px] font-mono-data font-bold">
-                  <span className="text-mut">Estado Jurídico:</span>
-                  <span className={esPropiedadMia ? "text-emerald-400" : "text-amber-400"}>
-                    {esPropiedadMia ? "✓ Escriturada a tu Nombre" : "Disponible para Compra"}
-                  </span>
-                </div>
-              </div>
-
-              {/* ACCIÓN DE ADQUISICIÓN */}
-              <div className="space-y-2">
-                <BotonBrillante
-                  onClick={() => comprar(propiedadSeleccionada)}
-                  disabled={!puedeComprar}
-                  variante={esPropiedadMia ? "secundario" : "dorado"}
-                  className="w-full py-2 text-xs font-black"
-                >
-                  {esPropiedadMia
-                    ? "✓ Inmueble en Posesión"
-                    : requisitoPropiedad
-                    ? "Requisito pendiente"
-                    : puedeComprar
-                    ? `Comprar por ${fmt(propActual.costo)}`
-                    : "Fondos Insuficientes"}
-                </BotonBrillante>
-
-                {propiedadSeleccionada === "sucursal" && (
-                  <p className="text-[10px] font-cond text-mut text-center">
-                    Sucursales activas: {nSuc} · Requiere Gerente en el plantel para rendir ingresos pasivos semanales.
-                  </p>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-xs text-mut text-center font-cond">
-              Selecciona cualquier edificio o icono en el plano urbanístico para inspeccionar sus características.
-            </div>
-          )}
-        </div>
+        {!compacto && <div className="md:col-span-4 panel min-h-0 flex flex-col justify-between gap-2 p-3 text-sm">
+          <div className="space-y-2"><h3 className="font-display text-lg text-gold">{propActual.nombre}</h3><p>{fmt(propActual.costo)}</p><p>{propActual.desc}</p>{requisitoPropiedad && !esPropiedadMia && <p className="text-gold">{requisitoPropiedad}</p>}</div>
+          <Btn small variant="gold" onClick={() => setInspectorAbierto(true)}>{t("city.inspect")}</Btn>
+        </div>}
       </div>
 
-      <section className="hidden min-h-0 overflow-hidden rounded-2xl border border-gold2/40 bg-panel p-2.5 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
-          <div>
-            <span className="font-display text-lg tracking-wide text-gold">Ranking Mundial</span>
-            <p className="font-cond text-xs text-sand">Los mejores récords, nocauts y títulos de todos los clubes de la ciudad.</p>
-          </div>
-          <span className="font-mono-data text-xs text-mut">{ranking.length} competidores registrados</span>
-          <div className="flex flex-wrap justify-center gap-1.5">
-            <Btn small variant="gold" className="w-fit" onClick={() => setRankingAbierto(true)}>Ranking mundial</Btn>
-            <Btn small variant="ghost" className="w-fit" onClick={() => setSalonAbierto(true)}>Salón de la Fama</Btn>
-          </div>
-        </div>
-        <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-          {ranking.slice(0, 3).map((item, i) => (
-            <div key={item.pugilista.id} className={`flex items-center gap-2 rounded-xl border p-2 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
-              <span className="w-6 text-center font-display text-lg text-gold">{i + 1}</span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-display text-sm text-cream">{item.pugilista.nombre}</div>
-                <div className="truncate font-cond text-[10px] uppercase text-mut">{item.club} · {item.pugilista.division}</div>
-              </div>
-              <div className="text-right font-mono-data text-[11px] text-sand">
-                <div className="text-cream">{item.pugilista.record.v}-{item.pugilista.record.d}-{item.pugilista.record.e ?? 0}</div>
-                <div className="text-gold">{item.pugilista.record.ko} KO</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* SECCIÓN INFERIOR: SCOUTING & ACTIVIDADES DE LA CIUDAD */}
-      <div className="hidden min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 border-t border-line pt-2 overflow-hidden">
-        
-        {/* SCOUTING EN CLUBES RIVALES (4 COLS) */}
-        <div className="lg:col-span-4 p-2.5 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-2 shadow-lg">
-          <div>
-            <div className="flex items-center gap-2">
-              <I n="users" className="h-4 w-4 text-blood" />
-              <span className="font-display text-base tracking-wide text-cream">Buscar talentos en otros clubes</span>
-            </div>
-            <p className="mt-1 font-cond text-xs text-sand">
-              Enviá a un ojeador a los gimnasios de {GIMNASIOS_RIVALES[0]} o {GIMNASIOS_RIVALES[1]} para invitar a un talento a probarse en tu club.
-            </p>
-          </div>
-          <Btn
-            small
-            variant="blood"
-            className="w-full"
-            disabled={state.ultimaSemanaScout === state.semana}
-            onClick={() => dispatch({ type: "SCOUT" })}
-          >
-            {state.ultimaSemanaScout === state.semana ? "Búsqueda usada · vuelve el lunes" : "Buscar un talento · 1 uso semanal"}
-          </Btn>
-        </div>
-
-        {/* ACTIVIDADES Y EVENTOS SOCIALES DEL CLUB (8 COLS) */}
-        <div className="lg:col-span-8 p-2.5 rounded-2xl bg-panel border border-line flex flex-col justify-between gap-2 shadow-lg">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <span className="hidden text-[10px] font-black uppercase text-gold font-mono-data bg-gold/10 px-2.5 py-0.5 rounded border border-gold/40">
-                ACTIVIDADES COMUNITARIAS DEL CLUB
-              </span>
-              <h4 className="font-display text-[11px] tracking-wide text-cream mt-0.5">
-                Finanzas Sociales & Eventos Populares de Fin de Semana
-              </h4>
-            </div>
-            <span className="text-xs font-cond text-mut">
-              Fama acumulada: <b className="text-gold">{state.fama} pts</b>
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-            {(["bingo", "naipes", "festival", "claseAbierta"] as const).map(k => {
-              const c = COMUNITARIOS[k];
-              return (
-                <div key={k} className="p-1.5 rounded-xl bg-panel2 border border-line text-[10px] font-cond space-y-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-base">{c.emoji}</span>
-                    <span className="font-mono-data text-gold font-bold">Inv. {fmt(c.inversion)}</span>
-                  </div>
-                  <div className="truncate font-display text-xs text-cream">{c.nombre}</div>
-                  <div className="truncate text-[10px] text-sand">{c.extra}</div>
-                  <div className="flex items-center justify-between gap-1 text-[9px] text-mut font-mono-data"><span>Retorno: {fmt(c.min)} - {fmt(c.max)}</span><button className="rounded border border-gold2/50 px-1.5 py-0.5 text-[9px] text-gold hover:bg-gold/10 disabled:opacity-40" disabled={state.comunitarios.length > 0 || state.dinero < c.inversion || state.dia >= 6} onClick={() => dispatch({ type: "PROGRAMAR_SOCIAL", actividad: k })}>{state.comunitarios.some(x => x.tipo === k) ? "Agendado" : "Agendar"}</button></div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2 text-xs font-cond text-mut">
-            <span>
-              🏢 Sucursales: <b className="text-cream">{nSuc}</b> · Gerentes: <b className="text-cream">{state.personal.filter(p => p.tipo === "gerente").length}</b> · Ingreso por sucursal con gerente: <b className="text-gold">{fmt(650 + 8 * state.fama)}/sem</b>
-            </span>
-            {onIrAPestaña && (
-              <button onClick={() => onIrAPestaña("gimnasio")} className="text-cream font-bold hover:underline cursor-pointer">
-                Volver al Gimnasio →
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
       <div className="flex min-h-0 flex-wrap justify-center gap-1.5 border-t border-line pt-2">
-        <Btn small className="w-fit" variant="gold" onClick={() => { setRankingPagina(0); setRankingAbierto(true); }}>Ranking mundial</Btn>
-        <Btn small className="w-fit" variant="ghost" onClick={() => setSalonAbierto(true)}>Salón de la fama</Btn>
+        {compacto ? <select aria-label={t("city.management")} value="" onChange={e => {
+          e.currentTarget.focus();
+          const value = e.target.value;
+          if (value === "ranking") { setRankingPagina(0); setRankingAbierto(true); }
+          else if (value === "salon") { setSalonPagina(0); setSalonAbierto(true); }
+          else if (value === "talentos") dispatch({ type: "SCOUT" });
+          else if (value) { setPropiedadSeleccionada(value as PropiedadId); setInspectorAbierto(true); }
+        }} className="r4-select">
+          <option value="" disabled>{t("city.choose")}</option>
+          <optgroup label={t("city.properties")}>{propiedadesList.map(p => <option value={p.id} key={p.id}>{p.data.nombre} · {fmt(p.data.costo)}</option>)}</optgroup>
+          <option value="ranking">{t("city.ranking")}</option><option value="salon">{t("city.hall")}</option><option value="talentos" disabled={state.ultimaSemanaScout === state.semana}>{state.ultimaSemanaScout === state.semana ? t("city.scoutUsed") : t("city.scout")}</option>
+        </select> : <>
+        <Btn small className="w-fit" variant="gold" onClick={() => { setRankingPagina(0); setRankingAbierto(true); }}>{t("city.ranking")}</Btn>
+        <Btn small className="w-fit" variant="ghost" onClick={() => { setSalonPagina(0); setSalonAbierto(true); }}>{t("city.hall")}</Btn>
         <Btn small className="w-fit" variant="blood" disabled={state.ultimaSemanaScout === state.semana} onClick={() => dispatch({ type: "SCOUT" })}>
-          {state.ultimaSemanaScout === state.semana ? "Talentos: usado" : "Buscar talentos"}
+          {state.ultimaSemanaScout === state.semana ? t("city.scoutUsed") : t("city.scout")}
         </Btn>
+        </>}
       </div>
-      {rankingAbierto && (
-        <Modal wide fit title="Ranking Mundial" icon="trophy" onClose={() => setRankingAbierto(false)}>
-          <div className="space-y-1.5">
-            <p className="mb-2 font-cond text-xs text-sand">Récord, nocauts, títulos y circuito de todos los clubes.</p>
-            <div className="grid gap-1.5 sm:grid-cols-2">
-            {ranking.slice(rankingPagina * 10, rankingPagina * 10 + 10).map((item, i) => (
-              <div key={item.pugilista.id} className={`grid grid-cols-[24px_1fr_auto] items-center gap-1.5 rounded-lg border p-1.5 ${item.club === state.nombreGimnasio ? "border-gold2/60 bg-gold/10" : "border-line bg-panel2"}`}>
-                <span className="text-center font-display text-lg text-gold">{rankingPagina * 10 + i + 1}</span>
-                <div className="min-w-0"><div className="truncate font-display text-xs text-cream">{item.pugilista.nombre}</div><div className="truncate font-cond text-[9px] uppercase text-mut">{item.club} · {item.pugilista.circuito === "pro" ? "Profesional" : "Amateur"} · {item.pugilista.division}</div></div>
-                <div className="text-right font-mono-data text-[10px] text-sand"><div>{item.pugilista.record.v}-{item.pugilista.record.d}-{item.pugilista.record.e ?? 0}</div><div className="text-gold">{item.pugilista.record.ko} KO · {item.puntos} pts</div></div>
-              </div>
-            ))}
-            </div>
-            <div className="mt-2 flex items-center justify-center gap-2 font-cond text-xs text-mut">
-              <Btn small variant="dark" disabled={rankingPagina === 0} onClick={() => setRankingPagina(p => Math.max(0, p - 1))}>Anterior</Btn>
-              <span>{rankingPagina + 1} / {Math.max(1, Math.ceil(ranking.length / 10))}</span>
-              <Btn small variant="gold" disabled={(rankingPagina + 1) * 10 >= ranking.length} onClick={() => setRankingPagina(p => p + 1)}>Más ranking</Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
-      {salonAbierto && (
-        <Modal wide fit title="Salón de la Fama" icon="trophy" onClose={() => setSalonAbierto(false)}>
-          <p className="mb-2 font-cond text-xs text-sand">Las carreras históricas permanecen aunque el boxeador ya no compita.</p>
-          {state.salonFama.length === 0 ? <p className="py-8 text-center font-cond text-sm italic text-mut">Todavía no hay leyendas retiradas.</p> : (
-            <div className="grid gap-1.5 sm:grid-cols-2">
-              {state.salonFama.map((leyenda, i) => (
-                <div key={leyenda.id} className="rounded-lg border border-gold2/50 bg-gold/10 p-2">
-                  <div className="flex items-center justify-between"><span className="font-display text-sm text-gold">#{i + 1} {leyenda.nombre}</span><span className="font-cond text-[10px] text-mut">S{leyenda.semanaRetiro}</span></div>
-                  <div className="font-cond text-xs text-sand">{leyenda.club} · {leyenda.record.v}-{leyenda.record.d}-{leyenda.record.e} · {leyenda.record.ko} KO · {leyenda.titulos} títulos</div>
-                  <div className="font-cond text-[11px] text-cream">{leyenda.motivo}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Modal>
-      )}
+      {inspectorAbierto && <Modal title={propActual.nombre} icon="house" onClose={() => setInspectorAbierto(false)} wide fit className="settings-dialog">
+        <div className="city-property-screen">
+          <select aria-label={t("city.propertySection")} value={seccionInmueble} onChange={e => setSeccionInmueble(e.target.value)} className="mb-2 r4-select">
+            <option value="detalle">{t("city.propertyDetail")}</option><option value="beneficio">{t("city.propertyBenefit")}</option><option value="compra">{t("city.propertyOwnership")}</option>
+          </select>
+          {inspector}
+        </div>
+      </Modal>}
+      {rankingAbierto && <Modal wide fit title={t("city.ranking")} icon="trophy" onClose={()=>setRankingAbierto(false)}>
+        <div className="bounded-detail">
+          <select aria-label={t("city.record")} className="r4-select" value={rankingPagina} onChange={e=>setRankingPagina(Number(e.target.value))}>
+            {ranking.map((entry,index)=><option key={entry.pugilista.id} value={index}>#{index+1} · {entry.pugilista.nombre}</option>)}
+          </select>
+          {ranking[rankingPagina] && <TextoPaginado key={ranking[rankingPagina].pugilista.id} capacidad={horizontal ? 20 : compacto ? 40 : 180} texto={t("city.rankingRecord",{
+            position:rankingPagina+1,name:ranking[rankingPagina].pugilista.nombre,club:ranking[rankingPagina].club,
+            circuit:t(ranking[rankingPagina].pugilista.circuito==="pro" ? "city.pro" : "city.amateur"),
+            division:presentarDivision(ranking[rankingPagina].pugilista.division,locale),wins:ranking[rankingPagina].pugilista.record.v,
+            losses:ranking[rankingPagina].pugilista.record.d,draws:ranking[rankingPagina].pugilista.record.e??0,
+            kos:ranking[rankingPagina].pugilista.record.ko,points:ranking[rankingPagina].puntos
+          })}/>}
+        </div>
+      </Modal>}
+      {salonAbierto && <Modal wide fit title={t("city.hall")} icon="trophy" onClose={()=>setSalonAbierto(false)}>
+        {state.salonFama.length===0 ? <p>{t("city.noLegends")}</p> : <div className="bounded-detail">
+          <select aria-label={t("city.record")} className="r4-select" value={salonPagina} onChange={e=>setSalonPagina(Number(e.target.value))}>
+            {state.salonFama.map((entry,index)=><option key={entry.id} value={index}>#{index+1} · {entry.nombre}</option>)}
+          </select>
+          {state.salonFama[salonPagina] && <TextoPaginado key={state.salonFama[salonPagina].id} capacidad={horizontal ? 20 : compacto ? 40 : 180} texto={t("city.hallRecord",{
+            position:salonPagina+1,name:state.salonFama[salonPagina].nombre,club:state.salonFama[salonPagina].club,
+            wins:state.salonFama[salonPagina].record.v,losses:state.salonFama[salonPagina].record.d,
+            draws:state.salonFama[salonPagina].record.e,kos:state.salonFama[salonPagina].record.ko,
+            titles:state.salonFama[salonPagina].titulos,week:state.salonFama[salonPagina].semanaRetiro,reason:state.salonFama[salonPagina].motivo
+          })}/>}
+        </div>}
+      </Modal>}
 
     </div>
   );

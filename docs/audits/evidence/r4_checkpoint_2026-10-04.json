@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-04",
+  "status": "R4 OPEN — NOT ACCEPTED",
+  "unitTests": 433,
+  "unitFiles": 15,
+  "unitSeconds": 4.25,
+  "catalogueKeys": 298,
+  "localesEnabled": [
+    "es"
+  ],
+  "budgets": {
+    "js": 573440,
+    "css": 92160
+  },
+  "assets": {
+    "jsBytes": 573312,
+    "cssBytes": 91796
+  },
+  "reports": [
+    {
+      "control": "r4-checkpoint-expired",
+      "status": "PASS",
+      "seconds": 2.798,
+      "buildUnchanged": true,
+      "cases": [
+        {
+          "case": "event-expired",
+          "status": "PASS"
+        }
+      ],
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "728bca25769c01e634996f868c5e5bcf0e3406c5b44f0153f0a12666e77ed3b1",
+        "assets\\index-0fT3o0a0.css": "323c19741f70287d9ce8c713a20ac1cd14863c94c49dd1216a23de9dfc4d34fb",
+        "assets\\index-Bjj631L4.js": "93cf41df810b9fb8c7c75bbcd5b6ff856fcf5bd92b59aa50c1fed00f1d31213a",
+        "i18n\\en.json": "6f017e1eb752bb5e256f66f368eb3407fbc42ea32f915fa5197a57c789cd649b",
+        "i18n\\pt-BR.json": "fe34bbc5a9790197a56230ee8bf1bd40f16a873b09a900ac07a3d205973cba61"
+      }
+    },
+    {
+      "control": "r4-checkpoint-advice",
+      "status": "PASS",
+      "seconds": 8.435,
+      "buildUnchanged": true,
+      "cases": [
+        {
+          "case": "advice-panel",
+          "status": "PASS"
+        }
+      ],
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "728bca25769c01e634996f868c5e5bcf0e3406c5b44f0153f0a12666e77ed3b1",
+        "assets\\index-0fT3o0a0.css": "323c19741f70287d9ce8c713a20ac1cd14863c94c49dd1216a23de9dfc4d34fb",
+        "assets\\index-Bjj631L4.js": "93cf41df810b9fb8c7c75bbcd5b6ff856fcf5bd92b59aa50c1fed00f1d31213a",
+        "i18n\\en.json": "6f017e1eb752bb5e256f66f368eb3407fbc42ea32f915fa5197a57c789cd649b",
+        "i18n\\pt-BR.json": "fe34bbc5a9790197a56230ee8bf1bd40f16a873b09a900ac07a3d205973cba61"
+      }
+    },
+    {
+      "control": "r4-checkpoint-payment",
+      "status": "PASS",
+      "seconds": 4.549,
+      "buildUnchanged": true,
+      "cases": [
+        {
+          "case": "advice-payment",
+          "status": "PASS"
+        }
+      ],
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "728bca25769c01e634996f868c5e5bcf0e3406c5b44f0153f0a12666e77ed3b1",
+        "assets\\index-0fT3o0a0.css": "323c19741f70287d9ce8c713a20ac1cd14863c94c49dd1216a23de9dfc4d34fb",
+        "assets\\index-Bjj631L4.js": "93cf41df810b9fb8c7c75bbcd5b6ff856fcf5bd92b59aa50c1fed00f1d31213a",
+        "i18n\\en.json": "6f017e1eb752bb5e256f66f368eb3407fbc42ea32f915fa5197a57c789cd649b",
+        "i18n\\pt-BR.json": "fe34bbc5a9790197a56230ee8bf1bd40f16a873b09a900ac07a3d205973cba61"
+      }
+    },
+    {
+      "control": "r4-checkpoint-sponsor",
+      "status": "PASS",
+      "seconds": 4.151,
+      "buildUnchanged": true,
+      "cases": [
+        {
+          "case": "sponsor-panel",
+          "status": "PASS"
+        }
+      ],
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "728bca25769c01e634996f868c5e5bcf0e3406c5b44f0153f0a12666e77ed3b1",
+        "assets\\index-0fT3o0a0.css": "323c19741f70287d9ce8c713a20ac1cd14863c94c49dd1216a23de9dfc4d34fb",
+        "assets\\index-Bjj631L4.js": "93cf41df810b9fb8c7c75bbcd5b6ff856fcf5bd92b59aa50c1fed00f1d31213a",
+        "i18n\\en.json": "6f017e1eb752bb5e256f66f368eb3407fbc42ea32f915fa5197a57c789cd649b",
+        "i18n\\pt-BR.json": "fe34bbc5a9790197a56230ee8bf1bd40f16a873b09a900ac07a3d205973cba61"
+      }
+    }
+  ]
+}

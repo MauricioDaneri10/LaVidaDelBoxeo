@@ -8,10 +8,15 @@ export const ATRIBUTOS_BASE: Atributos = {
 };
 import type { EstadoJuego } from "./types";
 import { consolidarConsejos, evidenciaCobroDanada } from "./consejos";
+import {contenidoMensaje,type PresentacionContenido} from "./messageContent";
 
-export const SCHEMA_ACTUAL = 7;
+export const SCHEMA_ACTUAL = 10;
 export class ErrorGuardado extends Error {
-  constructor(message: string, public readonly codigo: "corruption" | "incompatible" | "ambiguous" = "corruption") { super(message); }
+  readonly presentacion?:PresentacionContenido;
+  constructor(message:string|ReturnType<typeof contenidoMensaje>,public readonly codigo:"corruption"|"incompatible"|"ambiguous"="corruption") {
+    super(typeof message==="string"?message:message.texto);
+    this.presentacion=typeof message==="string"?undefined:message.presentacion;
+  }
 }
 type Obj = Record<string, unknown>;
 export const objeto = (x: unknown): x is Obj => !!x && typeof x === "object" && !Array.isArray(x);
@@ -23,20 +28,39 @@ export function hashTexto(texto: string): string {
 
 /** Migrations never invent a split of an aggregated professional/amateur record. */
 export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolean } {
-  if (!objeto(raw)) throw new ErrorGuardado("Formato de guardado inválido.");
+  if (!objeto(raw)) throw new ErrorGuardado(contenidoMensaje("save.error.format"));
   let s = raw;
   if ("formatVersion" in raw) {
-    if (raw.formatVersion !== 1 || !objeto(raw.state)) throw new ErrorGuardado("Formato incompatible: no se sobrescribió la partida.", "incompatible");
-    if ((typeof raw.state.schemaVersion === "number" && raw.state.schemaVersion > SCHEMA_ACTUAL) || (raw.state.version !== undefined && raw.state.version !== 1 && raw.state.version !== 2)) throw new ErrorGuardado("Versión incompatible: original protegido.", "incompatible");
-    if (raw.checksum !== undefined && raw.checksum !== hashTexto(JSON.stringify(raw.state))) throw new ErrorGuardado("Escritura incompleta: checksum incorrecto.");
-    if (raw.schemaVersion !== raw.state.schemaVersion || raw.gameVersion !== raw.state.version || raw.saveId !== raw.state.partidaId) throw new ErrorGuardado("Envelope y partida no coinciden.", "incompatible");
+    if (raw.formatVersion !== 1 || !objeto(raw.state)) throw new ErrorGuardado(contenidoMensaje("save.error.envelopeFormat"), "incompatible");
+    if ((typeof raw.state.schemaVersion === "number" && raw.state.schemaVersion > SCHEMA_ACTUAL) || (raw.state.version !== undefined && raw.state.version !== 1 && raw.state.version !== 2)) throw new ErrorGuardado(contenidoMensaje("save.error.future"), "incompatible");
+    if (raw.checksum !== undefined && raw.checksum !== hashTexto(JSON.stringify(raw.state))) throw new ErrorGuardado(contenidoMensaje("save.error.checksum"));
+    if (raw.schemaVersion !== raw.state.schemaVersion || raw.gameVersion !== raw.state.version || raw.saveId !== raw.state.partidaId) throw new ErrorGuardado(contenidoMensaje("save.error.envelopeMismatch"), "incompatible");
     s = raw.state;
   }
-  if (s.version !== undefined && s.version !== 1 && s.version !== 2) throw new ErrorGuardado("Versión de juego incompatible.", "incompatible");
+  if (s.version !== undefined && s.version !== 1 && s.version !== 2) throw new ErrorGuardado(contenidoMensaje("save.error.gameVersion"), "incompatible");
   const versionAntigua = s.version === 1;
   const inicial = s.schemaVersion === undefined ? 1 : s.schemaVersion;
-  if (typeof inicial !== "number" || !Number.isInteger(inicial) || inicial < 1 || inicial > SCHEMA_ACTUAL) throw new ErrorGuardado("Schema incompatible: original protegido.", "incompatible");
-  if (evidenciaCobroDanada(s.consejos)) throw new ErrorGuardado("Evidencia de cobro de un hito dañada: original protegido; se necesita recuperar ese registro antes de habilitar nuevos pagos.", "ambiguous");
+  if (typeof inicial !== "number" || !Number.isInteger(inicial) || inicial < 1 || inicial > SCHEMA_ACTUAL) throw new ErrorGuardado(contenidoMensaje("save.error.schema"), "incompatible");
+  // A damaged guide cannot be replaced by an empty optional value: that would
+  // erase reliable milestones and allow autosave to invent a restarted guide.
+  if (inicial >= 8 && "guiaClub" in s) {
+    const issues: string[] = [];
+    if (guiaClub(s.guiaClub, "guiaClub", issues) === BAD || issues.length) throw new ErrorGuardado(contenidoMensaje("save.error.guide"), "ambiguous");
+  }
+  if (inicial >= 9) {
+    const libros = [s.libroIngresos, s.libroGastos, ...(objeto(s.resumen) ? [s.resumen.ingresos, s.resumen.gastos] : [])];
+    if (libros.some(rows => Array.isArray(rows) && rows.some(l => objeto(l) && "claseContable" in l && l.claseContable !== "financiacion")))
+      throw new ErrorGuardado(contenidoMensaje("save.error.accounting"), "ambiguous");
+  }
+  if (evidenciaCobroDanada(s.consejos)) throw new ErrorGuardado(contenidoMensaje("save.error.claim"), "ambiguous");
+  const mensajes = (x:Obj) => [x.toasts,x.prensa,x.libroIngresos,x.libroGastos,x.historial,
+    ...(Array.isArray(x.archivoCarreras)?x.archivoCarreras.filter(objeto).map(entry=>entry.historial):[]),
+    ...(objeto(x.resumen)?[x.resumen.ingresos,x.resumen.gastos]:[])];
+  // Metadata errors must not be repaired by deleting the identity and autosaving.
+  if(inicial>=10 && mensajes(s).some(rows=>Array.isArray(rows)&&rows.some(row=>objeto(row)&&"presentacion" in row&&
+    (!objeto(row.presentacion)||typeof row.presentacion.id!=="string"||!row.presentacion.id||!objeto(row.presentacion.parametros)||
+      Object.values(row.presentacion.parametros).some(value=>typeof value!=="string"&&(typeof value!=="number"||!Number.isFinite(value)))))))
+    throw new ErrorGuardado(contenidoMensaje("save.error.presentation"),"ambiguous");
   // Stable legacy identity: repeated migration of the same bytes is identical.
   const migraciones: Record<number, (x: Obj) => Obj> = {
     1: x => ({ ...x, seguidores: x.seguidores ?? 0, recreativos: x.recreativos ?? 0, nombrePartida: x.nombrePartida ?? x.nombreGimnasio ?? "Mi carrera", schemaVersion: 2 }),
@@ -46,11 +70,48 @@ export function migrarGuardado(raw: unknown): { estado: unknown; migrado: boolea
     // The new decision label must be rejected by older readers, not silently discarded.
     5: x => ({ ...x, combateActivo: x.combateActivo ?? null, schemaVersion: 6 }),
     6: x => {
-      if ("contratosTitularesHistoricos" in x) throw new ErrorGuardado("Metadata anterior con nombre reservado: Original protegido; se necesita recuperar la extensión antes de migrar.", "ambiguous");
+      if ("contratosTitularesHistoricos" in x) throw new ErrorGuardado(contenidoMensaje("save.error.reservedContract"), "ambiguous");
       return { ...x, consejos: consolidarConsejos(x.consejos, true),
       contratosTitularesHistoricos: Array.isArray(x.pendientes) ? x.pendientes.filter(p => objeto(p) && typeof p.id === "string" && typeof p.esTitulo === "number" && p.esTitulo > 0).map(p => p.id) : [],
       schemaVersion: 7 };
     },
+    7: x => {
+      if ("guiaClub" in x) throw new ErrorGuardado(contenidoMensaje("save.error.reservedGuide"), "ambiguous");
+      const validarPugil = (p: unknown): import("./types").Pugilista[] => {
+        const issues: string[] = [];
+        const checked = boxer(p, "guia.pugilista", issues);
+        return checked !== BAD && !issues.length ? [checked as import("./types").Pugilista] : [];
+      };
+      const sanos = (Array.isArray(x.plantel) ? x.plantel : []).flatMap(validarPugil);
+      const archivo = (Array.isArray(x.archivoCarreras) ? x.archivoCarreras : []).flatMap(p => {
+        const issues: string[] = [];
+        const checked = carreraArchivada(p, "guia.archivo", issues);
+        return checked !== BAD && !issues.length ? validarPugil((checked as Obj).pugilista) : [];
+      });
+      const licencia = [...sanos, ...archivo].some(p => p.rol === "boxeador" && p.licenciaFederativa);
+      const iniciales = sanos.filter(p => p.rol === "alumno" && !p.enEspera);
+      const confirmados = iniciales.filter(p => p.combo !== "acondicionamiento").map(p => p.id);
+      return { ...x, guiaClub: { alumnosIniciales: iniciales.map(p => p.id), enfoquesConfirmados: confirmados,
+        enfoques: licencia || (iniciales.length > 0 && iniciales.every(p => confirmados.includes(p.id))),
+        equipo: licencia || Array.isArray(x.equipamiento) && x.equipamiento.some(id => typeof id === "string" && Object.prototype.hasOwnProperty.call(EQUIPOS,id)),
+        guanteos: licencia || sanos.some(p => p.guanteosRealizados >= 10), licencia }, schemaVersion: 8 };
+    },
+  };
+  migraciones[8] = x => {
+    const identificar = (raw: unknown, ingreso = false): unknown => Array.isArray(raw) ? raw.map(l => {
+      if (!objeto(l)) return l;
+      if ("claseContable" in l) throw new ErrorGuardado(contenidoMensaje("save.error.reservedAccounting"), "ambiguous");
+      // Exact legacy template only, retaining every amount, label and extension.
+      return ingreso && l.concepto === "Desembolso del préstamo" ? { ...l, claseContable: "financiacion" } : l;
+    }) : raw;
+    return { ...x, schemaVersion: 9, libroIngresos: identificar(x.libroIngresos, true), libroGastos: identificar(x.libroGastos),
+      ...(objeto(x.resumen) ? { resumen: { ...x.resumen, ingresos: identificar(x.resumen.ingresos, true), gastos: identificar(x.resumen.gastos) } } : {}) };
+  };
+  migraciones[9] = x => {
+    if(mensajes(x).some(rows=>Array.isArray(rows)&&rows.some(row=>objeto(row)&&"presentacion" in row)))
+      throw new ErrorGuardado(contenidoMensaje("save.error.reservedPresentation"),"ambiguous");
+    // Do not fabricate dates, IDs, parameters or infer identity from historical prose.
+    return {...x,schemaVersion:10};
   };
   for (let v = inicial; v < SCHEMA_ACTUAL; v++) s = migraciones[v](s);
   if (versionAntigua) s = { ...s, version: 2 };
@@ -87,8 +148,9 @@ function fields(rules: Record<string, Rule>, defaults: Obj = {}, required: strin
     if (!objeto(v)) return invalid(path, issues);
     if (required.some(k => !(k in v) || rules[k](v[k], `${path}.${k}`, []) === BAD)) return invalid(path, issues);
     const result: Obj = {};
-    for (const [k, x] of Object.entries(v)) if (!(k in rules)) {
-      const y = json(x, `${path}.${k}`, issues); if (y !== BAD) result[k] = y;
+    for (const [k, x] of Object.entries(v)) if (!Object.prototype.hasOwnProperty.call(rules,k)) {
+      const y = json(x, `${path}.${k}`, issues);
+      if (y !== BAD) Object.defineProperty(result,k,{value:y,enumerable:true,writable:true,configurable:true});
     }
     for (const [k, rule] of Object.entries(rules)) {
       const y = rule(v[k], `${path}.${k}`, issues);
@@ -109,7 +171,7 @@ function list(rule: Rule, uniqueKey?: string): Rule {
       if (y === BAD) return [];
       const key = uniqueKey && objeto(y) ? y[uniqueKey] : y;
       if (uniqueKey && seen.has(key)) {
-        if (JSON.stringify(seen.get(key)) !== JSON.stringify(y)) throw new ErrorGuardado(`${p}[${n}]: ID conflictivo; se necesita decidir qué identidad recuperar. Original protegido.`, "ambiguous");
+        if (JSON.stringify(seen.get(key)) !== JSON.stringify(y)) throw new ErrorGuardado(contenidoMensaje("save.error.duplicate",{path:p,index:n}), "ambiguous");
         i.push(`${p}[${n}]: ID duplicado idéntico`); return [];
       }
       seen.set(key, y); return [y];
@@ -138,7 +200,7 @@ const boxerFields = fields({
 const boxer: Rule = (v, p, i) => {
   if (!objeto(v)) return invalid(p, i);
   const counters = ["peleasAmateur", "peleasProfesionales", "victoriasProfesionales", "derrotasProfesionales", "empatesProfesionales", "kosProfesionales"];
-  if (v.circuito === "pro" && counters.some(k => v[k] === undefined)) throw new ErrorGuardado(`${p}: trayectoria profesional incompleta; no es posible inferir la división del récord. Original protegido.`, "ambiguous");
+  if (v.circuito === "pro" && counters.some(k => v[k] === undefined)) throw new ErrorGuardado(contenidoMensaje("save.error.proRecord",{path:p}), "ambiguous");
   const migrated = { ...v };
   if (v.circuito !== "pro" && migrated.peleasAmateur === undefined && objeto(v.record)) {
     const { v: wins, d, e } = v.record;
@@ -173,23 +235,26 @@ const activeCombat: Rule = (v, p, i) => {
   if (v === null) return null;
   const local: string[] = [];
   const checked = combat(v, p, local);
-  if (checked === BAD || local.length) throw new ErrorGuardado("Checkpoint de combate dañado: original protegido.");
+  if (checked === BAD || local.length) throw new ErrorGuardado(contenidoMensaje("save.error.checkpointDamaged"));
   return checked;
 };
 const result = fields({ miId: optional(id), rivalNombre: optional(str), gane: bool, empate: bool, metodo: oneOf(["Nocaut", "Nocaut Técnico", "Decisión Unánime", "Decisión Dividida", "Decisión Mayoritaria", "Empate"]), tarjetas: list(fields({ a: num(0), b: num(0) }, {}, ["a", "b"])), caidasA: count, caidasB: count, registroA: compubox, registroB: compubox, bolsa: num(0), fama: num(), tituloGanado: title, resumen: str }, {}, ["gane", "empate", "metodo", "tarjetas", "caidasA", "caidasB", "registroA", "registroB", "bolsa", "fama", "tituloGanado", "resumen"]);
-const ledger = list(fields({ concepto: str, monto: num(0) }, {}, ["concepto", "monto"]));
+const ledger = list(fields({ concepto: str, monto: num(0), claseContable: optional(oneOf(["financiacion"])) }, {}, ["concepto", "monto"]));
+const carreraArchivada = fields({ id, pugilista: boxer, club: str, semanaSalida: num(1, Infinity, true), motivo: str, historial: list(result) }, {}, ["id", "pugilista", "club", "semanaSalida", "motivo", "historial"]);
+const guiaClub = fields({ alumnosIniciales: list(id), enfoquesConfirmados: list(id), enfoques: bool, equipo: bool, guanteos: bool, licencia: bool }, {}, ["alumnosIniciales", "enfoquesConfirmados", "enfoques", "equipo", "guanteos", "licencia"]);
 const action = fields({ tipo: oneOf(["dinero", "fama", "nuevoAlumno", "programarComunitario", "aceptarPatrocinio", "exhibicion", "mantenimiento", "entrevista", "recaudacion", "nada"]), monto: optional(num()), costo: optional(num(0)), fama: optional(num()), nombre: optional(str), semanas: optional(count), comunitario: optional(oneOf(Object.keys(COMUNITARIOS))) }, {}, ["tipo"]);
 
 /** No random generation, population padding, sorting or gameplay normalisation on load. */
 export function validarEstado(raw: unknown, base: EstadoJuego): { estado: EstadoJuego; diagnosticos: string[] } {
   const migrated = migrarGuardado(raw).estado;
-  if (!objeto(migrated)) throw new ErrorGuardado("Estado inválido.");
+  if (!objeto(migrated)) throw new ErrorGuardado(contenidoMensaje("save.error.state"));
   const issues: string[] = [];
   if (objeto(raw) && "formatVersion" in raw && (typeof raw.savedAt !== "string" || !Number.isFinite(Date.parse(raw.savedAt)))) issues.push("envelope.savedAt");
   const rules: Record<string, Rule> = {
     version: oneOf([2]), schemaVersion: oneOf([SCHEMA_ACTUAL]), creado: bool, nombreJugador: str, nombreGimnasio: str,
     combateActivo: activeCombat,
     contratosTitularesHistoricos: optional(list(id)),
+    guiaClub: optional(guiaClub),
     dinero: num(), fama: num(0, 100), seguidores: count, recreativos: count, dia: num(1, 7, true), semana: num(1, Infinity, true), ultimaSemanaScout: count,
     mes: num(1, 12, true), anio: num(1, Infinity, true), plantel: list(boxer, "id"), rivales: list(boxer, "id"),
     ofertas: list(fields({ id, rival: boxer, nivel: oneOf(["accesible", "parejo", "desafio"]), bolsa: num(0), etiqueta: str, detalle: str, esTitulo: title }, {}, ["id", "rival", "nivel", "bolsa", "etiqueta", "detalle", "esTitulo"]), "id"),
@@ -204,7 +269,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
     prensa: list(fields({ id, semana: num(1, Infinity, true), texto: str }, {}, ["id", "semana", "texto"]), "id"),
     cinturones: list(fields({ id, dueno: id, nivel: num(1, 4, true), semana: num(1, Infinity, true) }, {}, ["id", "dueno", "nivel", "semana"]), "id"),
     salonFama: list(fields({ id, nombre: str, club: str, record, titulos: count, semanaRetiro: num(1, Infinity, true), motivo: str }, {}, ["id", "nombre", "club", "record", "titulos", "semanaRetiro", "motivo"]), "id"),
-    archivoCarreras: list(fields({ id, pugilista: boxer, club: str, semanaSalida: num(1, Infinity, true), motivo: str, historial: list(result) }, {}, ["id", "pugilista", "club", "semanaSalida", "motivo", "historial"]), "id"),
+    archivoCarreras: list(carreraArchivada, "id"),
     veladaProgramada: bool, libroIngresos: ledger, libroGastos: ledger, semanaLibro: count,
     resumen: nullable(fields({ ingresos: ledger, gastos: ledger, total: num() }, {}, ["ingresos", "gastos", "total"])), legados: count,
     stats: fields({ peleas: count, victorias: count, kos: count, veladas: count, dineroGanado: num(), resultadoNeto: num(), titulos: count }, base.stats),
@@ -235,7 +300,7 @@ export function validarEstado(raw: unknown, base: EstadoJuego): { estado: Estado
       || JSON.stringify(b) !== JSON.stringify(c.pelea) || JSON.stringify(own) !== JSON.stringify(c.A.p)
       || JSON.stringify(b.rival) !== JSON.stringify(c.B.p) || c.tarjetas.length !== 3 || c.asalto > c.totalAsaltos + 1
       || c.asaltosCerrados > c.totalAsaltos || c.A.hp > c.A.hpMax || c.B.hp > c.B.hpMax) {
-      throw new ErrorGuardado("Checkpoint de combate incompatible: original protegido.");
+      throw new ErrorGuardado(contenidoMensaje("save.error.checkpointIncompatible"));
     }
   }
   return { estado: checked, diagnosticos: issues };

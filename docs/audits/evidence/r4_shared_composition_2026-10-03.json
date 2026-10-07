@@ -1,0 +1,3170 @@
+{
+  "gate": "R4",
+  "status": "IN_PROGRESS_NOT_ACCEPTED",
+  "date": "2026-10-03",
+  "base": "8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3",
+  "verify": {
+    "status": "PASS",
+    "tests": 425,
+    "files": 14,
+    "unit_seconds": 4.06,
+    "economic_scenarios": "six exact scenarios unchanged"
+  },
+  "catalogs": {
+    "keys_per_locale": 241,
+    "enabled": [
+      "es"
+    ],
+    "global_coverage_complete": false,
+    "en_bytes": 11236,
+    "pt_BR_bytes": 11863
+  },
+  "budgets": {
+    "max_js": 573440,
+    "max_css": 92160,
+    "current_js": 571297,
+    "current_css": 92036
+  },
+  "reports": [
+    {
+      "name": "r4-protected-final-canvas",
+      "status": "PASS",
+      "seconds": 25.415,
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "047cfc9b55fb51bc5e353ab8fc391964f5ffab5879d772db09355a19be5c0cb1",
+        "assets\\index-BSrWbQ5D.js": "da58101bd72b41da256042080a49346d34fb4ab986ed30030243408ce47e63d7",
+        "assets\\index-jaXA5Yt9.css": "b69ca51af3b2fc24167072f71a6ef7378a8a6b57f577fd528461ac175bab7d89",
+        "i18n\\en.json": "fbd66389bcec87a17779ecfac00a7b96b12c84d0014dea009640af867b8f6a2a",
+        "i18n\\pt-BR.json": "13850c50202811c009c44c71376800c5d0cc31cb71a6c2700c8167731cb85e04"
+      },
+      "stable": true,
+      "cases": [
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1920,
+            1080
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1440,
+            900
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1366,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1280,
+            720
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            600
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            1024,
+            768
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            768,
+            1024
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            844
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            390,
+            667
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "normal",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "empty",
+          "tab": "Calendario",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Gimnasio",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Ciudad",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Plantel",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Mercado",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Mi Perfil",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Personal",
+          "status": "PASS"
+        },
+        {
+          "name": null,
+          "size": [
+            844,
+            390
+          ],
+          "mode": "maximum",
+          "tab": "Calendario",
+          "status": "PASS"
+        }
+      ],
+      "current_bundle": true,
+      "reuse_limit": null
+    },
+    {
+      "name": "r4-protected-final-functional",
+      "status": "PASS",
+      "seconds": 54.213,
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "047cfc9b55fb51bc5e353ab8fc391964f5ffab5879d772db09355a19be5c0cb1",
+        "assets\\index-BSrWbQ5D.js": "da58101bd72b41da256042080a49346d34fb4ab986ed30030243408ce47e63d7",
+        "assets\\index-jaXA5Yt9.css": "b69ca51af3b2fc24167072f71a6ef7378a8a6b57f577fd528461ac175bab7d89",
+        "i18n\\en.json": "fbd66389bcec87a17779ecfac00a7b96b12c84d0014dea009640af867b8f6a2a",
+        "i18n\\pt-BR.json": "13850c50202811c009c44c71376800c5d0cc31cb71a6c2700c8167731cb85e04"
+      },
+      "stable": true,
+      "cases": [
+        {
+          "name": "selector-close-reopen-preserve",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "selector-mobile-preserve",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "dialog-focus-keyboard",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "nested-stack-focus-escape",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "out-of-order-unmount",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "compact-contexts-preserve",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "hiring-confirmation",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-mobile-bounds",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "toast-original-deadline",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "management-switch",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-response",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-identity",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-future",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        }
+      ],
+      "current_bundle": true,
+      "reuse_limit": null
+    },
+    {
+      "name": "r4-final-shared-overlays",
+      "status": "PASS",
+      "seconds": 480.351,
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "8e2a5f4fdaf5347cf41236f641b0ce978c721235e50c2c3ed49237bb8b75315a",
+        "assets\\index-BcArwuVr.js": "8934b111db58c5c2f139825d6fec6dfcd0f3f54e37d3178adcc29cef9540be87",
+        "assets\\index-jaXA5Yt9.css": "b69ca51af3b2fc24167072f71a6ef7378a8a6b57f577fd528461ac175bab7d89",
+        "i18n\\en.json": "fbd66389bcec87a17779ecfac00a7b96b12c84d0014dea009640af867b8f6a2a",
+        "i18n\\pt-BR.json": "13850c50202811c009c44c71376800c5d0cc31cb71a6c2700c8167731cb85e04"
+      },
+      "stable": true,
+      "cases": [
+        {
+          "name": "settings-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-1920x1080",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-1440x900",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-1366x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-1280x720",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-1024x600",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-1024x768",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-768x1024",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-390x844",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-390x667",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "settings-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "gym-detail-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "city-detail-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "boxer-detail-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "archive-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "intro-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "club-status-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "roster-views-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "courses-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "calendar-views-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "event-panel-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        },
+        {
+          "name": "transfer-cancel-844x390",
+          "size": null,
+          "mode": null,
+          "tab": null,
+          "status": "PASS"
+        }
+      ],
+      "current_bundle": false,
+      "reuse_limit": "Same UI/CSS and healthy fixtures; preceding JS before the additional invalid-accounting-metadata guard. Not a complete final R4 overlay certification."
+    }
+  ],
+  "limits": [
+    "Global catalogue and reliable new/historical message metadata incomplete",
+    "Remaining mandatory extreme states and fight overlays not fully verified",
+    "Optical density/symmetry and browser/assistive-technology compatibility incomplete",
+    "No personal save or owner browser accessed; no merge, deployment, R5 or BOX-15"
+  ]
+}

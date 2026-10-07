@@ -1,107 +1,78 @@
-import { useState } from "react";
-import { DIAS, MESES } from "../game/data";
-import { fechaDelJuego, fmt } from "../game/engine";
+import { useEffect, useState } from "react";
+import { fechaDelJuego, peleasVencidas } from "../game/engine";
 import { useGame } from "../game/state";
-import { I } from "./ui";
+import { Btn, TextoPaginado } from "./ui";
+import { EventDetail } from "./EventDetail";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import { formatearDineroJuego as fmt, formatearFecha, useMessages } from "../i18n";
+import { presentarEvento } from "../i18n/events";
+import { presentarActividad } from "../i18n/presentation";
+import { COMUNITARIOS } from "../game/data";
 
 export default function CalendarioView() {
   const { state, dispatch } = useGame();
+  const { t, locale } = useMessages();
+  const dias = ([1, 2, 3, 4, 5, 6, 7] as const).map(d => t(`day.${d}`));
+  const [vista, setVista] = useState("semana");
+  const [dia, setDia] = useState(state.dia);
+  const [indice, setIndice] = useState(0);
   const [confirmarBajaId, setConfirmarBajaId] = useState<string | null>(null);
+  const [decisionId, setDecisionId] = useState<string | null>(null);
+  const compacto = useResponsiveCapacity("(max-width: 700px), (max-height: 450px)");
   const fecha = fechaDelJuego(state.semana, state.dia);
+  // Presentation only: IDs, contract dates and option indices remain domain-owned.
   const agenda = [
-    ...state.pendientes.map(p => ({ dia: p.diaProgramado ?? 6, titulo: `Pelea: ${p.rival.nombre}`, detalle: `Bolsa ${fmt(p.bolsa)}`, tono: "text-blood" })),
-    ...(state.veladaProgramada ? [{ dia: 6, titulo: "Velada del club", detalle: "Entradas y recaudación", tono: "text-gold" }] : []),
-    ...state.comunitarios.map(c => ({ dia: 7, titulo: c.nombre, detalle: "Recaudación del domingo", tono: "text-neonc" })),
+    ...state.pendientes.map(p => ({
+      id: `pelea:${p.id}`, dia: p.diaProgramado ?? 6, semana: p.semanaProgramada ?? state.semana,
+      texto: t("calendar.bout", { name: p.rival.nombre, purse: fmt(p.bolsa), kind: t(p.esTitulo ? "calendar.titleBout" : "calendar.officialBout") }),
+      pelea: p.id, evento: null,
+    })),
+    ...(state.veladaProgramada ? [{ id: "velada", dia: 6, semana: state.semana, texto: t("calendar.show"), pelea: null, evento: null }] : []),
+    ...state.comunitarios.map((c, i) => ({ id: `social:${i}`, dia: 7, semana: state.semana, texto: `${c.nombre===COMUNITARIOS[c.tipo].nombre ? presentarActividad(c.tipo,locale).nombre : `${t("record.historical")}\n${c.nombre}`}\n${t("calendar.social")}`, pelea: null, evento: null })),
+    ...state.eventos.map(e => {const copy=presentarEvento(e,locale);return { id: `evento:${e.id}`, dia: state.dia, semana: state.semana, texto: `${copy.historico ? t("record.historical") + "\n" : ""}${copy.titulo}\n${copy.de}\n${e.venceEn<=0?t("event.expired"):t(e.venceEn === 1 ? "event.expiry.one" : "event.expiry", { days: e.venceEn })}\n${copy.texto}`, pelea: null, evento: e };}),
   ];
-  const proximoPaso = state.dia === 7
-    ? "Revisar balance"
-    : state.dia === 6
-      ? state.pendientes.length > 0 ? "Resolver cartelera" : "Guanteos del sábado"
-      : state.eventos.some(evento => evento.venceEn <= 1) ? "Resolver aviso urgente"
-        : state.comunitarios.length > 0 ? "Actividad social el domingo" : "Preparar equipo";
-  const hayAgenda = state.pendientes.length > 0 || state.veladaProgramada || state.comunitarios.length > 0;
+  const seleccionado = agenda[Math.min(indice, Math.max(0, agenda.length - 1))];
+  useEffect(() => {
+    if (vista === "decision" && !agenda.some(a => a.id === decisionId)) setVista("agenda");
+  }, [vista, decisionId, agenda]);
+  const proximoPaso = t(peleasVencidas(state).length ? "calendar.resolve" : state.dia === 7 ? "calendar.balance" : state.dia === 6
+    ? "calendar.spar"
+    : state.eventos.some(e => e.venceEn <= 1) ? "calendar.urgent"
+    : state.comunitarios.length ? "calendar.socialSunday" : "calendar.prepare");
+  const resumen = t("calendar.overview", { date: formatearFecha(fecha, locale), week: state.semana, events: state.eventos.length, bouts: state.pendientes.length, social: t(state.comunitarios.length ? "calendar.booked" : "calendar.free"), next: t("calendar.next", { step: proximoPaso }) });
+  const textoDetalle = vista === "resumen" ? resumen : seleccionado
+    ? `${seleccionado.evento ? t("calendar.notice") : t("calendar.date", { day: dias[seleccionado.dia - 1], date: fechaDelJuego(seleccionado.semana, seleccionado.dia).getDate(), week: seleccionado.semana })}\n${seleccionado.texto}`
+    : t("calendar.empty");
 
-  return (
-    <div className="calendar-screen game-screen flex h-full min-h-0 flex-col overflow-hidden space-y-2">
-      <div className="panel flex shrink-0 items-center justify-between gap-3 p-3">
-        <div><h2 className="font-display text-2xl tracking-wide text-gold">Calendario del club</h2><p className="font-cond text-xs text-sand">Semana {state.semana} · {MESES[fecha.getMonth()]} {fecha.getFullYear()}</p></div>
-        <div className="rounded-xl border border-gold2/40 bg-gold/10 px-3 py-2 text-right font-cond text-xs text-gold"><I n="calendar" className="mr-1 inline h-4 w-4" />{DIAS[state.dia - 1]} {fecha.getDate()}</div>
-      </div>
-      <div className="calendar-grid grid min-h-0 flex-1 grid-cols-7 gap-1.5" aria-label={`Semana ${state.semana}, del lunes al domingo`}>
-        {DIAS.map((dia, i) => {
-          const items = agenda.filter(x => x.dia === i + 1);
-          return <div key={dia} className={`calendar-day-cell min-w-0 overflow-hidden rounded-xl border p-2 ${state.dia === i + 1 ? "border-gold2 bg-gold/10" : "border-line bg-panel2/70"}`}>
-            <div className="font-display text-xs uppercase text-cream">{dia.slice(0, 3)}</div>
-            <div className="mb-2 font-mono-data text-[10px] text-mut">{fechaDelJuego(state.semana, i + 1).getDate()}</div>
-            {i < 5 && <div className="font-cond text-[10px] text-mut">Preparación</div>}
-            {i === 5 && items.length === 0 && <div className="font-cond text-[10px] text-mut">Guanteo</div>}
-            {i === 6 && items.length === 0 && <div className="font-cond text-[10px] text-mut">Balance</div>}
-            {items.map(item => <div key={item.titulo} className={`mt-1 min-w-0 truncate rounded border border-line bg-ink/40 px-1 py-0.5 font-cond text-[10px] ${item.tono}`} title={`${item.titulo} · ${item.detalle}`}>{item.titulo}</div>)}
-          </div>;
-        })}
-      </div>
-      <div className="calendar-summary panel grid shrink-0 grid-cols-2 gap-2 p-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-line bg-panel2 p-2 font-cond text-xs text-sand">Eventos activos <b className="block text-gold">{state.eventos.length}</b></div>
-        <div className="rounded-lg border border-line bg-panel2 p-2 font-cond text-xs text-sand">Peleas agendadas <b className="block text-blood">{state.pendientes.length}</b></div>
-        <div className="rounded-lg border border-line bg-panel2 p-2 font-cond text-xs text-sand">Actividad social <b className="block text-neonc">{state.comunitarios.length ? "Agendada" : "Libre"}</b></div>
-        <div className="rounded-lg border border-line bg-panel2 p-2 font-cond text-xs text-sand">Próximo paso <b className="block text-cream">{proximoPaso}</b></div>
-      </div>
-      <section className="calendar-agenda panel flex min-h-0 flex-1 flex-col p-3" aria-label="Agenda y avisos activos">
-        <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
-          <h3 className="font-display text-sm uppercase tracking-wide text-gold">Agenda y avisos activos</h3>
-          <span className="font-mono-data text-[10px] text-mut">Las decisiones se sincronizan con el Panel del Club</span>
-        </div>
-        {!hayAgenda && state.eventos.length === 0 ? (
-          <p className="rounded-lg border border-line bg-panel2 p-2 font-cond text-xs text-mut">No hay actividades ni avisos pendientes. Las propuestas nuevas aparecen aquí cuando llegan.</p>
-        ) : (
-          <div className="calendar-agenda-list grid min-h-0 flex-1 grid-cols-1 content-start gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-            {state.pendientes.map(pelea => {
-              const dia = pelea.diaProgramado ?? 6;
-              const fechaPelea = fechaDelJuego(pelea.semanaProgramada ?? state.semana, dia);
-              const confirmando = confirmarBajaId === pelea.id;
-              return <article key={pelea.id} className="rounded-lg border border-blood/50 bg-panel2 p-2">
-                <div className="flex min-w-0 items-center justify-between gap-2">
-                  <b className="truncate font-display text-xs text-cream" title={`Pelea: ${pelea.rival.nombre}`}>Pelea: {pelea.rival.nombre}</b>
-                  <span className="shrink-0 rounded border border-blood/40 px-1.5 py-0.5 font-mono-data text-[10px] text-blood">{DIAS[dia - 1]} {fechaPelea.getDate()}</span>
-                </div>
-                <p className="mt-1 font-cond text-xs text-sand">Bolsa acordada: {fmt(pelea.bolsa)} · {pelea.esTitulo ? "Combate titular" : "Combate oficial"}</p>
-                {confirmando ? (
-                  <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={`Confirmar baja de pelea con ${pelea.rival.nombre}`}>
-                    <span className="font-cond text-xs text-sand">¿Bajar esta pelea?</span>
-                    <button className="btn-poster border border-blood/60 bg-blood/15 px-2 py-1 font-cond text-xs text-cream" onClick={() => { dispatch({ type: "CANCELAR_PELEA", peleaId: pelea.id }); setConfirmarBajaId(null); }}>Sí, bajar pelea</button>
-                    <button className="btn-poster border border-line px-2 py-1 font-cond text-xs text-sand" onClick={() => setConfirmarBajaId(null)}>Conservar</button>
-                  </div>
-                ) : <button className="mt-2 btn-poster border border-line px-2 py-1 font-cond text-xs text-sand" onClick={() => setConfirmarBajaId(pelea.id)}>Bajar pelea</button>}
-              </article>;
-            })}
-            {state.veladaProgramada && <article className="rounded-lg border border-gold2/50 bg-panel2 p-2">
-              <b className="font-display text-xs text-gold">Velada del club</b>
-              <p className="mt-1 font-cond text-xs text-sand">Sábado {fechaDelJuego(state.semana, 6).getDate()} · Entradas y recaudación del evento.</p>
-            </article>}
-            {state.comunitarios.map((actividad, i) => <article key={`${actividad.tipo}-${i}`} className="rounded-lg border border-neonc/40 bg-panel2 p-2">
-              <b className="font-display text-xs text-neonc">{actividad.nombre}</b>
-              <p className="mt-1 font-cond text-xs text-sand">Domingo {fechaDelJuego(state.semana, 7).getDate()} · Actividad social y liquidación semanal.</p>
-            </article>)}
-            {state.eventos.map(evento => {
-              const plazo = evento.venceEn === 1 ? "1 día" : `${evento.venceEn} días`;
-              return <article key={evento.id} className="min-w-0 rounded-lg border border-line bg-panel2 p-2">
-                <div className="flex items-start justify-between gap-2">
-                  <b className="min-w-0 truncate font-display text-xs text-cream" title={evento.titulo}>{evento.titulo}</b>
-                  <span className="shrink-0 rounded border border-gold2/40 px-1.5 py-0.5 font-mono-data text-[10px] text-gold" title={`Vence en ${plazo}`} aria-label={`Vence en ${plazo}`}>{evento.venceEn} d</span>
-                </div>
-                <p className="mt-1 truncate font-cond text-[10px] text-mut" title={evento.de}>{evento.de}</p>
-                <p className="mt-1 line-clamp-2 font-cond text-xs leading-snug text-sand">{evento.texto}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {evento.opciones.map((opcion, indice) => <button key={`${evento.id}-${indice}`} onClick={() => dispatch({ type: "EVENTO", id: evento.id, opcion: indice })}
-                    className={`btn-poster max-w-full whitespace-normal px-2 py-1 text-xs leading-tight ${indice === 0 ? "border border-[#ffe0a0]/50 bg-gold text-ink" : "border border-line text-sand"}`}>
-                    {opcion.texto}
-                  </button>)}
-                </div>
-              </article>;
-            })}
-          </div>
-        )}
-      </section>
-    </div>
-  );
+  return <div className="calendar-screen game-screen flex h-full min-h-0 flex-col gap-2">
+    <select aria-label={t("calendar.view")} value={vista} className="r4-select shrink-0" onChange={e => { setVista(e.target.value); if (e.target.value === "decision") setDecisionId(seleccionado?.id ?? null); }}>
+      <option value="semana">{t("calendar.week", { week: state.semana })}</option>
+      <option value="agenda">{t("calendar.agenda", { count: agenda.length })}</option>
+      <option value="resumen">{t("calendar.summary")}</option>
+      {seleccionado && <option value="decision">{t("calendar.manage")}</option>}
+    </select>
+    {vista === "semana" && compacto && <select className="calendar-picker r4-select shrink-0" aria-label={t("calendar.day")} value={dia} onChange={e => setDia(Number(e.target.value))}>
+      {dias.map((d, i) => <option key={d} value={i + 1}>{d} {fechaDelJuego(state.semana, i + 1).getDate()}</option>)}
+    </select>}
+    {vista === "agenda" && seleccionado && <select aria-label={t("calendar.activity")} className="calendar-picker r4-select shrink-0" value={seleccionado.id} onChange={e => {
+      setIndice(agenda.findIndex(a => a.id === e.target.value)); setConfirmarBajaId(null);
+    }}>{agenda.map((a, i) => <option key={a.id} value={a.id}>{i + 1}/{agenda.length} · {a.texto.split("\n")[0]}</option>)}</select>}
+
+    <section className="calendar-content panel min-h-0 flex-1 p-2">
+      {(vista === "resumen" || vista === "agenda") && <TextoPaginado key={vista === "agenda" ? seleccionado?.id : vista} texto={textoDetalle} capacidad={40} />}
+      {vista === "semana" && <div className={compacto ? "" : "grid gap-2"} style={compacto ? undefined : { gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))" }}>
+          {dias.map((d, i) => (!compacto || dia === i + 1) && <div key={d} className="rounded-lg border border-line p-2">
+            <p className={state.dia === i + 1 ? "text-gold" : "text-cream"}>{d} {fechaDelJuego(state.semana, i + 1).getDate()}</p>
+            <p className="text-sand">{t(state.pendientes.some(p => (p.diaProgramado ?? 6) === i + 1 && (p.semanaProgramada ?? state.semana) === state.semana) ? "calendar.fights" : i < 5 ? "calendar.preparation" : i === 5 ? "calendar.sparring" : "calendar.balanceDay")}</p>
+            <p className="text-neonc">{t("calendar.activityCount", { count: agenda.filter(a => !a.evento && a.dia === i + 1 && a.semana === state.semana).length })}</p>
+          </div>)}
+      </div>}
+      {vista === "decision" && seleccionado && <div className="space-y-2">
+        {seleccionado.pelea ? confirmarBajaId === seleccionado.pelea
+          ? <><p>{t("calendar.cancelQuestion")}</p><div className="flex gap-2"><Btn variant="blood" onClick={() => { dispatch({ type: "CANCELAR_PELEA", peleaId: seleccionado.pelea! }); setConfirmarBajaId(null); setVista("agenda"); }}>{t("calendar.cancelConfirm")}</Btn><Btn variant="ghost" onClick={() => setConfirmarBajaId(null)}>{t("calendar.keep")}</Btn></div></>
+          : <Btn onClick={() => setConfirmarBajaId(seleccionado.pelea)}>{t("calendar.cancel")}</Btn>
+          : seleccionado.evento ? <EventDetail key={seleccionado.id} initialResponse responseOnly event={seleccionado.evento} /> : <p>{t("calendar.settlement")}</p>}
+      </div>}
+    </section>
+  </div>;
 }

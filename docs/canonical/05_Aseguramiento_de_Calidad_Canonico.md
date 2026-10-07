@@ -1,5 +1,33 @@
 # Aseguramiento de Calidad Canónico
 
+## Regla de revisión crítica R4 — 2026-10-05
+
+Además de claves, placeholders y conteos: probar JSON con nombres heredados de Object.prototype, foco después de que una acción deshabilite el disparador y cambio concurrente de preferencia durante descarga antes de montar autosave. En canvas, esperar la escritura inicial y exigir igualdad exacta del fixture completo tras cargar y navegar; una población de30 o10 profesionales no basta para demostrar que no hubo reparación. Medir también layouts nativos amplios con cabeceras largas: CSS-equivalente125% puede seleccionar otra composición y omitir ese defecto. Cada identidad de evidencia incluye modalidad/viewport/estado/locale. Informe56 separa fallos del juego, errores del recorrido y evidencia anterior invalidada; no relajar mínimos ni ocultar controles. Siguen explícitos Chromium y ausencia de evaluación humana con lector de pantalla.
+
+Última revisión: producción6c715786a6cf5d98b6f4eff23baef856207a57b9/harnessd9efc91f35aa42b9908954acb804b758bad568a8, verify525 y1470canvas exactos PASS. Overlays520identidades efectivas:518PASS/2FAIL originales de readiness de test, con30/30 reemplazando las tres familias afectadas, sin sumar repeticiones ni ocultar RED.40nativos y R1/R2 navegador PASS. Informe56 y manifest r4_review_2026-10-05 prevalecen sobre el contrato de entrega anterior. PR6 borrador, aceptación pendiente; presupuesto intacto con margenJS538bytes.
+
+## Contrato actualizado R4 — 2026-10-05, entrega para revisión
+
+Prevalece sobre checkpoints parciales siguientes. Código7262e319025175ee6560b9cdf2d252048ccb8b00, informe55/manifest r4_final_2026-10-05: verify518/518;1470casos canvas;510casos únicos de overlays (51familias×10);1175claves por idioma es/en/pt-BR. PR6 sigue borrador, aceptación del usuario pendiente.
+
+Para futuras modificaciones, no sumar conteos sin identidad de artefacto: registrar hash de código y **todos** los recursos, matrices/límites/timing y causas de reutilización. Control focal durante ajustes; matriz obligatoria al estabilizar. Geometría verde no basta: inspeccionar imágenes, densidad real y alineación; nada de métricas clonadas, defaults que oculten corrupción o contenido recortado.
+
+Texto decisorio≥14px, secundario≥12px, acción≥36px escritorio/44px táctil. Paginación reconstruida literalmente, grafemas intactos y toda decisión accesible; CTA alineado≤1px en una fila. Medir capacidad según área útil y número real de elementos; no prometer10 simultáneos en todos los tamaños. No inventar tarjetas para rellenar catálogo finito.
+
+Probar diálogo inicial/restauración/Tab/Shift+Tab/Escape/IDs/pila/inert/atajos, selector cerrar/reabrir sin RNG/pagos/contratos, notificación snapshot sin renovar expiración y aviso vencido no confirmable. Probar idioma antes de autosave, recursos inválidos/404/solicitudes desordenadas; cubrir contenido nuevo y errores, desconocidos históricos literales.
+
+Migraciones de presentación7→8/8→9/9→10: explícitas, idempotentes, ceros/campos desconocidos válidos/originales/backups/futuros seguros; no inferir identidad dudosa. Comparar seis escenarios económicos exactos y R1–R3, nunca recalibrar para forzar rentabilidad.
+
+Zoom de esta evidencia es equivalente CSS125% con DPR1, no deviceScaleFactor ni zoom nativo. PseudoDOM+40% es estrés de composición, no prueba aislada de traducción. Teclado automatizado no certifica lector de pantalla; Chromium no certifica otros motores. Presupuestos no aumentados (margenJS947bytes). No usar partida real/localhost3000 ni ejecutar Pages para QA.
+
+## Seguimiento R4 — 2026-10-04, no aceptación
+
+Checkpoint433 tests y298 claves exactas; focales del aviso vencido y Panel sobre el build identificado en informe55/evidence. Pruebas de cobro comparan importes, fama, línea contable y recarga exactos; leer historia no puede pagar. Testear claves duplicadas del recurso antes de JSON.parse. Reservar matriz final para build estable, nunca atribuir hashes anteriores al nuevo. R4 permanece abierto y los idiomas incompletos deshabilitados; los conteos no sustituyen catálogo global ni estados faltantes.
+
+## Seguimiento R4 — 2026-10-03, evidencia parcial
+
+Agregar assertions de capacidad útil y capturas de estados vacíos/máximos que también pasan: bounds verdes no bastan. Reconstruir todas las páginas de texto literalmente, incluidas secuencias Unicode compuestas. Verificar que una respuesta rechazada por el reducer no cierre la decisión ni salte a otro aviso, y que identidades de agenda no colisionen con IDs históricos. Migración8→9: identidad financiera independiente de la etiqueta, originales/backups/collisiones y roundtrip; seis escenarios económicos exactos sin recalibración. El informe55 identifica build, matriz, tiempos y límites vigentes.421 tests y241 claves no certifican la traducción global ni R4 completo; no habilitar idiomas parciales ni avanzar R5/BOX-15.
+
 ## Actualización R3 aprobada — 2026-10-01
 
 R3: RED→GREEN por contrato; unicidad y compatibilidad legacy, schema7/originales/backups, regresiones R1/R2. Contratos titulares antiguos mantienen checkpoint/pago único; nuevos sin excepción. Seis escenarios12/52 exactos y deficitarios intactos; 120 semanas×3 semillas con conciliación y roundtrip. Navegador aislado5234 y regresiones5231/5232; nunca partida personal/3000. Evidencia final y límites en informe52; gate no certifica juego completo.
@@ -356,3 +384,12 @@ Evidencia actualizada: `npm run verify`, 42/42 tests, build y auditoría estruct
 - [ ] Añadir incertidumbre/riesgo real a las recaudaciones y establecer objetivos de caja aprobados por producto; hoy todas devuelven más que su inversión.
 
 Evidencia: `docs/audits/25_Gate_Calendario_Eventos_2026-09-23.md` a `docs/audits/30_Gate_Politica_Insolvencia_y_Cierre_2026-09-23.md`. Gate 27 fija seis curvas semilla a 12/52 semanas; Gate 28 limita el costo financiero a $50 y verifica recuperación leve; Gate 30 implementa prevención y reconstrucción para insolvencia severa. Última verificación de código: `npm run verify` **PASS**, 53/53 tests, TypeScript, build, presupuesto de bundle y auditoría estructural (0 errores/0 advertencias). Las recaudaciones siguen sin riesgo y los gates visuales/E2E y la verificación manual del cierre continúan abiertos; no habilita todavía el playtest final.
+
+### R4 — contrato aprobado y checkpoint parcial (2026-10-01)
+
+Las cifras anteriores son evidencia histórica de sus gates, no resultados del código actual. El checkpoint R4 del informe55 pasa verify382/382 y cuatro tests de diálogos, pero la matriz CSS-equivalente125% mantiene120 fallos de210 casos. Por ello R4 NO está aceptado. No habilitar idiomas incompletos ni certificar lector de pantalla con automatización de teclado. Mantener assertions económicas exactas R1–R3, fuentes/fixtures aislados y hashes de build; cada modificación invalida solo la evidencia que dependa de ella. El inventario AST de candidatos no certifica cobertura global de traducción. El cierre requiere todos los contratos del plan54, no un conteo alto de tests.
+
+Continuación2026-10-02: informe55 registra verify392/392 y nuevas reproducciones operacionales de guía, foco, límites de ajustes y plazos de avisos. El detector debe incluir inputs, selectores y controles SVG, no solo botones. Medir después de que termine el transform real de entrada del diálogo; una escala transitoria no equivale a tamaño final ni a zoom. Verificar todas las páginas y secciones de controles paginados, además de cada viewport y estado. Pseudo de DOM prueba composición, no cobertura de catálogo. Los PASS previos de botones no certifican los controles que no fueron medidos: al ampliar el detector se reprodujeron fallos nuevos. R4 continúa sin aceptación, con faltantes explícitos en informe55; no iniciar R5 ni BOX-15.
+## Regla operacional R4 — 2026-10-03
+
+Un PASS de bounds/hit-testing de controles y pisos de fuente no demuestra que el texto no interactivo sea visible. Medir también rangos reales contra viewport/ancestros que recortan; registrar acceso explícito completo a detalles paginados y reconstrucción exacta de registros desconocidos. No dar por apto un gate con estos casos RED ni extrapolar cobertura parcial de catálogo a un idioma completo. Evidencia actual y límites: informe55;410 tests no sustituyen la matriz visual pendiente.

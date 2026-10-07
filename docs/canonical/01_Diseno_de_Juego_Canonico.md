@@ -1,5 +1,13 @@
 # Diseño de Juego Canónico
 
+## Contratos R4 aprobados — 2026-10-05
+
+La guía inicial guarda hitos, no los deduce continuamente del enfoque actual: elegir Completo es una decisión válida; nuevas altas y bajas no reabren lo completado. Una partida antigua solo se considera terminada con evidencia fiable de licencia. Sin esa evidencia se conservan hitos demostrables y se solicita exclusivamente elección ambigua. Si no quedan alumnos iniciales antes de confirmar, se usan los actuales para ese paso pendiente. No inventar fechas ni premios.
+
+Cerrar el selector no cancela ni regenera ofertas/contratos; reabrir es explícito y preserva dinero, RNG y checkpoints. Regenerar sigue siendo una acción R3 separada. Avisos vencidos no ofrecen confirmar lo que el motor rechaza. Notificaciones se presentan sin inundar el canvas; lectura no cambia cobros ni decisiones.
+
+Idiomas es/en/pt-BR son presentación; moneda y reglas no se convierten. Contenido nuevo traducible por identidad/slots fiables; nombres e historia desconocida se conservan literalmente, identificados como históricos. No cambiar precios, ingresos, salarios, cupos, riesgo, recompensas ni reglas deportivas para traducir/pulir. Registros canónicos anteriores de R3 permanecen vigentes.
+
 ## Actualización R3 aprobada — 2026-10-01
 
 Reglas aprobadas R3: hitos Anselmo únicos c1–c10; c8 $60/+1 por 3 recreativos, c9 $80/+2 por 1.500 seguidores, c10 $120/+2 por 3 victorias. Sin pagos repetidos/retroactivos. Cuerda velocidad ×1,10; plataforma defensa/eficacia ×1,10; proteínas fuerza ×1,20 y recuperación semanal +4 techo100 sin energía inmediata. Arena elimina alquiler futuro sin devolución. Velada tentativa vacía cancela sin beneficios/cargo. Gerente/coordinador comparten cupo, entrenador independiente; altas de coordinador suspendidas, empleados existentes conservados. Ofertas sin TV ordinarias coherentes; contratos antiguos preservados.

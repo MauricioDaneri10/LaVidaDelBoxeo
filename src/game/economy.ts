@@ -1,5 +1,6 @@
 import { COMUNITARIOS, PERSONAL_INFO } from "./data";
 import type { EstadoJuego, LineaLibro, TipoComunitario } from "./types";
+import { contenidoLibro } from "./messageContent";
 
 export interface WeeklyEconomyContext {
   nivel: number;
@@ -20,6 +21,12 @@ export interface SocialActivityRange {
 
 export interface EstimatedIncome extends SocialActivityRange {
   concepto: string;
+  presentacion?: import("./messageContent").PresentacionContenido;
+}
+
+/** Same bounded charge for projection, settlement and its presentation. */
+export function costoFinancieroCaja(caja: number): number {
+  return caja < 0 ? Math.max(10, Math.min(50, Math.ceil(Math.abs(caja) * 0.03))) : 0;
 }
 
 /** Applies the existing rounding after the caller draws the activity's base revenue. */
@@ -45,10 +52,10 @@ export function weeklyEconomy(e: EstadoJuego, { nivel, multiplicadorMarca }: Wee
   const alumnos = e.plantel.filter(p => p.rol === "alumno" && !p.enEspera).length;
   const boxeadores = e.plantel.filter(p => p.rol === "boxeador").length;
   const cuota = 18 + 2 * (nivel - 1);
-  const ingresos: LineaLibro[] = [{ concepto: `Cuotas de alumnos (${alumnos} × $${Math.round(cuota).toLocaleString("es-AR")})`, monto: alumnos * cuota }];
-  if (e.recreativos > 0) ingresos.push({ concepto: `Cuotas recreativas (${e.recreativos} × $10)`, monto: e.recreativos * 10 });
-  if (boxeadores > 0) ingresos.push({ concepto: `Aporte del plantel federado (${boxeadores} × $12)`, monto: boxeadores * 12 });
-  if (e.semana === 1) ingresos.push({ concepto: "Subsidio de apertura del club", monto: 240 });
+  const ingresos: LineaLibro[] = [contenidoLibro("ledger.students",alumnos*cuota,{count:alumnos,fee:Math.round(cuota).toLocaleString("es-AR")})];
+  if (e.recreativos > 0) ingresos.push(contenidoLibro("ledger.recreation",e.recreativos*10,{count:e.recreativos}));
+  if (boxeadores > 0) ingresos.push(contenidoLibro("ledger.competitors",boxeadores*12,{count:boxeadores}));
+  if (e.semana === 1) ingresos.push(contenidoLibro("ledger.opening",240));
 
   const nSuc = e.propiedades.filter(p => p === "sucursal").length;
   const gerentes = e.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
@@ -59,20 +66,20 @@ export function weeklyEconomy(e: EstadoJuego, { nivel, multiplicadorMarca }: Wee
       // Preserve the existing per-branch coach bonus, including its multiplication by activas.
       let porSucursal = 650 + 8 * e.fama + Math.min(activas, entrenadoresLocales) * 200;
       if (e.cursos.includes("imperio")) porSucursal *= 1.5;
-      ingresos.push({ concepto: `Ingresos pasivos de sucursales (${activas})`, monto: Math.round(porSucursal * activas) });
-    } else ingresos.push({ concepto: "Sucursales sin gerente (sin ingresos)", monto: 0 });
+      ingresos.push(contenidoLibro("ledger.branches",Math.round(porSucursal*activas),{count:activas}));
+    } else ingresos.push(contenidoLibro("ledger.unmanaged",0));
   }
   if (e.marcaRopa && e.equipamiento.includes("estudioMarca")) {
     const ventas = Math.round(Math.round(e.fama * 6 + 40) * multiplicadorMarca);
-    ingresos.push({ concepto: `Ventas de la marca "${e.marcaRopa}"`, monto: ventas });
+    ingresos.push(contenidoLibro("ledger.brand",ventas,{name:e.marcaRopa}));
   }
-  if (e.patrocinio) ingresos.push({ concepto: `Patrocinio de ${e.patrocinio.nombre}`, monto: e.patrocinio.semanal });
+  if (e.patrocinio) ingresos.push(contenidoLibro("ledger.sponsor",e.patrocinio.semanal,{name:e.patrocinio.nombre}));
 
   const gastos: LineaLibro[] = [];
-  if (!e.propiedades.includes("local") && !e.propiedades.includes("arena")) gastos.push({ concepto: "Alquiler del local", monto: 150 });
+  if (!e.propiedades.includes("local") && !e.propiedades.includes("arena")) gastos.push(contenidoLibro("ledger.rent",150));
   const sueldos = e.personal.reduce((total, p) => total + (PERSONAL_INFO[p.tipo]?.sueldo ?? 0), 0);
-  if (sueldos > 0) gastos.push({ concepto: `Sueldos del personal (${e.personal.length})`, monto: sueldos });
-  if (e.dinero < 0) gastos.push({ concepto: "Costo financiero por caja negativa", monto: Math.max(10, Math.min(50, Math.ceil(Math.abs(e.dinero) * 0.03))) });
-  if (e.prestamo && e.prestamo.saldo > 0) gastos.push({ concepto: `Cuota del préstamo (${e.prestamo.semanasRestantes} restantes)`, monto: Math.min(e.prestamo.cuota, e.prestamo.saldo) });
+  if (sueldos > 0) gastos.push(contenidoLibro("ledger.salaries",sueldos,{count:e.personal.length}));
+  if (e.dinero < 0) gastos.push(contenidoLibro("ledger.overdraft",costoFinancieroCaja(e.dinero)));
+  if (e.prestamo && e.prestamo.saldo > 0) gastos.push(contenidoLibro("ledger.loan",Math.min(e.prestamo.cuota,e.prestamo.saldo),{count:e.prestamo.semanasRestantes}));
   return { ingresos, gastos, total: ingresos.reduce((total, l) => total + l.monto, 0) - gastos.reduce((total, l) => total + l.monto, 0) };
 }

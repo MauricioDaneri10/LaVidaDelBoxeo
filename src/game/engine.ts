@@ -3,7 +3,7 @@
 // títulos y simulación de combate con jueces y Registro Oficial.
 // ============================================================
 
-import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, CURSOS, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
+import { APELLIDOS, COMBOS, COMUNITARIOS, CONSEJOS_INICIALES, CURSOS, DIVISIONES, GIMNASIOS_RIVALES, NOMBRES_H, NOMBRES_M, OFERTAS_CONTENIDO, PANTALONES, PELOS, PIELES, PERSONAL_INFO, RASGOS, SPONSORS, TITULOS } from "./data";
 import type {
   Atributos, ClaveAtributo, ComboId, CompuBox, EstadoJuego, EventoJuego, GearId, Genero, Circuito,
   OfertaRival, Pelea, PersonalId, Pugilista, ResultadoPelea, TarjetaJuez, LineaLibro,
@@ -11,6 +11,8 @@ import type {
 import { conFuenteAzar, numeroAleatorio } from "./random";
 import { ATRIBUTOS_BASE, SCHEMA_ACTUAL, validarEstado } from "./saveValidation";
 import { socialActivityRange, weeklyEconomy } from "./economy";
+import { contenidoMensaje,contenidoLibro,type PresentacionContenido } from "./messageContent";
+import { CONTENIDO_COMISION, contenidoProspecto, contenidoExhibicion, contenidoPatrocinio } from "./eventContent";
 import type { EstimatedIncome, WeeklyEconomy } from "./economy";
 
 // ==================== UTILIDADES ====================
@@ -164,25 +166,23 @@ export function sucursales(e: EstadoJuego): number {
 export type BloqueoPersonal = "funcionPendiente" | "cubierto" | "sinSucursales" | "cupoAdministrativo" | "cupoEntrenador" | "semana" | "fama" | "curso";
 
 /** Disponibilidad de nuevas altas; no altera contratos ni sustituye la confirmación financiera. */
-export function puedeContratarPersonal(e: EstadoJuego, tipo: PersonalId): { ok: boolean; motivo?: BloqueoPersonal; mensaje?: string } {
-  if (tipo === "coordinadorSucursal") return {
-    ok: false, motivo: "funcionPendiente",
-    mensaje: "Nuevas contrataciones no disponibles: falta definir una función diferenciada para este puesto. Los coordinadores existentes conservan su contrato.",
-  };
+export function puedeContratarPersonal(e: EstadoJuego, tipo: PersonalId): { ok: boolean; motivo?: BloqueoPersonal; mensaje?: string; presentacion?:PresentacionContenido } {
+  const blocked=(motivo:BloqueoPersonal,copy:ReturnType<typeof contenidoMensaje>)=>({ok:false,motivo,mensaje:copy.texto,presentacion:copy.presentacion});
+  if (tipo === "coordinadorSucursal") return blocked("funcionPendiente",contenidoMensaje("toast.staffFunction"));
   const info = PERSONAL_INFO[tipo];
-  if (!info.multiple && e.personal.some(p => p.tipo === tipo)) return { ok: false, motivo: "cubierto", mensaje: "Ese puesto ya está cubierto." };
+  if (!info.multiple && e.personal.some(p => p.tipo === tipo)) return blocked("cubierto",contenidoMensaje("toast.staffCovered"));
   if (tipo === "gerente" || tipo === "entrenadorLocal") {
     const capacidad = sucursales(e);
-    if (capacidad === 0) return { ok: false, motivo: "sinSucursales", mensaje: "Este puesto requiere una sucursal." };
+    if (capacidad === 0) return blocked("sinSucursales",contenidoMensaje("toast.staffNoBranch"));
     const administrativos = e.personal.filter(p => p.tipo === "gerente" || p.tipo === "coordinadorSucursal").length;
     const entrenadores = e.personal.filter(p => p.tipo === "entrenadorLocal").length;
-    if (tipo === "gerente" && administrativos >= capacidad) return { ok: false, motivo: "cupoAdministrativo", mensaje: "El cupo administrativo de las sucursales está cubierto por gerentes y coordinadores existentes." };
-    if (tipo === "entrenadorLocal" && entrenadores >= capacidad) return { ok: false, motivo: "cupoEntrenador", mensaje: "El cupo de entrenadores locales de las sucursales está cubierto." };
+    if (tipo === "gerente" && administrativos >= capacidad) return blocked("cupoAdministrativo",contenidoMensaje("toast.staffAdminFull"));
+    if (tipo === "entrenadorLocal" && entrenadores >= capacidad) return blocked("cupoEntrenador",contenidoMensaje("toast.staffCoachFull"));
   }
   const req = info.requisito;
-  if (req?.semana && e.semana < req.semana) return { ok: false, motivo: "semana", mensaje: `${info.nombre} se habilita a partir de la semana ${req.semana}.` };
-  if (req?.fama && e.fama < req.fama) return { ok: false, motivo: "fama", mensaje: `${info.nombre} requiere ${req.fama} de fama.` };
-  if (req?.curso && !e.cursos.includes(req.curso)) return { ok: false, motivo: "curso", mensaje: `Necesitás el curso ${CURSOS[req.curso].nombre}.` };
+  if (req?.semana && e.semana < req.semana) return blocked("semana",contenidoMensaje("toast.staffWeek",{employee:tipo,week:req.semana}));
+  if (req?.fama && e.fama < req.fama) return blocked("fama",contenidoMensaje("toast.staffFame",{employee:tipo,fame:req.fama}));
+  if (req?.curso && !e.cursos.includes(req.curso)) return blocked("curso",contenidoMensaje("toast.staffCourse",{course:req.curso}));
   return { ok: true };
 }
 export function capacidadAlumnos(e: EstadoJuego): number {
@@ -261,7 +261,8 @@ export function proyeccionSemanal(e: EstadoJuego): WeeklyEconomy & { estimados: 
   const mods = calcularModificadores(e);
   const garantizados = weeklyEconomy(e, { nivel: nivelGimnasio(e), multiplicadorMarca: mods.multiplicadorMarca });
   const estimados = e.comunitarios.map(c => ({
-    concepto: `Dividendos estimados: ${c.nombre}`,
+    concepto:`Dividendos estimados: ${c.nombre}`,
+    ...(c.nombre===COMUNITARIOS[c.tipo].nombre?{presentacion:contenidoLibro("ledger.estimated",0,{activity:c.tipo}).presentacion}:{}),
     ...socialActivityRange(c.tipo, mods.multiplicadorEventos),
   }));
   return { ...garantizados, estimados };
@@ -395,17 +396,17 @@ export function generarOfertas(p: Pugilista, permiteTitulosInternacionales = tru
     {
       id: uid(), nivel: "accesible", bolsa: bolsa(250), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg - 5, 22, 95), p.division, azar(40, 70), p.genero, p.circuito),
-      etiqueta: "Rival Accesible", detalle: "Nivel menor (−5), con experiencia cercana a la tuya.",
+      ...OFERTAS_CONTENIDO.accesible,
     },
     {
       id: uid(), nivel: "parejo", bolsa: bolsa(600), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg + azar(-2, 2), 22, 96), p.division, azar(45, 75), p.genero, p.circuito),
-      etiqueta: "Rival Parejo", detalle: "Nivel idéntico (±2). Combate equilibrado para subir en el ranking.",
+      ...OFERTAS_CONTENIDO.parejo,
     },
     {
       id: uid(), nivel: "desafio", bolsa: bolsa(1800), esTitulo: 0,
       rival: genRivalPorVG(clamp(vg + azar(6, 10), 25, 97), p.division, azar(50, 80), p.genero, p.circuito),
-      etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking.",
+      ...OFERTAS_CONTENIDO.desafio,
     },
   ];
   // Comparar trayectorias dentro del circuito actual. El récord general es
@@ -740,9 +741,7 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
   let fama = gane ? clamp(2 + Math.round((vgRival - vgMio + 10) / 6) + e.pelea.esTitulo * 2, 2, 12) : empate ? 1 : 1;
   if (gane && e.A.p.rasgo === "volcan") fama += 1;
   const tarjetas = e.tarjetas.map(t => ({ a: t.a, b: t.b }));
-  const resumen = e.ko
-    ? `${metodo} en el asalto ${e.asalto}`
-    : `${metodo} (${tarjetas.map(t => `${t.a}-${t.b}`).join(", ")})`;
+  const descripcion = contenidoMensaje(e.ko?"result.ko":"result.cards",e.ko?{method:metodo,round:e.asalto}:{method:metodo,scores:tarjetas.map(t=>`${t.a}-${t.b}`).join(", ")});
   const resultado: ResultadoPelea = {
     miId: e.A.p.id,
     rivalNombre: e.B.p.nombre,
@@ -752,7 +751,7 @@ export function resolverPelea(e: EstadoPelea): ResultadoPelea {
     bolsa: gane ? e.pelea.bolsa : Math.round(e.pelea.bolsa * 0.3),
     fama,
     tituloGanado: gane && e.pelea.esTitulo > 0 ? e.pelea.esTitulo : 0,
-    resumen,
+    resumen:descripcion.texto,presentacion:descripcion.presentacion,
   };
   if (e.ko || e.asaltosCerrados >= e.totalAsaltos) resultadosEmitidos.set(resultado, {
     resultado: JSON.stringify(resultado), pelea: JSON.stringify(e.pelea), pugil: JSON.stringify(e.A.p), sesion: JSON.stringify(e),
@@ -779,16 +778,12 @@ export function generarEventos(e: EstadoJuego): EventoJuego[] {
   const eventos: EventoJuego[] = [];
   if (chance(0.55)) {
     const tipo = elegir(["reparacion", "entrevista", "colecta"] as const);
-    const info = {
-      reparacion: { titulo: "Revisión del saco de entrenamiento", texto: "La comisión detectó desgaste y propone una reparación preventiva. Podés asumir el costo ahora o posponerlo; esperar no cambia el entrenamiento.", tipoEvento: "mantenimiento" as const, opciones: [{ texto: "Reparar por $120", accion: { tipo: "mantenimiento" as const, costo: 120 } }, { texto: "Posponer el gasto", accion: { tipo: "nada" as const } }] },
-      entrevista: { titulo: "Entrevista en Radio Guante", texto: "La prensa quiere conocer tu proyecto. Elegí cómo responder: una declaración puede mejorar o perjudicar la imagen del club.", tipoEvento: "entrevista" as const, opciones: [{ texto: "Hablar del proyecto · +2 fama, +80 seguidores", accion: { tipo: "entrevista" as const, fama: 2, monto: 80 } }, { texto: "Provocar al rival · −2 fama, −40 seguidores", accion: { tipo: "entrevista" as const, fama: -2, monto: -40 } }, { texto: "Declinar la entrevista", accion: { tipo: "nada" as const } }] },
-      colecta: { titulo: "Colecta solidaria del barrio", texto: "La comisión propone una colecta puntual para sostener el gimnasio. No es un bingo ni una actividad social: vence en pocos días.", tipoEvento: "recaudacion" as const, opciones: [{ texto: "Aportar $80 y organizarla", accion: { tipo: "recaudacion" as const, costo: 80, monto: 180 } }, { texto: "No organizarla", accion: { tipo: "nada" as const } }] },
-    }[tipo];
+    const info = CONTENIDO_COMISION[tipo];
     eventos.push({
       id: uid(), tipo: info.tipoEvento, de: "Comisión del Club", titulo: info.titulo,
       texto: info.texto,
       venceEn: 4,
-      opciones: info.opciones,
+      opciones: info.opciones.map(o => ({ ...o, accion: { ...o.accion } })),
     });
   }
   if (e.fama >= 10 && !e.patrocinio && chance(0.4)) {
@@ -796,35 +791,20 @@ export function generarEventos(e: EstadoJuego): EventoJuego[] {
     const semanal = Math.round(60 + e.fama * 3.2 + e.legados * 20);
     const semanas = azar(4, 8);
     eventos.push({
-      id: uid(), tipo: "patrocinio", de: nombre, titulo: "Propuesta de patrocinio",
-      texto: `${nombre} ofrece ${fmt(semanal)} por semana durante ${semanas} semanas a cambio de lucir su logo en el ring.`,
+      id: uid(), ...contenidoPatrocinio(nombre, semanal, semanas, fmt(semanal)),
       venceEn: 3,
-      opciones: [
-        { texto: "Firmar contrato", accion: { tipo: "aceptarPatrocinio", nombre, monto: semanal, semanas } },
-        { texto: "Rechazar la oferta", accion: { tipo: "nada" } },
-      ],
     });
   }
   if (chance(0.3)) {
     eventos.push({
-      id: uid(), tipo: "prospecto", de: elegir(GIMNASIOS_RIVALES), titulo: "Un talento pide probarse",
-      texto: "Un pibe del barrio dejó su club rival y quiere entrenar con vos. Nadie cobra por mirar talento.",
+      id: uid(), ...contenidoProspecto(elegir(GIMNASIOS_RIVALES)),
       venceEn: 4,
-      opciones: [
-        { texto: "Abrirle la puerta", accion: { tipo: "nuevoAlumno" } },
-        { texto: "Cupo completo, no", accion: { tipo: "nada" } },
-      ],
     });
   }
   if (e.plantel.some(b => b.rol === "boxeador") && chance(0.28)) {
     eventos.push({
-      id: uid(), tipo: "desafio", de: "Federación Regional", titulo: "Exhibición benéfica",
-      texto: "La federación invita a uno de tus boxeadores a una exhibición: paga poco, pero suma fama y roce.",
+      id: uid(), ...contenidoExhibicion(),
       venceEn: 3,
-      opciones: [
-        { texto: "Mandar al ring", accion: { tipo: "exhibicion" } },
-        { texto: "Declinar con respeto", accion: { tipo: "nada" } },
-      ],
     });
   }
   return eventos;
@@ -837,6 +817,7 @@ export function crearEstadoBase(opciones: { sinPoblacion?: boolean } = {}): Esta
   return {
     version: 2,
     schemaVersion: SCHEMA_ACTUAL,
+    guiaClub: { alumnosIniciales: alumnos.map(p => p.id), enfoquesConfirmados: [], enfoques: false, equipo: false, guanteos: false, licencia: false },
     creado: false,
     nombreJugador: "", nombreGimnasio: "",
     dinero: 900, fama: 4, seguidores: 480, recreativos: 0,

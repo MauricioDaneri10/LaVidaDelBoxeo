@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useReducer, useState } from "react";
 import type { ReactNode } from "react";
-import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS } from "./data";
+import { registrarGuia } from "./onboarding";
+import { contenidoMensaje,contenidoLibro,contenidoPrensaResultado } from "./messageContent";
+import { COMUNITARIOS, CURSOS, EQUIPOS, MEDIOS, PERSONAL_INFO, PROPIEDADES, TITULOS,OFERTAS_CONTENIDO,CONSEJOS_INICIALES } from "./data";
+import {identidadEventoFiable} from "./eventContent";
 import {
   aplicarEntrenamientoSemanal, alumnosActivos, alumnosEnEspera, azar, calcularModificadores, capacidadAlumnos, capacidadAmateurs, capacidadProfesionales, capacidadPlantel, chance, clamp, consejoEsquina, crearEstadoBase,
   elegir, fmt, generarEventos, ofertasValidasPara, ofertaValidaPara, genPugilista, nivelGimnasio, sanitizarEstado,
@@ -11,10 +14,10 @@ import type { Accion, EstadoJuego, EventoJuego, LineaLibro, Pelea, PersonalId, P
 import { repositorioPartidas, type EstadoGuardado } from "./saveRepository";
 export { CLAVE_GUARDADO } from "./saveRepository";
 export { migrarGuardado } from "./saveValidation";
-import { migrarGuardado } from "./saveValidation";
+import { migrarGuardado,ErrorGuardado } from "./saveValidation";
 import { consolidarConsejos, objetivoConsejo } from "./consejos";
 import type { Consejo } from "./types";
-import { weeklyEconomy, socialActivityIncome } from "./economy";
+import { weeklyEconomy, socialActivityIncome, costoFinancieroCaja } from "./economy";
 import { objetivoConsejoCumplido } from "./consejos";
 export { objetivoConsejoCumplido } from "./consejos";
 
@@ -29,12 +32,13 @@ function cargarInicial(): EstadoJuego {
   return estado;
 }
 
-function conToast(s: EstadoJuego, texto: string, tono: Toast["tono"] = "info"): EstadoJuego {
-  return { ...s, toasts: [...s.toasts.slice(-3), { id: toastId++, texto, tono }] };
+function conToast(s: EstadoJuego, mensaje: string | Pick<Toast,"texto"|"presentacion">, tono: Toast["tono"] = "info"): EstadoJuego {
+  const contenido=typeof mensaje==="string"?{texto:mensaje}:mensaje;
+  return { ...s, toasts: [...s.toasts.slice(-3), { id: toastId++, ...contenido, tono }] };
 }
 
-function linea(arr: LineaLibro[], concepto: string, monto: number): LineaLibro[] {
-  return [...arr, { concepto, monto }];
+function linea(arr: LineaLibro[], concepto: string | LineaLibro, monto: number, claseContable?: LineaLibro["claseContable"]): LineaLibro[] {
+  return [...arr, { ...(typeof concepto==="string"?{concepto}:concepto), monto, ...(claseContable ? { claseContable } : {}) }];
 }
 
 // La capacidad del gimnasio cuenta a todo el plantel: alumnos, espera y boxeadores.
@@ -49,7 +53,7 @@ const envejecerEventos = (eventos: EventoJuego[]) => eventos.map(e => ({ ...e, v
 /** The date itself is the durable stage marker; entering Saturday runs it once. */
 function avanzarDia(s: EstadoJuego): EstadoJuego {
   if (s.dia >= 7) return s;
-  if (peleasVencidas(s).length) return conToast(s, "Hay peleas pendientes: resolvelas o cancelalas antes de avanzar.", "alerta");
+  if (peleasVencidas(s).length) return conToast(s, contenidoMensaje("toast.pendingFights"), "alerta");
   const dia = s.dia + 1;
   const fecha = fechaDelJuego(s.semana, dia);
   let st: EstadoJuego = { ...s, dia, mes: fecha.getMonth() + 1, anio: fecha.getFullYear(), eventos: envejecerEventos(s.eventos) };
@@ -66,7 +70,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
     const entreno = aplicarEntrenamientoSemanal(st);
     st.plantel = entreno.plantel;
     st.ultimaSemanaEntrenada = st.semana;
-    if (entreno.lineas.length > 0) st = conToast(st, "Semana de entrenamiento en marcha.", "info");
+    if (entreno.lineas.length > 0) st = conToast(st, contenidoMensaje("toast.training"), "info");
   }
 
   // boca a boca del barrio (sin costo, solo oportunidad)
@@ -75,7 +79,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
   if (st.semana > 1 && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st) && chance(probBoca)) {
     const nuevo = genPugilista({ rol: "alumno", joven: chance(0.4) });
     st.plantel = incorporarAlumno(st, nuevo);
-    st = conToast(st, `Boca a boca: ${nuevo.nombre.split(" ")[0]} se suma a las clases.`, "ok");
+    st = conToast(st, contenidoMensaje("toast.wordOfMouth",{name:nuevo.nombre.split(" ")[0]}), "ok");
   }
 
   // la sucursal con entrenador local descubre talento
@@ -83,7 +87,7 @@ function diaDeGestion(s: EstadoJuego): EstadoJuego {
     const talento = genPugilista({ rol: "alumno", joven: true });
     talento.atrib.talento = clamp(talento.atrib.talento + azar(5, 15) + (st.personal.some(p => p.tipo === "ojeador") ? 4 : 0), 0, 97);
     st.plantel = incorporarAlumno(st, talento);
-    st = conToast(st, `La sucursal descubrió a ${talento.nombre}, un talento del barrio.`, "oro");
+    st = conToast(st, contenidoMensaje("toast.branchTalent",{name:talento.nombre}), "oro");
   }
 
   // Los eventos nuevos conservan su plazo completo durante el primer día visible.
@@ -121,12 +125,12 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
       const ofertas = ofertasValidasPara(libre, st);
       const elegida = valoracion(libre.atrib) >= 55 ? ofertas[2] : ofertas[1];
       st.pendientes = [...st.pendientes, { id: uid(), miId: libre.id, rival: elegida.rival, bolsa: elegida.bolsa, esTitulo: elegida.esTitulo, velada: st.veladaProgramada, semanaProgramada: st.semana, diaProgramado: 6 }];
-      st = conToast(st, `Tu Representante agendó a ${libre.nombre.split(" ")[0]} vs ${elegida.rival.nombre.split(" ")[0]}.`, "info");
+      st = conToast(st, contenidoMensaje("toast.representativeBooked",{name:libre.nombre.split(" ")[0],rival:elegida.rival.nombre.split(" ")[0]}), "info");
     }
   }
   const conEnergia = st.plantel.filter(p => puedeGuantear(p, st));
   if (conEnergia.length >= 2) {
-    const lugares = ["en el gimnasio", "con el " + elegir(["Club La Loma", "Club Ferro"]), "en una exhibición de barrio"];
+    const lugares = [{id:"toast.sparGym" as const,parametros:{}},{id:"toast.sparClub" as const,parametros:{club:elegir(["Club La Loma", "Club Ferro"])}},{id:"toast.sparNeighborhood" as const,parametros:{}}];
     const lugar = elegir(lugares);
     let guanteos = 0;
     st.plantel = st.plantel.map(p => {
@@ -143,19 +147,19 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
       }
       return n;
     });
-    if (guanteos > 0) st = conToast(st, `Guanteo (sparring) del sábado ${lugar}: ${guanteos} sesiones.`, "ok");
+    if (guanteos > 0) st = conToast(st, contenidoMensaje(lugar.id,lugar.id==="toast.sparClub"?{club:lugar.parametros.club!,count:guanteos}:{count:guanteos}), "ok");
     const listos = st.plantel.filter(p => p.rol === "alumno" && !p.enEspera && p.guanteosRealizados >= 10);
     if (listos.length > 0 && st.cursos.includes("dt")) {
-      st = conToast(st, `${listos[0].nombre.split(" ")[0]} ya puede tramitar su Licencia Federativa.`, "oro");
+      st = conToast(st, contenidoMensaje("toast.readyLicense",{name:listos[0].nombre.split(" ")[0]}), "oro");
     }
   } else if (st.plantel.some(p => !p.enEspera && !p.lesion && p.combo !== "descanso" && p.energia >= 20)) {
-    st = conToast(st, "El guanteo del sábado necesita al menos dos pugilistas disponibles con energía. Revisá el plantel y la recuperación.", "info");
+    st = conToast(st, contenidoMensaje("toast.sparUnavailable"), "info");
   }
 
   // Recaudación de la velada propia (se cobra el sábado)
   if (st.veladaProgramada) {
     const validas = peleasVencidas(st).filter(pelea => puedeEjecutarPelea(st, pelea));
-    if (validas.length === 0) return conToast({ ...st, veladaProgramada: false }, "Velada cancelada: no hay combates válidos. No se cobraron entradas ni gastos de organización.", "info");
+    if (validas.length === 0) return conToast({ ...st, veladaProgramada: false }, contenidoMensaje("toast.emptyShow"), "info");
     const modificadores = calcularModificadores(st);
     let recaudado = 300 + st.fama * 18 + (st.equipamiento.includes("ringReglamentario") ? 200 : 0);
     recaudado *= modificadores.multiplicadorVelada;
@@ -164,11 +168,11 @@ function diaSabado(s: EstadoJuego): EstadoJuego {
     const neto = recaudado - costos;
     st.dinero += neto;
     st.stats.veladas += 1;
-    st.libroIngresos = linea(st.libroIngresos, "Entradas de la velada del sábado", neto);
+    st.libroIngresos = linea(st.libroIngresos, contenidoLibro("ledger.show",neto), neto);
     st.fama = clamp(st.fama + (neto > 0 ? 2 : 1), 0, 100);
     st.veladaProgramada = false;
-    st = conToast(st, `La velada dejó ${fmt(neto)} netos de entradas.`, neto > 0 ? "oro" : "info");
-    st.prensa = [{ id: uid(), semana: st.semana, texto: `${elegir(MEDIOS)}: "${st.nombreGimnasio} llenó su velada del sábado y la ciudad lo aplaude."` }, ...st.prensa].slice(0, 10);
+    st = conToast(st, contenidoMensaje("toast.showNet",{amount:neto}), neto > 0 ? "oro" : "info");
+    st.prensa = [{ id: uid(), semana: st.semana, ...contenidoMensaje("press.show",{medium:elegir(MEDIOS),club:st.nombreGimnasio}) }, ...st.prensa].slice(0, 10);
   }
 
   return st;
@@ -195,12 +199,14 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     const info = COMUNITARIOS[c.tipo];
     let recaudado = azar(info.min, info.max);
     recaudado = socialActivityIncome(recaudado, calcularModificadores(st).multiplicadorEventos);
-    ingresos = linea(ingresos, `Dividendos: ${c.nombre}`, recaudado);
+    ingresos = linea(ingresos, c.nombre===info.nombre
+      ? contenidoLibro("ledger.activityDividends",recaudado,{activity:c.tipo})
+      : contenidoLibro("ledger.dividends",recaudado,{name:c.nombre}), recaudado);
     if (c.tipo === "festival") st.fama = clamp(st.fama + 3, 0, 100);
     if (c.tipo === "bingo" && chance(0.5) && st.plantel.length < limitePlantel(st) && alumnos < capacidadAlumnos(st)) {
       const nuevo = genPugilista({ rol: "alumno", joven: true });
       st.plantel = incorporarAlumno(st, nuevo);
-      ingresos = linea(ingresos, `El bingo trajo a ${nuevo.nombre.split(" ")[0]} al gimnasio`, 0);
+      ingresos = linea(ingresos, contenidoLibro("ledger.bingoStudent",0,{name:nuevo.nombre.split(" ")[0]}), 0);
     }
   });
   st.comunitarios = [];
@@ -212,18 +218,18 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
 
   const totalIngresos = ingresos.reduce((a, l) => a + l.monto, 0);
   const ingresosOperativos = ingresos
-    .filter(l => l.concepto !== "Desembolso del préstamo")
+    .filter(l => l.claseContable !== "financiacion")
     .reduce((total, l) => total + l.monto, 0);
   const ingresosOperativosYaLiquidados = st.libroIngresos
-    .filter(l => l.concepto !== "Desembolso del préstamo")
+    .filter(l => l.claseContable !== "financiacion")
     .reduce((total, l) => total + l.monto, 0);
 
   // ---- GASTOS ----
   // El cargo es proporcional en deudas pequeñas, pero tiene un techo para
   // evitar que el interés compuesto vuelva matemáticamente irrecuperable la partida.
   if (st.dinero < 0) {
-    const costoFinanciero = determinista.gastos.find(g => g.concepto === "Costo financiero por caja negativa")!.monto;
-    st = conToast(st, `La caja está en negativo: se suma un costo financiero de ${fmt(costoFinanciero)}.`, "alerta");
+    const costoFinanciero = costoFinancieroCaja(st.dinero);
+    st = conToast(st, contenidoMensaje("toast.overdraftCost",{amount:costoFinanciero}), "alerta");
   }
 
   if (st.prestamo && st.prestamo.saldo > 0) {
@@ -231,7 +237,7 @@ function domingoBalance(s: EstadoJuego): EstadoJuego {
     st.prestamo = { ...st.prestamo, saldo: st.prestamo.saldo - cuota, semanasRestantes: Math.max(0, st.prestamo.semanasRestantes - 1) };
     if (st.prestamo.saldo <= 0) {
       st.prestamo = null;
-      st = conToast(st, "Préstamo cancelado: la caja vuelve a ser completamente tuya.", "ok");
+      st = conToast(st, contenidoMensaje("toast.loanPaid"), "ok");
     }
   }
 
@@ -284,10 +290,8 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
   // prensa semanal
   const ultimo = st.historial[0];
   if (ultimo) {
-    const nota = ultimo.gane
-      ? `${elegir(MEDIOS)} celebra: "${ultimo.resumen}" en la noche del sábado.`
-      : `${elegir(MEDIOS)}: "Noche dura para el rincón local: ${ultimo.resumen}."`;
-    st.prensa = [{ id: uid(), semana: st.semana, texto: nota }, ...st.prensa].slice(0, 10);
+    const nota = contenidoPrensaResultado(ultimo,elegir(MEDIOS));
+    st.prensa = [{ id: uid(), semana: st.semana, ...nota }, ...st.prensa].slice(0, 10);
   }
 
   // consejos de Don Anselmo: evaluar hitos
@@ -296,7 +300,7 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
     if (!c.cumplido && objetivoConsejoCumplido(c.id, st)) { nuevoConsejo = true; return { ...c, cumplido: true }; }
     return c;
   });
-  if (nuevoConsejo) st = conToast(st, "Don Anselmo tiene un consejo listo para cobrar.", "oro");
+  if (nuevoConsejo) st = conToast(st, contenidoMensaje("toast.adviceReady"), "oro");
 
   return st;
 }
@@ -305,7 +309,7 @@ function cerrarDomingo(s: EstadoJuego): EstadoJuego {
 function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
   if (s.combateActivo && (((a.type === "CAMBIAR_COMBO" || a.type === "ALTERNAR_ELITE") && a.id === s.combateActivo.A.p.id)
     || (a.type === "CONTRATAR" && a.tipo === "directorTecnico"))) {
-    return conToast(s, "Terminá o cancelá el combate en curso antes de cambiar su preparación.", "info");
+    return conToast(s, contenidoMensaje("toast.activePreparation"), "info");
   }
   switch (a.type) {
     case "NUEVO_JUEGO": {
@@ -320,7 +324,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
         nombrePartida: `${a.gimnasio} · Semana 1`,
         partidaId: uid(),
       };
-      st = conToast(st, `Bienvenido a ${a.gimnasio}. El barrio espera.`, "oro");
+      st = conToast(st, contenidoMensaje("toast.welcome",{name:a.gimnasio}), "oro");
       return st;
     }
     case "CONTINUAR":
@@ -329,9 +333,9 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       try {
         const migrado = migrarGuardado(a.estado);
         const cargado = sanitizarEstado(migrado.estado);
-        return conToast({ ...cargado, creado: true }, "Partida importada correctamente.", "ok");
+        return conToast({ ...cargado, creado: true }, contenidoMensaje("toast.imported"), "ok");
       } catch (error) {
-        return conToast(s, `No se importó la partida: ${error instanceof Error ? error.message : "formato inválido"}`, "alerta");
+        return conToast(s,error instanceof ErrorGuardado&&error.presentacion?contenidoMensaje("toast.importKnown",{reason:JSON.stringify(error.presentacion)}):contenidoMensaje("toast.importTechnical",{details:error instanceof Error?error.message:"formato inválido"}), "alerta");
       }
     }
     case "REINICIAR":
@@ -344,14 +348,14 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       if (s.dia >= 7) return s;
       let st = s;
       while (st.dia < 7) {
-        if (peleasVencidas(st).length) return conToast(st, "Hay peleas pendientes: resolvelas o cancelalas antes de avanzar.", "alerta");
+        if (peleasVencidas(st).length) return conToast(st, contenidoMensaje("toast.pendingFights"), "alerta");
         st = avanzarDia(st);
       }
       return st;
     }
     case "CERRAR_DOMINGO":
       if (s.dia !== 7) return s;
-      if (peleasVencidas(s).length) return conToast(s, "Resolvé o cancelá las peleas pendientes antes de abrir otra semana.", "alerta");
+      if (peleasVencidas(s).length) return conToast(s, contenidoMensaje("toast.nextWeek"), "alerta");
       return cerrarDomingo(s);
 
     case "CAMBIAR_COMBO":
@@ -360,15 +364,15 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
     case "LICENCIAR": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "alumno") return s;
-      if (!s.cursos.includes("dt")) return conToast(s, "Primero necesitás la Licencia de Entrenador del club.", "alerta");
-      if (p.enEspera) return conToast(s, "Está en lista de espera: primero liberá una plaza del gimnasio.", "alerta");
-      if (p.guanteosRealizados < 10) return conToast(s, `Le faltan guanteos reales (${p.guanteosRealizados}/10).`, "alerta");
-      if (p.licenciaFederativa) return conToast(s, "Este boxeador ya tiene su licencia.", "info");
-      if (s.dinero < 200) return conToast(s, "La Licencia Federativa cuesta $200.", "alerta");
-      if (s.plantel.filter(x => x.rol === "boxeador" && x.circuito === "amateur").length >= capacidadAmateurs(s)) return conToast(s, "El cupo amateur está completo (10). Transferí o promoví a un boxeador antes de emitir otra licencia.", "alerta");
+      if (!s.cursos.includes("dt")) return conToast(s, contenidoMensaje("toast.coachLicense"), "alerta");
+      if (p.enEspera) return conToast(s, contenidoMensaje("toast.waiting"), "alerta");
+      if (p.guanteosRealizados < 10) return conToast(s, contenidoMensaje("toast.missingSpars",{count:p.guanteosRealizados}), "alerta");
+      if (p.licenciaFederativa) return conToast(s, contenidoMensaje("toast.alreadyLicensed"), "info");
+      if (s.dinero < 200) return conToast(s, contenidoMensaje("toast.licensePrice"), "alerta");
+      if (s.plantel.filter(x => x.rol === "boxeador" && x.circuito === "amateur").length >= capacidadAmateurs(s)) return conToast(s, contenidoMensaje("toast.amateurFull"), "alerta");
       const nuevo: Pugilista = { ...p, rol: "boxeador", licenciaFederativa: true, enEspera: false, bonusDebut: true, energia: clamp(p.energia, 30, 100) };
       return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - 200, plantel: s.plantel.map(x => x.id === a.id ? nuevo : x) }),
-        `${p.nombre.split(" ")[0]} ya tiene su Licencia Amateur y es boxeador federado. ¡Bono de Madurez activo en su debut!`, "oro");
+        contenidoMensaje("toast.licensed",{name:p.nombre.split(" ")[0]}), "oro");
     }
 
     case "PROMOVER_PRO": {
@@ -377,24 +381,24 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       const validacion = puedeProfesionalizar(p, s);
       if (!validacion.ok) {
         const mensajes = {
-          rol: "Solo un boxeador federado puede pasar al profesionalismo.",
-          circuito: "Este boxeador ya es profesional.",
-          trayectoria: "Necesita completar 50 peleas amateurs antes de decidir el pase.",
-          cartelera: "Resolvé o bajá su pelea agendada antes de cambiarlo de circuito.",
-          cupo: "El cupo profesional está completo (10). Liberá una plaza antes de aceptar el pase.",
-        } satisfies Record<NonNullable<typeof validacion.motivo>, string>;
+          rol: contenidoMensaje("toast.proRole"),
+          circuito: contenidoMensaje("toast.alreadyPro"),
+          trayectoria: contenidoMensaje("toast.proExperience"),
+          cartelera: contenidoMensaje("toast.proPending"),
+          cupo: contenidoMensaje("toast.proFull"),
+        } satisfies Record<NonNullable<typeof validacion.motivo>, ReturnType<typeof contenidoMensaje>>;
         return conToast(s, mensajes[validacion.motivo!], "alerta");
       }
       return conToast({ ...s, plantel: s.plantel.map(boxeador => boxeador.id === p.id ? { ...boxeador, circuito: "pro" as const } : boxeador) },
-        `${p.nombre.split(" ")[0]} acepta el pase profesional. Su récord e historial amateur se conservan.`, "oro");
+        contenidoMensaje("toast.professional",{name:p.nombre.split(" ")[0]}), "oro");
     }
 
     case "ALTERNAR_ELITE": {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p || p.rol !== "boxeador") return s;
-      if (!s.equipamiento.includes("zonaElite")) return conToast(s, "Primero construí la Zona Élite.", "alerta");
+      if (!s.equipamiento.includes("zonaElite")) return conToast(s, contenidoMensaje("toast.eliteRequired"), "alerta");
       const elites = s.plantel.filter(x => x.elite).length;
-      if (!p.elite && elites >= 3) return conToast(s, "La Zona Élite tiene 3 cupos como máximo.", "alerta");
+      if (!p.elite && elites >= 3) return conToast(s, contenidoMensaje("toast.eliteFull"), "alerta");
       return { ...s, plantel: s.plantel.map(x => x.id === a.id ? { ...x, elite: !x.elite } : x) };
     }
 
@@ -404,14 +408,14 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       const validacion = puedePactarPelea(p, s);
       if (!validacion.ok) {
         const mensajes = {
-          rol: "Solo un boxeador federado puede pactar peleas.",
-          licencia: "Primero tramitá la licencia del boxeador.",
-          pendiente: "Ya tiene pelea agendada para el sábado.",
-          cooldown: `Debe recuperarse de su última pelea. Disponible desde la semana ${validacion.disponibleSemana}.`,
-          energia: "Este boxeador necesita recuperar al menos 70% de energía.",
-          lesion: "No puede pactar mientras tenga una lesión activa.",
-        } satisfies Record<NonNullable<typeof validacion.motivo>, string>;
-        return conToast(s, mensajes[validacion.motivo!], "alerta");
+          rol: ()=>contenidoMensaje("toast.matchRole"),
+          licencia: ()=>contenidoMensaje("toast.matchLicence"),
+          pendiente: ()=>contenidoMensaje("toast.matchPending"),
+          cooldown: ()=>contenidoMensaje("toast.cooldown",{count:validacion.disponibleSemana!}),
+          energia: ()=>contenidoMensaje("toast.matchEnergy"),
+          lesion: ()=>contenidoMensaje("toast.matchInjury"),
+        } satisfies Record<NonNullable<typeof validacion.motivo>, ()=>ReturnType<typeof contenidoMensaje>>;
+        return conToast(s, mensajes[validacion.motivo!](), "alerta");
       }
       const ofertas = ofertasValidasPara(p, s);
       return { ...s, ofertas, ofertasPara: p.id };
@@ -422,19 +426,26 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       if (!of || !s.ofertasPara) return s;
       const peleador = s.plantel.find(p => p.id === s.ofertasPara);
       if (!peleador) return s;
-      if (!ofertaValidaPara(peleador, of, s)) return conToast(s, "Esta oferta antigua no es válida. Volvé a buscar rival para generar ofertas nuevas sin costo; tu cartelera confirmada se conserva.", "alerta");
+      if (!ofertaValidaPara(peleador, of, s)) return conToast(s, contenidoMensaje("toast.oldOffer"), "alerta");
       const validacion = puedePactarPelea(peleador, s);
       if (!validacion.ok) {
         const mensaje = validacion.motivo === "cooldown"
-          ? `Debe recuperarse de su última pelea. Disponible desde la semana ${validacion.disponibleSemana}.`
-          : validacion.motivo === "pendiente" ? "Ya tiene pelea agendada para el sábado."
-          : validacion.motivo === "lesion" ? "No puede pactar mientras tenga una lesión activa."
-          : "Este boxeador necesita recuperar al menos 70% de energía antes de pactar una pelea.";
+          ? contenidoMensaje("toast.cooldown",{count:validacion.disponibleSemana!})
+          : validacion.motivo === "pendiente" ? contenidoMensaje("toast.matchPending")
+          : validacion.motivo === "lesion" ? contenidoMensaje("toast.matchInjury")
+          : contenidoMensaje("toast.matchEnergyBefore");
         return conToast(s, mensaje, "alerta");
       }
       const pelea: Pelea = { id: uid(), miId: s.ofertasPara, rival: of.rival, bolsa: of.bolsa, esTitulo: of.esTitulo, velada: s.veladaProgramada, semanaProgramada: s.semana, diaProgramado: 6 };
+      const known=OFERTAS_CONTENIDO[of.nivel];
+      const title=of.esTitulo?TITULOS[of.esTitulo as 1|2|3|4]:undefined;
+      const message=of.esTitulo===0&&known&&of.etiqueta===known.etiqueta&&of.detalle===known.detalle
+        ?contenidoMensaje("toast.bookOrdinary",{offer:of.nivel,amount:of.bolsa})
+        :title&&of.etiqueta===`Pelea de Título · ${title.nombre}`&&of.detalle===`${title.cinturon} en juego. Requisitos: ${title.req}.`
+        ?contenidoMensaje("toast.bookTitle",{title:of.esTitulo,amount:of.bolsa})
+        :`Cartelera confirmada: ${of.etiqueta}, bolsa de ${fmt(of.bolsa)}.`;
       return conToast({ ...s, pendientes: [...s.pendientes, pelea], ofertas: [], ofertasPara: null },
-        `Cartelera confirmada: ${of.etiqueta}, bolsa de ${fmt(of.bolsa)}.`, "ok");
+        message, "ok");
     }
     case "CANCELAR_PELEA": {
       const pelea = s.pendientes.find(p => p.id === a.peleaId);
@@ -442,7 +453,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       return conToast({ ...s,
         ...(s.contratosTitularesHistoricos ? { contratosTitularesHistoricos: s.contratosTitularesHistoricos.filter(id => id !== a.peleaId) } : {}),
         combateActivo: s.combateActivo?.pelea.id === a.peleaId ? null : s.combateActivo, pendientes: s.pendientes.filter(p => p.id !== a.peleaId) },
-        "La pelea se bajó de la cartelera. La federación lo entiende.", "info");
+        contenidoMensaje("toast.fightCancelled"), "info");
     }
 
     case "CHECKPOINT_COMBATE":
@@ -451,7 +462,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
     case "RESOLVER_PELEA": {
       const pelea = s.pendientes.find(p => p.id === a.peleaId);
       if (!pelea) return s;
-      if (!validarResultadoCombate(s, pelea, a.resultado)) return conToast(s, "No se aplicó el resultado: revisá identidad, fecha y disponibilidad del combate.", "alerta");
+      if (!validarResultadoCombate(s, pelea, a.resultado)) return conToast(s, contenidoMensaje("toast.invalidResult"), "alerta");
       const r: ResultadoPelea = s.equipamiento.includes("batas") && a.resultado.gane
         ? { ...a.resultado, fama: Math.round(a.resultado.fama * 1.25) }
         : a.resultado;
@@ -461,7 +472,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       if (st.contratosTitularesHistoricos) st.contratosTitularesHistoricos = st.contratosTitularesHistoricos.filter(id => id !== a.peleaId);
       if (st.combateActivo?.pelea.id === a.peleaId) st.combateActivo = null;
       st.dinero += r.bolsa;
-      st.libroIngresos = linea(st.libroIngresos, `Bolsa vs ${pelea.rival.nombre.split(" ")[0]} (${r.metodo})`, r.bolsa);
+      st.libroIngresos = linea(st.libroIngresos, contenidoLibro("ledger.purse",r.bolsa,{name:pelea.rival.nombre.split(" ")[0],method:r.metodo}), r.bolsa);
       st.stats.peleas += 1;
       if (r.gane) { st.stats.victorias += 1; if (r.metodo === "Nocaut" || r.metodo === "Nocaut Técnico") st.stats.kos += 1; }
       st.fama = clamp(st.fama + r.fama, 0, 100);
@@ -497,64 +508,64 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
         st.cinturones = [...st.cinturones, { id: uid(), dueno: p?.nombre ?? "Tu campeón", nivel: r.tituloGanado as 1 | 2 | 3 | 4, semana: st.semana }];
         st.stats.titulos += 1;
         st.fama = clamp(st.fama + 6 + r.tituloGanado * 2, 0, 100);
-        st = conToast(st, `¡${info.cinturon} para ${p?.nombre.split(" ")[0]}! Ya cuelga en la pared del gimnasio.`, "oro");
-        st.prensa = [{ id: uid(), semana: st.semana, texto: `${elegir(MEDIOS)}: "¡Nuevo campeón! ${p?.nombre} conquista el ${info.nombre}."` }, ...st.prensa].slice(0, 10);
+        st = conToast(st, contenidoMensaje("toast.belt",{belt:r.tituloGanado,name:String(p?.nombre.split(" ")[0])}), "oro");
+        st.prensa = [{ id: uid(), semana: st.semana, ...contenidoMensaje("press.champion",{medium:elegir(MEDIOS),name:String(p?.nombre),title:r.tituloGanado}) }, ...st.prensa].slice(0, 10);
       } else {
-        st = conToast(st, r.gane ? `Victoria: ${r.metodo}. Bolsa de ${fmt(r.bolsa)}.` : r.empate ? `Empate: ${r.metodo}. La esquina aprende y sigue.` : `Derrota: ${r.metodo}. La esquina aprende y sigue.`, r.gane ? "ok" : "info");
+        st = conToast(st, contenidoMensaje(r.gane?"toast.victory":r.empate?"toast.draw":"toast.defeat",r.gane?{method:r.metodo,amount:r.bolsa}:{method:r.metodo}), r.gane ? "ok" : "info");
       }
       return st;
     }
 
     case "COMPRAR_EQUIPO": {
       const eq = EQUIPOS[a.id];
-      if (s.equipamiento.includes(a.id)) return conToast(s, "Ya lo tenés instalado.", "info");
-      if (s.dinero < eq.costo) return conToast(s, `Te faltan ${fmt(eq.costo - s.dinero)} para ${eq.nombre}.`, "alerta");
-      if (a.id === "zonaElite" && !s.cursos.includes("altoRendimiento")) return conToast(s, "Requiere el curso de Alto Rendimiento.", "alerta");
+      if (s.equipamiento.includes(a.id)) return conToast(s, contenidoMensaje("toast.installed"), "info");
+      if (s.dinero < eq.costo) return conToast(s, contenidoMensaje("toast.gearFunds",{amount:eq.costo-s.dinero,gear:a.id}), "alerta");
+      if (a.id === "zonaElite" && !s.cursos.includes("altoRendimiento")) return conToast(s, contenidoMensaje("toast.performanceRequired"), "alerta");
       const famaExtra = a.id === "carteles" ? 1 : a.id === "marquesina" ? 2 : a.id === "vitrina" ? 1 : 0;
       return conToast(normalizarListaEspera({ ...s, dinero: s.dinero - eq.costo, fama: clamp(s.fama + famaExtra, 0, 100), equipamiento: [...s.equipamiento, a.id] }),
-        `${eq.nombre} instalado: ${eq.efecto}.`, "ok");
+        contenidoMensaje("toast.gearInstalled",{gear:a.id,effect:a.id}), "ok");
     }
 
     case "CREAR_MARCA": {
       if (s.marcaRopa) return s;
-      if (!s.equipamiento.includes("estudioMarca")) return conToast(s, "Primero montá el Estudio de Marca de Ropa.", "alerta");
+      if (!s.equipamiento.includes("estudioMarca")) return conToast(s, contenidoMensaje("toast.brandStudio"), "alerta");
       if (!a.nombre.trim()) return s;
       return conToast({ ...s, marcaRopa: a.nombre.trim() },
-        `Nace la marca "${a.nombre.trim()}". Cada domingo se liquida la venta de indumentaria.`, "oro");
+        contenidoMensaje("toast.brandBorn",{name:a.nombre.trim()}), "oro");
     }
 
     case "COMPRAR_CURSO": {
       const c = CURSOS[a.id];
       if (s.cursos.includes(a.id)) return s;
-      if (c.req && !s.cursos.includes(c.req)) return conToast(s, `Requiere el curso previo: ${CURSOS[c.req].nombre}.`, "alerta");
-      if (s.dinero < c.costo) return conToast(s, `El curso cuesta ${fmt(c.costo)}.`, "alerta");
+      if (c.req && !s.cursos.includes(c.req)) return conToast(s, contenidoMensaje("toast.courseRequired",{course:c.req}), "alerta");
+      if (s.dinero < c.costo) return conToast(s, contenidoMensaje("toast.coursePrice",{amount:c.costo}), "alerta");
       return conToast({ ...s, dinero: s.dinero - c.costo, cursos: [...s.cursos, a.id] },
-        `Aprobaste "${c.nombre}". Nuevas puertas se abren.`, "oro");
+        contenidoMensaje("toast.courseBought",{course:a.id}), "oro");
     }
 
     case "COMPRAR_PROPIEDAD": {
       const p = PROPIEDADES[a.id];
-      if (s.propiedades.includes(a.id)) return conToast(s, "Esa propiedad ya es tuya.", "info");
-      if (a.id === "sucursal" && !s.propiedades.includes("terreno")) return conToast(s, "Primero comprá un terreno.", "alerta");
-      if (a.id === "arena" && !s.cursos.includes("tv")) return conToast(s, "La Arena Central exige contrato de Televisión Estelar.", "alerta");
-      if (a.id !== "sucursal" && a.id !== "local" && !s.cursos.includes("clubes") && (a.id === "terreno")) return conToast(s, "Requiere el curso de Gestión de Clubes.", "alerta");
-      if (s.dinero < p.costo) return conToast(s, `Necesitás ${fmt(p.costo)}.`, "alerta");
+      if (s.propiedades.includes(a.id)) return conToast(s, contenidoMensaje("toast.ownedProperty"), "info");
+      if (a.id === "sucursal" && !s.propiedades.includes("terreno")) return conToast(s, contenidoMensaje("toast.landRequired"), "alerta");
+      if (a.id === "arena" && !s.cursos.includes("tv")) return conToast(s, contenidoMensaje("toast.arenaRequired"), "alerta");
+      if (a.id !== "sucursal" && a.id !== "local" && !s.cursos.includes("clubes") && (a.id === "terreno")) return conToast(s, contenidoMensaje("toast.clubsRequired"), "alerta");
+      if (s.dinero < p.costo) return conToast(s, contenidoMensaje("toast.funds",{amount:p.costo}), "alerta");
       const propiedades = a.id === "sucursal" ? [...s.propiedades.filter(x => x !== "terreno"), a.id] : [...s.propiedades, a.id];
       let famaExtra = 0;
       if (a.id === "apartamento") famaExtra = 2;
       if (a.id === "mansion") famaExtra = 8;
       return conToast({ ...s, dinero: s.dinero - p.costo, propiedades, fama: clamp(s.fama + famaExtra, 0, 100) },
-        `${p.nombre}: escritura firmada.`, "oro");
+        contenidoMensaje("toast.propertyBought",{property:a.id}), "oro");
     }
 
     case "CONTRATAR": {
       const info = PERSONAL_INFO[a.tipo];
       const disponibilidad = puedeContratarPersonal(s, a.tipo);
-      if (!disponibilidad.ok) return conToast(s, disponibilidad.mensaje ?? "Este puesto no está disponible.", "alerta");
+      if (!disponibilidad.ok) return conToast(s, {texto:disponibilidad.mensaje!,presentacion:disponibilidad.presentacion}, "alerta");
       const personalPrevisto = [...s.personal, { id: "prevision-nomina", tipo: a.tipo, nombre: "Previsión" }];
       const proyeccionTrasContratar = proyeccionSemanalRecurrente({ ...s, personal: personalPrevisto });
       if (proyeccionTrasContratar.total < 0 && !a.confirmado) {
-        return conToast(s, `La nómina dejaría un déficit recurrente de ${fmt(Math.abs(proyeccionTrasContratar.total))}/semana. Revisá la previsión y confirmá la contratación si querés asumirlo.`, "alerta");
+        return conToast(s, contenidoMensaje("toast.payrollDeficit",{amount:Math.abs(proyeccionTrasContratar.total)}), "alerta");
       }
       const nombres = ["Héctor Paz", "Miriam Sol", "Justo Lerma", "Carla Benítez", "Tito Aguirre", "Nadia Ríos", "Oscar Vidal", "Pamela Cruz"];
       const nuevo = { id: uid(), tipo: a.tipo as PersonalId, nombre: elegir(nombres) };
@@ -562,20 +573,20 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
         ? s.plantel.map(p => p.enEspera ? p : { ...p, combo: enfoqueRecomendado(p, s) })
         : s.plantel;
       return conToast({ ...s, personal: [...s.personal, nuevo], plantel },
-        `${nuevo.nombre} se suma como ${info.nombre} (${fmt(info.sueldo)}/sem).`, "ok");
+        contenidoMensaje("toast.employeeJoined",{name:nuevo.nombre,employee:a.tipo,amount:info.sueldo}), "ok");
     }
     case "DESPEDIR": {
       const m = s.personal.find(p => p.id === a.id);
       if (!m) return s;
       return conToast(normalizarListaEspera({ ...s, personal: s.personal.filter(p => p.id !== a.id) }),
-        `${m.nombre} deja el club en buenos términos.`, "info");
+        contenidoMensaje("toast.fired",{name:m.nombre}), "info");
     }
     case "CARGAR_PARTIDA": {
       const partida = listarPartidas().find(p => p.id === a.id);
       if (!partida) return s;
       const migrado = migrarGuardado(partida.estado);
       const cargado = sanitizarEstado(migrado.estado);
-      return conToast({ ...cargado, creado: true }, `Partida cargada: ${partida.nombre}.`, "ok");
+      return conToast({ ...cargado, creado: true }, contenidoMensaje("toast.loaded",{name:partida.nombre}), "ok");
     }
     case "RENOMBRAR_PARTIDA":
       return { ...s, nombrePartida: a.nombre.trim().slice(0, 32) || "Mi carrera" };
@@ -583,7 +594,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       const p = s.plantel.find(x => x.id === a.id);
       if (!p) return s;
       const peleaPendiente = s.pendientes.some(x => x.miId === p.id);
-      if (peleaPendiente) return conToast(s, "No se puede transferir ni retirar a un boxeador con una pelea pendiente. Cancelá la cartelera primero.", "alerta");
+      if (peleaPendiente) return conToast(s, contenidoMensaje("toast.transferPending"), "alerta");
       const nombre = p.nombre.split(" ")[0];
       const antes = alumnosEnEspera(s).map(x => x.id);
       const esLeyenda = p.rol === "boxeador" && (p.titulo >= 3 || p.record.v >= 15 || p.record.ko >= 10);
@@ -599,40 +610,40 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
       const promovido = alumnosActivos(siguiente).find(x => antes.includes(x.id));
       return conToast(siguiente,
         promovido
-          ? `${nombre} deja el club. Se liberó una plaza: ${promovido.nombre.split(" ")[0]} sale de la lista de espera.`
-          : esLeyenda ? `${nombre} se retira y entra al Salón de la Fama del club.` : `${nombre} deja el club y la plaza queda disponible.`, "info");
+          ? contenidoMensaje("toast.exitWaiting",{name:nombre,waiting:promovido.nombre.split(" ")[0]})
+          : esLeyenda ? contenidoMensaje("toast.exitHall",{name:nombre}) : contenidoMensaje("toast.exit",{name:nombre}), "info");
     }
 
     case "ALTERNAR_VELADA": {
-      if (!s.cursos.includes("veladas")) return conToast(s, "Requiere el curso de Organización de Veladas.", "alerta");
-      if (!s.veladaProgramada && s.dia >= 6) return conToast(s, "Ya es fin de semana: agendala el lunes.", "info");
+      if (!s.cursos.includes("veladas")) return conToast(s, contenidoMensaje("toast.showRequired"), "alerta");
+      if (!s.veladaProgramada && s.dia >= 6) return conToast(s, contenidoMensaje("toast.weekendShow"), "info");
       return conToast({ ...s, veladaProgramada: !s.veladaProgramada },
-        s.veladaProgramada ? "Velada cancelada. El público lo entenderá." : "Velada tentativa para el sábado: requiere al menos un combate válido; si no lo hay, se cancela sin cargo.", "info");
+        s.veladaProgramada ? contenidoMensaje("toast.showCancelled") : contenidoMensaje("toast.showTentative"), "info");
     }
 
     case "PROGRAMAR_SOCIAL": {
       const info = COMUNITARIOS[a.actividad];
-      if (s.dia >= 6) return conToast(s, "Las actividades se agendan de lunes a viernes para el próximo domingo.", "info");
-      if (s.comunitarios.length > 0) return conToast(s, "Ya hay una actividad social agendada para esta semana.", "info");
-      if (s.dinero < info.inversion) return conToast(s, `Necesitás ${fmt(info.inversion)} para organizar ${info.nombre}.`, "alerta");
+      if (s.dia >= 6) return conToast(s, contenidoMensaje("toast.activityDays"), "info");
+      if (s.comunitarios.length > 0) return conToast(s, contenidoMensaje("toast.activityBooked"), "info");
+      if (s.dinero < info.inversion) return conToast(s, contenidoMensaje("toast.activityFunds",{activity:a.actividad,amount:info.inversion}), "alerta");
       const atraeRecreativo = a.actividad === "claseAbierta" && s.recreativos < 12;
       return conToast({
         ...s,
         dinero: s.dinero - info.inversion,
         recreativos: atraeRecreativo ? s.recreativos + 1 : s.recreativos,
         comunitarios: [{ tipo: a.actividad, nombre: info.nombre }],
-      }, `${info.nombre} agendado para el domingo. Se invirtieron ${fmt(info.inversion)}${atraeRecreativo ? "; se suma 1 alumno recreativo esta semana" : a.actividad === "claseAbierta" ? "; el cupo recreativo ya está completo" : ""}.`, "ok");
+      }, contenidoMensaje(atraeRecreativo?"toast.activityRecreation":a.actividad==="claseAbierta"?"toast.activityFull":"toast.activityScheduled",{activity:a.actividad,amount:info.inversion}), "ok");
     }
 
     case "PEDIR_PRESTAMO": {
-      if (s.prestamo && s.prestamo.saldo > 0) return conToast(s, "Ya tenés un préstamo activo. Primero terminá de pagarlo.", "info");
-      if (s.dinero >= 300) return conToast(s, "El préstamo de emergencia solo está disponible cuando la caja baja de $300.", "info");
-      return conToast({ ...s, dinero: s.dinero + 500, prestamo: { saldo: 600, cuota: 60, semanasRestantes: 10 } }, "Préstamo de emergencia aprobado: recibís $500 y devolvés $600 en 10 cuotas.", "oro");
+      if (s.prestamo && s.prestamo.saldo > 0) return conToast(s, contenidoMensaje("toast.loanActive"), "info");
+      if (s.dinero >= 300) return conToast(s, contenidoMensaje("toast.loanThreshold"), "info");
+      return conToast({ ...s, dinero: s.dinero + 500, prestamo: { saldo: 600, cuota: 60, semanasRestantes: 10 } }, contenidoMensaje("toast.loanApproved"), "oro");
     }
 
     case "CERRAR_CLUB": {
-      if (s.dinero > -1_500) return conToast(s, "El cierre por insolvencia solo está disponible con una deuda de $1.500 o más.", "info");
-      if (!a.confirmado) return conToast(s, "Revisá la confirmación: cerrar el club elimina sus activos y su plantel.", "alerta");
+      if (s.dinero > -1_500) return conToast(s, contenidoMensaje("toast.closureThreshold"), "info");
+      if (!a.confirmado) return conToast(s, contenidoMensaje("toast.closureConfirm"), "alerta");
       const base = crearEstadoBase();
       const nuevoNombre = `${s.nombreGimnasio || "Puños de Oro"} II`;
       const estadoReconstruido: EstadoJuego = {
@@ -655,62 +666,61 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
         salonFama: [...s.salonFama],
         archivoCarreras: structuredClone(s.archivoCarreras),
       };
-      return conToast(estadoReconstruido, "El club cerró por insolvencia. Récord e hitos históricos conservados; la reconstrucción comienza sin deuda ni activos anteriores.", "oro");
+      return conToast(estadoReconstruido, contenidoMensaje("toast.closed"), "oro");
     }
 
     case "EVENTO": {
       const ev = s.eventos.find(e => e.id === a.id);
       if (!ev) return s;
-      if (ev.venceEn <= 0) return conToast(s, "Este evento ya venció.", "info");
+      if (ev.venceEn <= 0) return conToast(s, contenidoMensaje("toast.eventExpired"), "info");
       const op = ev.opciones[a.opcion];
       if (!op) return s;
       let st: EstadoJuego = { ...s, eventos: s.eventos.filter(e => e.id !== a.id) };
       const acc = op.accion;
       if (acc.tipo === "programarComunitario" && acc.comunitario && acc.monto) {
-        if (st.dinero < acc.monto) return conToast(s, `Necesitás ${fmt(acc.monto)} para organizarlo.`, "alerta");
-        if (st.comunitarios.length > 0) return conToast(s, "Ya hay una actividad social agendada para esta semana.", "info");
+        if (st.dinero < acc.monto) return conToast(s, contenidoMensaje("toast.organizeFunds",{amount:acc.monto}), "alerta");
+        if (st.comunitarios.length > 0) return conToast(s, contenidoMensaje("toast.activityBooked"), "info");
         st.dinero -= acc.monto;
         st.comunitarios = [...st.comunitarios, { tipo: acc.comunitario, nombre: acc.nombre ?? acc.comunitario }];
-        st = conToast(st, `${acc.nombre} anotado para el domingo.`, "ok");
+        st = conToast(st, contenidoMensaje("toast.eventBooked",{name:String(acc.nombre)}), "ok");
       } else if (acc.tipo === "aceptarPatrocinio" && acc.nombre && acc.monto && acc.semanas) {
         st.patrocinio = { nombre: acc.nombre, semanal: acc.monto, semanas: acc.semanas };
-        st = conToast(st, `Contrato firmado con ${acc.nombre}: ${fmt(acc.monto)}/semana.`, "oro");
+        st = conToast(st, contenidoMensaje("toast.sponsorSigned",{name:acc.nombre,amount:acc.monto}), "oro");
       } else if (acc.tipo === "nuevoAlumno") {
-        if (st.plantel.length >= limitePlantel(st)) return conToast(s, "El plantel está completo: liberá un cupo o ampliá el gimnasio para recibirlo.", "alerta");
+        if (st.plantel.length >= limitePlantel(st)) return conToast(s, contenidoMensaje("toast.rosterEventFull"), "alerta");
         const nuevo = genPugilista({ rol: "alumno", joven: true });
         st = { ...st, plantel: incorporarAlumno(st, nuevo) };
-        st = conToast(st, `${nuevo.nombre} entra al plantel de alumnos.`, "ok");
+        st = conToast(st, contenidoMensaje("toast.newStudent",{name:nuevo.nombre}), "ok");
       } else if (acc.tipo === "exhibicion") {
         const boxeador = st.plantel.find(p => p.rol === "boxeador" && p.energia >= 30 && p.id !== st.combateActivo?.A.p.id);
-        if (!boxeador) return conToast(s, "No hay un boxeador disponible para la exhibición.", "alerta");
+        if (!boxeador) return conToast(s, contenidoMensaje("toast.noExhibitionBoxer"), "alerta");
         const pago = azar(80, 160);
         st.dinero += pago;
         st.fama = clamp(st.fama + 2, 0, 100);
-        st.libroIngresos = linea(st.libroIngresos, "Exhibición benéfica", pago);
+        st.libroIngresos = linea(st.libroIngresos, contenidoLibro("ledger.exhibition",pago), pago);
         st.plantel = st.plantel.map(p => p.id === boxeador.id ? { ...p, energia: clamp(p.energia - 10, 0, 100) } : p);
-        st = conToast(st, `${boxeador.nombre.split(" ")[0]} brilló en la exhibición: ${fmt(pago)} y +2 de fama.`, "ok");
+        st = conToast(st, contenidoMensaje("toast.exhibition",{name:boxeador.nombre.split(" ")[0],amount:pago}), "ok");
       } else if (acc.tipo === "dinero" && acc.monto) {
         st.dinero += acc.monto;
-        st = conToast(st, `+${fmt(acc.monto)}`, "ok");
+        st = conToast(st, contenidoMensaje("toast.money",{amount:acc.monto}), "ok");
       } else if (acc.tipo === "fama" && acc.fama) {
         st.fama = clamp(st.fama + acc.fama, 0, 100);
-        st = conToast(st, `+${acc.fama} de fama en el barrio.`, "ok");
+        st = conToast(st, contenidoMensaje("toast.fame",{count:acc.fama}), "ok");
       } else if (acc.tipo === "mantenimiento" && acc.costo) {
-        if (st.dinero < acc.costo) return conToast(s, `Necesitás ${fmt(acc.costo)} para reparar el gimnasio.`, "alerta");
+        if (st.dinero < acc.costo) return conToast(s, contenidoMensaje("toast.repairFunds",{amount:acc.costo}), "alerta");
         st.dinero -= acc.costo;
-        st.libroGastos = linea(st.libroGastos, "Reparación del gimnasio", acc.costo);
-        st = conToast(st, "Mantenimiento preventivo pagado.", "ok");
+        st.libroGastos = linea(st.libroGastos, contenidoLibro("ledger.repair",acc.costo), acc.costo);
+        st = conToast(st, contenidoMensaje("toast.maintenancePaid"), "ok");
       } else if (acc.tipo === "entrevista" && acc.fama) {
         st.fama = clamp(st.fama + acc.fama, 0, 100);
         if (acc.monto != null) st.seguidores = Math.max(0, st.seguidores + acc.monto);
-        const impactoFama = `${acc.fama > 0 ? "+" : "−"}${Math.abs(acc.fama)} fama`;
-        const impactoSeguidores = acc.monto == null ? "" : ` y ${acc.monto > 0 ? "+" : acc.monto < 0 ? "−" : ""}${Math.abs(acc.monto)} seguidores`;
-        st = conToast(st, `La entrevista tuvo este impacto: ${impactoFama}${impactoSeguidores}.`, acc.fama > 0 ? "oro" : "alerta");
+        const fame=`${acc.fama>0?"+":"−"}${Math.abs(acc.fama)}`;
+        st = conToast(st, contenidoMensaje(acc.monto==null?"toast.interviewFame":"toast.interviewFollowers",acc.monto==null?{fame}:{fame,followers:`${acc.monto>0?"+":acc.monto<0?"−":""}${Math.abs(acc.monto)}`}), acc.fama > 0 ? "oro" : "alerta");
       } else if (acc.tipo === "recaudacion" && acc.costo && acc.monto) {
-        if (st.dinero < acc.costo) return conToast(s, `Necesitás ${fmt(acc.costo)} para organizar la colecta.`, "alerta");
+        if (st.dinero < acc.costo) return conToast(s, contenidoMensaje("toast.collectionFunds",{amount:acc.costo}), "alerta");
         st.dinero += acc.monto - acc.costo;
-        st.libroIngresos = linea(st.libroIngresos, "Colecta solidaria del barrio", acc.monto - acc.costo);
-        st = conToast(st, `La colecta dejó ${fmt(acc.monto - acc.costo)} netos.`, "ok");
+        st.libroIngresos = linea(st.libroIngresos, contenidoLibro("ledger.collection",acc.monto-acc.costo), acc.monto - acc.costo);
+        st = conToast(st, contenidoMensaje("toast.collectionNet",{amount:acc.monto-acc.costo}), "ok");
       }
       return st;
     }
@@ -726,26 +736,26 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
         consejos: consolidarConsejos(s.consejos.map(x => x.id === a.id ? { ...x, reclamado: true } : x)) as Consejo[],
         fama: clamp(s.fama + c.fama, 0, 100),
         dinero: s.dinero + (c.dinero ?? 0),
-      }, `Don Anselmo asiente: +${c.fama} de fama${c.dinero ? ` y ${fmt(c.dinero)}` : ""}. Hito único cobrado.`, "oro");
+      }, contenidoMensaje(c.dinero ? "toast.adviceMoney" : "toast.adviceFame",c.dinero ? {count:c.fama,amount:c.dinero} : {count:c.fama}), "oro");
     }
 
     case "SCOUT": {
-      if (s.ultimaSemanaScout === s.semana) return conToast(s, "El buscador de talentos ya se usó esta semana. Podés volver a buscar el próximo lunes.", "info");
-      if (s.plantel.length >= limitePlantel(s)) return conToast(s, "El plantel está completo. Liberá un cupo o mejorá el gimnasio para recibir más alumnos.", "alerta");
+      if (s.ultimaSemanaScout === s.semana) return conToast(s, contenidoMensaje("toast.scoutUsed"), "info");
+      if (s.plantel.length >= limitePlantel(s)) return conToast(s, contenidoMensaje("toast.scoutFull"), "alerta");
       const t = genPugilista({ rol: "alumno", joven: true });
       t.atrib.talento = clamp(t.atrib.talento + azar(4, 12), 0, 97);
       const next = { ...s, ultimaSemanaScout: s.semana, plantel: incorporarAlumno(s, t) };
       const espera = alumnosEnEspera(next).some(p => p.id === t.id);
       return conToast(next,
-        `${espera ? "Talento encontrado: " : "Nuevo alumno: "}${t.nombre} (talento ${Math.round(t.atrib.talento)}, valoración ${valoracion(t.atrib)}) ${espera ? "quedó en lista de espera." : "se sumó a tus clases."}`, espera ? "info" : "oro");
+        contenidoMensaje(espera?"toast.scoutWaiting":"toast.scoutStudent",{name:t.nombre,talent:Math.round(t.atrib.talento),rating:valoracion(t.atrib)}), espera ? "info" : "oro");
     }
     case "TOAST":
-      return conToast(s, a.texto, a.tono ?? "info");
+      return conToast(s, a.presentacion?{texto:a.texto,presentacion:a.presentacion}:a.texto, a.tono ?? "info");
     case "QUITAR_TOAST":
       return { ...s, toasts: s.toasts.filter(t => t.id !== a.id) };
 
     case "LEGADO": {
-      if (s.fama < 85 && !s.cinturones.some(c => c.nivel === 4)) return conToast(s, "El legado requiere un título mundial o 85 de fama.", "alerta");
+      if (s.fama < 85 && !s.cinturones.some(c => c.nivel === 4)) return conToast(s, contenidoMensaje("toast.legacyRequired"), "alerta");
       const mejor = [...s.plantel].sort((x, y) => valoracion(y.atrib) - valoracion(x.atrib))[0];
       const base = crearEstadoBase();
       let st: EstadoJuego = {
@@ -757,7 +767,7 @@ function reductorBase(s: EstadoJuego, a: Accion): EstadoJuego {
         dinero: base.dinero + (s.legados + 1) * 500 + (mejor ? Math.round(valoracion(mejor.atrib) * 30) : 0),
         fama: clamp(base.fama + (s.legados + 1) * 10, 0, 100),
       };
-      st = conToast(st, `Legado iniciado: ahora sos ${st.nombreJugador}, con prestigio, contactos y capital heredado.`, "oro");
+      st = conToast(st, contenidoMensaje("toast.legacyStarted",{name:st.nombreJugador}), "oro");
       return st;
     }
   }
@@ -767,22 +777,29 @@ function sumaLibro(lineas: LineaLibro[]): number {
   return lineas.reduce((total, linea) => total + linea.monto, 0);
 }
 
-function conceptoMovimiento(s: EstadoJuego, a: Accion): string {
+function conceptoMovimiento(s: EstadoJuego, a: Accion): string | LineaLibro {
   switch (a.type) {
-    case "LICENCIAR": return `Licencia Amateur · ${s.plantel.find(p => p.id === a.id)?.nombre ?? "Boxeador"}`;
-    case "COMPRAR_EQUIPO": return `Compra · ${EQUIPOS[a.id]?.nombre ?? "Equipamiento"}`;
-    case "COMPRAR_CURSO": return `Curso · ${CURSOS[a.id]?.nombre ?? "Formación"}`;
-    case "COMPRAR_PROPIEDAD": return `Compra · ${PROPIEDADES[a.id]?.nombre ?? "Propiedad"}`;
-    case "PROGRAMAR_SOCIAL": return `Inversión · ${COMUNITARIOS[a.actividad]?.nombre ?? "Actividad social"}`;
-    case "PEDIR_PRESTAMO": return "Desembolso del préstamo";
+    case "LICENCIAR": return contenidoLibro("ledger.licence",0,{name:s.plantel.find(p=>p.id===a.id)?.nombre??"Boxeador"});
+    case "COMPRAR_EQUIPO": return contenidoLibro("ledger.gear",0,{gear:a.id});
+    case "COMPRAR_CURSO": return contenidoLibro("ledger.course",0,{course:a.id});
+    case "COMPRAR_PROPIEDAD": return contenidoLibro("ledger.property",0,{property:a.id});
+    case "PROGRAMAR_SOCIAL": return contenidoLibro("ledger.activity",0,{activity:a.actividad});
+    case "PEDIR_PRESTAMO": return contenidoLibro("ledger.disbursement",0);
     case "RESOLVER_PELEA": {
       const pelea = s.pendientes.find(p => p.id === a.peleaId);
       return `Bolsa de pelea · ${pelea?.rival.nombre ?? "Rival"}`;
     }
-    case "RECLAMAR_CONSEJO": return `Recompensa · ${s.consejos.find(c => c.id === a.id)?.texto ?? "Don Anselmo"}`;
-    case "EVENTO": return `Evento · ${s.eventos.find(e => e.id === a.id)?.titulo ?? "Club"}`;
-    case "AVANZAR_DIA": return s.dia === 5 ? "Velada del sábado · neto" : "Movimiento del club";
-    default: return "Movimiento del club";
+    case "RECLAMAR_CONSEJO": {
+      const c=s.consejos.find(c=>c.id===a.id),objective=objetivoConsejo(a.id);
+      return c&&CONSEJOS_INICIALES.some(template=>template.id===objective&&template.texto===c.texto)
+        ?contenidoLibro("ledger.reward",0,{objective:objective!}):`Recompensa · ${c?.texto??"Don Anselmo"}`;
+    }
+    case "EVENTO": {
+      const event=s.eventos.find(e=>e.id===a.id);
+      return event&&identidadEventoFiable(event)?contenidoLibro("ledger.event",0,{event:JSON.stringify(event)}):`Evento · ${event?.titulo??"Club"}`;
+    }
+    case "AVANZAR_DIA": return contenidoLibro(s.dia===5?"ledger.showFallback":"ledger.movement",0);
+    default: return contenidoLibro("ledger.movement",0);
   }
 }
 
@@ -795,7 +812,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
   const base = s.semanaLibro === s.semana ? s : {
     ...s, semanaLibro: s.semana, libroIngresos: [], libroGastos: [],
   };
-  const siguiente = reductorBase(base, a);
+  const siguiente = registrarGuia(base, reductorBase(base, a), a);
   if (["NUEVO_JUEGO", "CONTINUAR", "IMPORTAR", "REINICIAR", "CARGAR_PARTIDA", "LEGADO"].includes(a.type)) return siguiente;
   if (siguiente.semana !== base.semana) {
     return { ...siguiente, semanaLibro: siguiente.semana, libroIngresos: [], libroGastos: [] };
@@ -811,7 +828,7 @@ function reductor(s: EstadoJuego, a: Accion): EstadoJuego {
   const concepto = conceptoMovimiento(base, a);
   const monto = Math.abs(faltante);
   return faltante > 0
-    ? { ...siguiente, semanaLibro: base.semana, libroIngresos: linea(siguiente.libroIngresos, concepto, monto) }
+    ? { ...siguiente, semanaLibro: base.semana, libroIngresos: linea(siguiente.libroIngresos, concepto, monto, a.type === "PEDIR_PRESTAMO" ? "financiacion" : undefined) }
     : { ...siguiente, semanaLibro: base.semana, libroGastos: linea(siguiente.libroGastos, concepto, monto) };
 }
 

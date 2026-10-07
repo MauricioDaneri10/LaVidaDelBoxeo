@@ -1,5 +1,10 @@
-import React, { useEffect, type ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, m as motion, useReducedMotion } from "framer-motion";
+import { mountDialog } from "../ui/dialogs";
+import { paginasTexto } from "../ui/textPages";
+import { useMessages } from "../i18n";
+import { presentarContenido } from "../i18n/content";
 import type { Atributos, Pugilista } from "../game/types";
 
 // ============================================================================
@@ -10,6 +15,26 @@ export interface MensajeToast {
   texto: string;
   tono?: "oro" | "ok" | "alerta" | "info";
   tiempo?: number;
+  presentacion?: import("../game/messageContent").PresentacionContenido;
+}
+
+/** Literal detail pages are separate from saved content and game progression. */
+export function TextoPaginado({ texto, capacidad = 90 }: { texto: string; capacidad?: number }) {
+  const { t } = useMessages();
+  const [lectura, setLectura] = React.useState({texto,capacidad,pagina:0});
+  const vigente=lectura.texto===texto&&lectura.capacidad===capacidad;
+  if(!vigente)setLectura({texto,capacidad,pagina:0});
+  const paginas = paginasTexto(texto, capacidad);
+  const actual = Math.min(vigente?lectura.pagina:0, paginas.length - 1);
+  const setPagina=(pagina:number)=>setLectura({texto,capacidad,pagina});
+  return <div className="space-y-2 text-sm">
+    <p className="whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="literal-text-page">{paginas[actual]}</p>
+    {paginas.length > 1 && <div className="grid grid-cols-2 gap-2">
+      <Btn small variant="ghost" disabled={actual === 0} onClick={() => setPagina(actual - 1)}>{t("action.previous")}</Btn>
+      <Btn small variant="gold" disabled={actual === paginas.length - 1} onClick={() => setPagina(actual + 1)}>{t("action.next")}</Btn>
+      <span className="col-span-2 text-center">{t("page.position", { page: actual + 1, total: paginas.length })}</span>
+    </div>}
+  </div>;
 }
 
 // ============================================================================
@@ -99,7 +124,7 @@ export function Chip({ children, tone = "mut" }: { children: ReactNode; tone?: "
     : tone === "win" ? "text-win border-win/50 bg-win/10"
     : tone === "neon" ? "text-neonc border-neonc/50 bg-neonc/10"
     : "text-sand border-line2 bg-panel2";
-  return <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider font-cond ${c}`}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-sm font-semibold uppercase tracking-wider font-cond ${c}`}>{children}</span>;
 }
 
 // Barra de estadísticas
@@ -116,7 +141,7 @@ export function BarraStat({ v, color = "auto" }: { v: number; color?: string }) 
 export function FilaStat({ label, v }: { label: string; v: number }) {
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)_auto] items-center gap-2">
-      <span className="min-w-0 truncate font-cond text-[12px] uppercase tracking-wide text-sand">{label}</span>
+      <span className="min-w-0 font-cond text-sm uppercase tracking-wide text-sand">{label}</span>
       <BarraStat v={v} color="auto" />
       <span className="text-right font-cond text-sm font-bold text-cream">{Math.round(v)}</span>
     </div>
@@ -127,30 +152,42 @@ export function FilaStat({ label, v }: { label: string; v: number }) {
 export function Modal({ title, icon, onClose, children, wide, fit, className = "" }: {
   title: ReactNode; icon?: string; onClose?: () => void; children: ReactNode; wide?: boolean; fit?: boolean; className?: string;
 }) {
-  return (
+  const { t } = useMessages();
+  const titleId = useId();
+  const layer = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  const reduced = useReducedMotion() || document.documentElement.classList.contains("movimiento-reducido");
+  useEffect(() => {
+    if (layer.current && dialog.current) return mountDialog(layer.current, dialog.current, () => close.current?.());
+  }, []);
+  return createPortal((
     <AnimatePresence>
-      <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div ref={layer} data-dialog-layer className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduced ? { duration: 0 } : undefined}>
         <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" onClick={onClose} />
-        <motion.div
-          initial={{ scale: 0.92, y: 24, opacity: 0 }}
+        <motion.div ref={dialog} tabIndex={-1}
+          data-animation-ready={reduced ? "true" : undefined}
+          onAnimationComplete={() => { if (dialog.current) dialog.current.dataset.animationReady = "true"; }}
+          initial={reduced ? false : { scale: 0.92, y: 24, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-           role="dialog" aria-modal="true" aria-labelledby="modal-title"
+          transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 28 }}
+           role="dialog" aria-modal="true" aria-labelledby={titleId}
            className={`panel relative flex w-full flex-col ${wide ? "max-w-4xl" : "max-w-lg"} max-h-[calc(100vh-1rem)] overflow-hidden scroll-fino hard-shadow ${className}`}>
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-panel2/95 px-5 py-3 backdrop-blur-sm">
-            <h3 id="modal-title" className="font-display flex items-center gap-2 text-2xl tracking-wide text-gold">
+            <h3 id={titleId} className="font-display flex min-w-0 items-center gap-2 text-2xl tracking-wide text-gold [overflow-wrap:anywhere]">
               {icon && <I n={icon} className="h-5 w-5" />}{title}
             </h3>
             {onClose && (
-              <button onClick={onClose} aria-label="Cerrar ventana" title="Cerrar" className="rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
+              <button onClick={onClose} aria-label={t("dialog.close")} title={t("action.close")} className="dialog-close grid min-h-9 min-w-9 shrink-0 place-items-center rounded-lg p-1 text-mut transition-colors hover:bg-blood/10 hover:text-blood"><I n="x" className="h-5 w-5" /></button>
             )}
           </div>
           <div className={`scroll-fino min-h-0 flex-1 overflow-y-auto overscroll-contain ${fit ? "p-3" : "p-4 sm:p-5"}`}>{children}</div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  );
+  ), document.body);
 }
 
 // Barra de Energía con rayo
@@ -465,7 +502,7 @@ export function RostroBoxeador({ atleta, className = "w-14 h-14" }: { atleta: Da
 }
 
 // ============================================================================
-// CONTENEDOR TOAST PARA NOTIFICACIONES FLOTANTES (MINIMALISTA)
+// NOTIFICACIONES EN FLUJO: LECTURA COMPLETA SIN OCLUIR CONTROLES
 // ============================================================================
 
 export function ContenedorToast({
@@ -475,45 +512,31 @@ export function ContenedorToast({
   toasts: MensajeToast[];
   onCerrar: (id: number) => void;
 }) {
+  const { t: mensaje,locale } = useMessages();
+  const [lectura,setLectura]=useState<MensajeToast[]|null>(null);
+  const [seleccion,setSeleccion]=useState(0);
+  const cerrar = useRef(onCerrar);
+  cerrar.current = onCerrar;
+  const timers = useRef(new Map<number, number>());
   useEffect(() => {
-    const timers = toasts.map(t => window.setTimeout(() => onCerrar(t.id), t.tiempo ?? 4200));
-    return () => timers.forEach(window.clearTimeout);
-  }, [toasts, onCerrar]);
+    const activos = new Set(toasts.map(t => t.id));
+    for (const [id, timer] of timers.current) {
+      if (!activos.has(id)) { window.clearTimeout(timer); timers.current.delete(id); }
+    }
+    for (const toast of toasts) {
+      if (!timers.current.has(toast.id)) timers.current.set(toast.id, window.setTimeout(() => cerrar.current(toast.id), toast.tiempo ?? 4200));
+    }
+  }, [toasts]);
+  useEffect(() => () => { timers.current.forEach(window.clearTimeout); timers.current.clear(); }, []);
 
-  if (!toasts || toasts.length === 0) return null;
-
-  return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none">
-      <AnimatePresence initial={false}>
-      {toasts.map(t => (
-        <motion.div
-          key={t.id}
-          initial={{ opacity: 0, y: 12, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.98 }}
-          transition={{ duration: 0.2 }}
-          className={`pointer-events-auto px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-xs font-bold transition-all duration-300 ${
-            t.tono === "oro"
-              ? "bg-[#141208]/95 text-amber-300 border-amber-500/50 shadow-black/80"
-              : t.tono === "ok"
-              ? "bg-[#08140f]/95 text-emerald-300 border-emerald-500/50 shadow-black/80"
-              : t.tono === "alerta"
-              ? "bg-[#140808]/95 text-rose-300 border-rose-500/50 shadow-black/80"
-              : "bg-[#0e131d]/95 text-slate-200 border-slate-700/80 shadow-black/80"
-          }`}
-        >
-          <span>{t.texto}</span>
-          <button
-            onClick={() => onCerrar(t.id)}
-            className="text-slate-400 hover:text-white text-xs font-bold ml-2 cursor-pointer p-1"
-          >
-            ✕
-          </button>
-        </motion.div>
-      ))}
-      </AnimatePresence>
-    </div>
-  );
+    const copy=lectura?.[seleccion];
+    const presented=copy?presentarContenido(copy.texto,copy.presentacion,locale):null;
+    return <>
+      <div aria-live="polite" aria-relevant="additions text" className={toasts.length>0?"notification-lane shrink-0 border-t border-line px-2 py-1":"sr-only"}>{toasts.length>0&&<Btn small onClick={()=>{setSeleccion(0);setLectura(toasts.map(t=>({...t})));}}>{mensaje("notification.count",{count:toasts.length})}</Btn>}</div>
+      {lectura&&copy&&presented&&<Modal fit title={mensaje("notification.title")} onClose={()=>setLectura(null)}><div className="bounded-detail"><select className="r4-select" aria-label={mensaje("notification.picker")} value={seleccion} onChange={e=>setSeleccion(Number(e.target.value))}>{lectura.map((t,i)=><option key={t.id} value={i}>{i+1}/{lectura.length}</option>)}</select><TextoPaginado capacidad={40} texto={`${presented.historico?mensaje("record.historical")+"\n":""}${presented.texto}`}/><Btn small disabled={!toasts.some(t=>t.id===copy.id)} onClick={()=>{
+        window.clearTimeout(timers.current.get(copy.id));timers.current.delete(copy.id);cerrar.current(copy.id);setLectura(null);
+      }}>{mensaje("notification.dismiss")}</Btn></div></Modal>}
+    </>;
 }
 
 // ============================================================================

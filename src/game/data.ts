@@ -3,6 +3,13 @@ import type {
   ComboId, Consejo, CursoId, GearId, PersonalId, PropiedadId, RamaCurso,
 } from "./types";
 
+// Known offer templates, shared with presentation; generation order/RNG is unchanged.
+export const OFERTAS_CONTENIDO = {
+  accesible: { etiqueta: "Rival Accesible", detalle: "Nivel menor (−5), con experiencia cercana a la tuya." },
+  parejo: { etiqueta: "Rival Parejo", detalle: "Nivel idéntico (±2). Combate equilibrado para subir en el ranking." },
+  desafio: { etiqueta: "Rival Desafío", detalle: "Nivel superior (+6 a +10). Riesgo alto, salto gigante en el ranking." },
+} as const;
+
 // ==================== NOMBRES Y APARIENCIAS ====================
 // Nombres masculinos (16 canónicos + 34 ampliados de fuente local = 50 pugilistas)
 export const NOMBRES_H = [
@@ -220,7 +227,7 @@ export const PROPIEDADES: Record<PropiedadId, {
     tipo: "comercial",
     distrito: "Centro Urbano",
     coordenadasSvg: { x: 500, y: 300 },
-    beneficio: "+10 cupos de alumnos y +$800/sem con Gerente contratado",
+    beneficio: "+10 cupos de alumnos. Ingresos semanales variables según fama, entrenadores y cursos; requiere Gerente.",
   },
   apartamento: {
     nombre: "Apartamento Céntrico",

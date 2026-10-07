@@ -1,21 +1,26 @@
-import { useMemo, useState } from "react";
-import { COMBOS, LOGOS_DISPONIBLES, TITULOS } from "../game/data";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LOGOS_DISPONIBLES } from "../game/data";
 import { alumnosActivos, alumnosEnEspera, capacidadAlumnos, nivelGimnasio, valoracion } from "../game/engine";
 import { useGame } from "../game/state";
 import type { Pugilista } from "../game/types";
-import { I, RostroBoxeador } from "./ui";
+import { Btn, I, Modal, RostroBoxeador, TextoPaginado } from "./ui";
+import { useResponsiveCapacity } from "./useResponsiveCapacity";
+import { useMessages } from "../i18n";
+import { presentarTitulo, presentarDivision } from "../i18n/presentation";
 
 // ==================== FIGURA PROCEDIMENTAL DE ATLETA ====================
 export function Figura({ p, pose = "guardia", escala = 1, voltear = false, onClick }: {
   p: Pugilista; pose?: "guardia" | "sombra" | "sentado" | "saltando" | "caido" | "cabezal";
   escala?: number; voltear?: boolean; onClick?: () => void;
 }) {
+  const { t } = useMessages();
   const anim = pose === "saltando" ? "anim-salto" : pose === "sombra" ? "anim-sombra" : pose === "sentado" ? "" : "anim-bob";
+  const Elemento = onClick ? "button" : "div";
   return (
-    <button onClick={onClick} title={`${p.nombre} — ver ficha`}
-      className="group relative flex flex-col items-center outline-none cursor-pointer" style={{ width: 56 * escala }}>
-      <div className="pointer-events-none absolute -top-6 z-10 flex items-center gap-1 whitespace-nowrap border border-line bg-ink/95 px-1.5 py-0.5 font-cond text-[10px] uppercase tracking-wide text-sand opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
-        {p.nombre.split(" ")[0]} · {COMBOS[p.combo]?.corto || "Libre"} · En. {Math.round(p.energia)}
+    <Elemento onClick={onClick} title={onClick ? t("gym.sheetOf",{name:p.nombre}) : p.nombre}
+      aria-label={onClick ? t("gym.sheetOf",{name:p.nombre}) : p.nombre} className={`gym-figure group relative flex min-h-11 flex-col items-center focus-visible:outline-2 focus-visible:outline-gold ${onClick ? "cursor-pointer" : ""}`} style={{ width: Math.max(44, 56 * escala) }}>
+      <div data-text-role="secondary" className="pointer-events-none absolute -top-6 z-10 flex w-max max-w-[200px] items-center gap-1 whitespace-normal break-words border border-line bg-ink/95 px-1.5 py-0.5 font-cond text-xs uppercase tracking-wide text-sand opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 shadow-md">
+        {p.nombre.split(" ")[0]} · {t(`combo.${p.combo}`)} · {t("gym.energy",{energy:Math.round(p.energia)})}
       </div>
       <div className={`${anim} ${voltear ? "-scale-x-100" : ""}`} style={{ animationDelay: `${(p.nombre.length % 5) * 0.17}s` }}>
         <svg viewBox="0 0 48 66" width={52 * escala} height={71 * escala}>
@@ -58,17 +63,17 @@ export function Figura({ p, pose = "guardia", escala = 1, voltear = false, onCli
         </svg>
       </div>
       {pose !== "caido" && (
-        <div className="mt-0.5 border border-line bg-ink/85 px-1.5 py-px font-cond text-[10px] uppercase tracking-wide text-cream transition-colors group-hover:border-gold2 group-hover:text-gold">
+        <div className="mt-0.5 border border-line bg-ink/85 px-1.5 py-px font-cond text-sm uppercase tracking-wide text-cream transition-colors group-hover:border-gold2 group-hover:text-gold">
           {p.nombre.split(" ")[0]}{p.rol === "boxeador" && <span className="text-blood"> ●</span>}
         </div>
       )}
-    </button>
+    </Elemento>
   );
 }
 
 function EtiquetaZona({ n, titulo, extra }: { n: string; titulo: string; extra?: string }) {
   return (
-    <div className="pointer-events-none absolute -top-1 left-1 z-10 flex items-center gap-1.5">
+    <div className="gym-station-title pointer-events-none absolute top-1 left-1 z-10 flex items-center gap-1.5">
       <span className="bg-blood px-1.5 py-px font-display text-[13px] text-cream">{n}</span>
       <span className="font-cond text-[11px] uppercase tracking-[0.18em] text-sand">{titulo}</span>
       {extra && <span className="font-cond text-[10px] text-mut">{extra}</span>}
@@ -79,24 +84,28 @@ function EtiquetaZona({ n, titulo, extra }: { n: string; titulo: string; extra?:
 // ==================== VITRINA DE CINTURONES ====================
 function VitrinaCinturones({ onAbrirDueno }: { onAbrirDueno: (nombre: string) => void }) {
   const { state } = useGame();
+  const { t, locale } = useMessages();
+  const [record,setRecord]=useState(0);
+  const [open,setOpen]=useState(false);
+  const horizontal=useResponsiveCapacity("(max-height: 450px)");
+  const current=state.cinturones[Math.min(record,state.cinturones.length-1)];
   const conVitrina = state.equipamiento.includes("vitrina");
   if (state.cinturones.length === 0) return null;
 
   return (
-    <div className={`absolute right-[2%] top-[8%] z-10 ${conVitrina ? "border-2 border-gold2/70 bg-ink/75 p-2 rounded-xl backdrop-blur-[2px]" : "p-1"}`}
+    <><div className={`absolute right-[2%] top-[8%] z-10 ${conVitrina ? "border-2 border-gold2/70 bg-ink/75 p-2 rounded-xl backdrop-blur-[2px]" : "p-1"}`}
       style={conVitrina ? { boxShadow: "0 0 18px rgba(232,178,58,0.25), inset 0 0 12px rgba(232,178,58,0.12)" } : undefined}>
       <div className="mb-1 flex items-center gap-1.5 font-cond text-[10px] uppercase tracking-[0.2em] text-gold">
-        <I n="trophy" className="h-3 w-3" /> Vitrina de Campeones ({state.cinturones.length})
+        <Btn small onClick={()=>setOpen(true)}>{t("gym.allBelts",{count:state.cinturones.length})}</Btn>
       </div>
       <div className="flex max-w-[240px] flex-wrap gap-2">
         {state.cinturones.slice(0, 6).map(c => {
-          const info = TITULOS[c.nivel];
+          const info = presentarTitulo(c.nivel,locale);
           return (
-            <button
+            <div
               key={c.id}
-              onClick={() => onAbrirDueno(c.dueno)}
+              aria-hidden="true"
               className="anim-cinturon h-6 w-16 cursor-pointer outline-none hover:scale-110 transition-transform"
-              title={`${info.cinturon} — Dueño: ${c.dueno} (Clic para ver ficha)`}
             >
               <svg viewBox="0 0 60 22" className="w-full h-full">
                 <rect x="2" y="8" width="56" height="7" rx="3" fill={info.colores[0]} stroke="#00000055" />
@@ -112,11 +121,20 @@ function VitrinaCinturones({ onAbrirDueno }: { onAbrirDueno: (nombre: string) =>
                   {c.nivel === 4 ? "M" : c.nivel === 3 ? "C" : c.nivel === 2 ? "N" : "R"}
                 </text>
               </svg>
-            </button>
+            </div>
           );
         })}
       </div>
     </div>
+    {open && current && <Modal fit wide title={t("gym.belts")} onClose={()=>setOpen(false)}>
+      <div className="bounded-detail">
+        <div className="space-y-2">
+          <select aria-label={t("gym.beltSelected")} value={record} onChange={e=>setRecord(Number(e.target.value))} className="r4-select">{state.cinturones.map((belt,index)=><option key={belt.id} value={index}>#{index+1} · {belt.dueno}</option>)}</select>
+          {state.plantel.some(p=>p.nombre===current.dueno) && <Btn onClick={()=>{setOpen(false);onAbrirDueno(current.dueno);}}>{t("gym.viewSheet")}</Btn>}
+        </div>
+        <TextoPaginado key={current.id} texto={t("gym.beltRecord",{belt:presentarTitulo(current.nivel,locale).cinturon,owner:current.dueno,week:current.semana})} capacidad={horizontal?20:40}/>
+      </div>
+    </Modal>}</>
   );
 }
 
@@ -128,8 +146,46 @@ interface GymViewProps {
 // ==================== DIORAMA DEL GIMNASIO ====================
 export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
   const { state, nivel } = useGame();
+  const { t, locale } = useMessages();
   const [drawerAbierto, setDrawerAbierto] = useState(false);
+  const [paredAbierta, setParedAbierta] = useState(false);
+  const [paginaPlantel, setPaginaPlantel] = useState(0);
+  const [detallePlantel, setDetallePlantel] = useState("datos");
+  const plantelCompacto = useResponsiveCapacity("(max-width: 700px), (max-height: 650px)");
+  const horizontalBajo = useResponsiveCapacity("(max-height: 450px)");
+  const estacionesRef = useRef<HTMLDivElement>(null);
+  const estadoRef = useRef<HTMLDivElement>(null);
+  const [altoEstado, setAltoEstado] = useState(64);
+  const [altoEscena, setAltoEscena] = useState(500);
+  const [estacionesPorPagina, setEstacionesPorPagina] = useState(1);
+  const estacionesPaginadas = estacionesPorPagina < 5;
+  const paredEnDetalle = estacionesPaginadas && plantelCompacto;
+  const [estacion, setEstacion] = useState(1);
+  useEffect(() => {
+    const elemento = estacionesRef.current;
+    if (!elemento) return;
+    const ajustar = () => {
+      setEstacionesPorPagina(horizontalBajo ? 1 : Math.max(1, Math.min(5, Math.floor((elemento.clientWidth - 16) / 300))));
+      setAltoEscena(elemento.parentElement?.clientHeight ?? 500);
+    };
+    const observer = new ResizeObserver(ajustar);
+    observer.observe(elemento.parentElement ?? elemento);
+    ajustar();
+    return () => observer.disconnect();
+  }, [horizontalBajo]);
+  const primeraEstacion = Math.floor((estacion - 1) / estacionesPorPagina) * estacionesPorPagina + 1;
+  const ultimaEstacion = Math.min(5, primeraEstacion + estacionesPorPagina - 1);
+  useEffect(() => {
+    const el = estadoRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setAltoEstado(Math.ceil(el.getBoundingClientRect().height) + 8));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const todos = state.plantel.filter(p => !p.enEspera);
+  const cantidadPlantel = plantelCompacto ? 1 : 3;
+  const paginasPlantel = Math.max(1, Math.ceil(todos.length / cantidadPlantel));
+  const paginaVisiblePlantel = Math.min(paginaPlantel, paginasPlantel - 1);
   const alumnos = alumnosActivos(state);
   const cupoAlumnos = capacidadAlumnos(state);
   const espera = alumnosEnEspera(state).length;
@@ -177,9 +233,55 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
     : "linear-gradient(180deg,#4c3823 0%,#3b2b1a 65%,#2e2113 100%)";
   const piso = nivel >= 3 ? "linear-gradient(180deg,#241f2e,#191521)" : "linear-gradient(180deg,#6b4d2e,#4a341e)";
 
+  const estadisticas = <div className="flex flex-wrap gap-2 text-sm">
+          <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
+          <I n="users" className="h-4 w-4 text-gold" /> {t("gym.students")} <b className={espera ? "text-blood" : "text-cream"}>{alumnos.length}/{cupoAlumnos}</b>
+          {espera > 0 && <span className="text-[11px] text-blood">· {t("gym.waiting",{count:espera})}</span>}
+        </span>
+        <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
+          <I n="glove" className="h-4 w-4 text-blood" /> {t("gym.competitors")} <b className="text-cream">{state.plantel.filter(p => p.rol === "boxeador").length}</b>
+        </span>
+        <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
+          <I n="medal" className="h-4 w-4 text-gold" /> {t("gym.belts")} <b className="text-cream">{state.cinturones.length}</b>
+        </span>
+        {asignacion.vestuarios > 0 && (
+          <span className="flex items-center gap-1.5 border border-line2 bg-panel2 px-2 py-0.5 font-cond text-sm text-sand">
+            <I n="house" className="h-3.5 w-3.5 text-mut" /> {t("gym.lockers")}: <b className="text-cream">{asignacion.vestuarios}</b>
+          </span>
+        )}
+  </div>;
+  const paredDelClub = <>
+        {/* MARQUESINA CENTRAL DEL GIMNASIO CON EMBLEMA Y NIVEL */}
+        <div className={`gym-marquee pointer-events-none absolute left-1/2 top-12 w-[calc(100%-2rem)] max-w-[680px] -translate-x-1/2 text-center ${nivel >= 3 ? "anim-neon" : ""}`}>
+          <div className="flex items-center justify-center gap-3">
+            <span className="shrink-0 text-xl filter drop-shadow">{logoActual.emoji}</span>
+            <div className={`min-w-0 flex-1 break-words rounded-lg border-2 bg-ink/75 px-3 py-2 font-display text-sm tracking-[0.04em] shadow-lg ${nivel >= 3 ? "border-neonc text-neonc" : "border-gold2 text-gold"}`}
+              style={nivel >= 3
+                ? { fontSize: "clamp(14px, 2vw, 32px)", textShadow: "0 0 16px rgba(56,224,207,0.85), 0 0 38px rgba(255,79,160,0.4)", boxShadow: "0 0 22px rgba(56,224,207,0.22) inset" }
+                : { fontSize: "clamp(14px, 2vw, 32px)", textShadow: "0 0 12px rgba(232,178,58,0.55)" }}>
+              {state.nombreGimnasio}
+            </div>
+            <span className="shrink-0 text-xl filter drop-shadow">{logoActual.emoji}</span>
+          </div>
+          <div className="mt-0.5 font-cond text-[10px] uppercase tracking-[0.3em] text-sand">
+            {t("gym.headquarters",{level:nivel})}
+          </div>
+        </div>
+
+        {nivel >= 3 && <div className="anim-marquee absolute bottom-0 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg,transparent,var(--color-neonc),var(--color-neonm),transparent)" }} />}
+        
+        {/* VITRINA DE CINTURONES */}
+        <VitrinaCinturones onAbrirDueno={abrirPorNombre} />
+
+        {/* AFICHE DE VELADA */}
+        <div className="gym-poster pointer-events-none absolute left-[4%] top-[36%] hidden -rotate-2 border-4 border-[#efe3c8] bg-[#e8d9b8] p-1 sm:block shadow-md" style={{ width: 110 }}>
+          <div className="bg-blood px-1 py-0.5 text-center font-display text-[12px] leading-tight text-cream">{t("gym.poster")}</div>
+          <div className="py-0.5 text-center font-cond text-[9px] uppercase text-ink">{t("gym.posterTime")}</div>
+        </div>
+  </>;
   return (
-    <div className="panel relative h-full min-h-0 overflow-hidden flex flex-col justify-between">
-      
+    <div className="gym-scene panel relative h-full min-h-0 overflow-hidden flex flex-col justify-between">
+
       {/* PARED DEL GIMNASIO */}
       <div className="absolute inset-x-0 top-0 h-[56%]" style={{ background: pared }}>
         {[16, 84].map((x, i) => (
@@ -191,33 +293,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
           </div>
         ))}
 
-        {/* MARQUESINA CENTRAL DEL GIMNASIO CON EMBLEMA Y NIVEL */}
-        <div className={`absolute left-1/2 top-12 -translate-x-1/2 text-center ${nivel >= 3 ? "anim-neon" : ""}`}>
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-2xl filter drop-shadow">{logoActual.emoji}</span>
-            <div className={`rounded-lg border-2 bg-ink/75 px-5 py-2 font-display text-2xl tracking-[0.08em] shadow-lg sm:text-3xl ${nivel >= 3 ? "border-neonc text-neonc" : "border-gold2 text-gold"}`}
-              style={nivel >= 3
-                ? { textShadow: "0 0 16px rgba(56,224,207,0.85), 0 0 38px rgba(255,79,160,0.4)", boxShadow: "0 0 22px rgba(56,224,207,0.22) inset" }
-                : { textShadow: "0 0 12px rgba(232,178,58,0.55)" }}>
-              {state.nombreGimnasio}
-            </div>
-            <span className="text-2xl filter drop-shadow">{logoActual.emoji}</span>
-          </div>
-          <div className="mt-0.5 font-cond text-[10px] uppercase tracking-[0.3em] text-sand">
-            Sede Central de Entrenamiento · Nivel {nivel}
-          </div>
-        </div>
-
-        {nivel >= 3 && <div className="anim-marquee absolute bottom-0 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg,transparent,var(--color-neonc),var(--color-neonm),transparent)" }} />}
-        
-        {/* VITRINA DE CINTURONES */}
-        <VitrinaCinturones onAbrirDueno={abrirPorNombre} />
-
-        {/* AFICHE DE VELADA */}
-        <div className="absolute left-[4%] top-[36%] hidden -rotate-2 border-4 border-[#efe3c8] bg-[#e8d9b8] p-1 sm:block shadow-md" style={{ width: 70 }}>
-          <div className="bg-blood px-1 py-0.5 text-center font-display text-[12px] leading-tight text-cream">VELADA<br />DE ORO</div>
-          <div className="py-0.5 text-center font-cond text-[9px] uppercase text-ink">Sábado · 21 hs</div>
-        </div>
+        {!paredEnDetalle && paredDelClub}
       </div>
 
       {/* PISO DE MADERA / RING */}
@@ -226,13 +302,13 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
       </div>
 
       {/* ============ LAS 5 ESTACIONES DE ENTRENAMIENTO ============ */}
-      <div className="absolute inset-x-0 bottom-[11%] top-[49%] grid grid-cols-5 gap-1 px-2">
+      <div ref={estacionesRef} className={`gym-stations absolute inset-x-0 bottom-[11%] top-[49%] grid grid-cols-5 gap-1 px-2 ${estacionesPaginadas ? "gym-stations-paged" : ""}`} data-start={primeraEstacion} data-end={ultimaEstacion} style={{ top: horizontalBajo ? 0 : Math.min(altoEscena * (estacionesPaginadas ? .36 : .49), Math.max(0, altoEscena - altoEstado - 136)), bottom: altoEstado, gridTemplateColumns: `repeat(${ultimaEstacion - primeraEstacion + 1}, minmax(0, 1fr))` }}>
 
         {/* ZONA 1: SOGA Y CARDIO */}
-        <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
-          <EtiquetaZona n="1" titulo="Soga y Cardio" />
+        <div data-visible={primeraEstacion <= 1 && ultimaEstacion >= 1} className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
+          <EtiquetaZona n="1" titulo={t("gym.cardio")} />
           {asignacion.soga.map((b, i) => (
-            <div key={b.id} className="absolute bottom-1" style={{ left: `${12 + i * 40}%` }}>
+            <div key={b.id} data-slot={i} className="gym-occupant absolute bottom-1" style={{ left: `${i * 50}%`, width: "50%" }}>
               <svg viewBox="0 0 60 70" width="62" height="72" className="absolute -left-1 -top-1">
                 <g className="anim-cuerda">
                   <ellipse cx="30" cy="40" rx="22" ry="26" fill="none" stroke="#c9b896" strokeWidth="1.6" strokeDasharray="4 5" />
@@ -246,8 +322,8 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
 
         {/* ZONA 2: SACOS Y POTENCIA */}
-        <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
-          <EtiquetaZona n="2" titulo="Sacos y Potencia" />
+        <div data-visible={primeraEstacion <= 2 && ultimaEstacion >= 2} className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
+          <EtiquetaZona n="2" titulo={t("gym.power")} />
           <svg viewBox="0 0 100 90" className="pointer-events-none absolute inset-x-0 top-2 h-[85%] w-full">
             <g className="anim-saco-hit" style={{ transformOrigin: "24px 6px" }}>
               <line x1="24" y1="0" x2="24" y2="8" stroke="#6b5a42" strokeWidth="2" />
@@ -262,7 +338,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
             </g>
           </svg>
           {asignacion.sacos.map((b, i) => (
-            <div key={b.id} className="absolute bottom-1" style={{ left: `${8 + i * 46}%` }}>
+            <div key={b.id} data-slot={i} className="gym-occupant absolute bottom-1" style={{ left: `${i * 50}%`, width: "50%" }}>
               <Figura p={b} pose="guardia" escala={0.85} onClick={() => seleccionarAtleta(b.id)} />
             </div>
           ))}
@@ -270,8 +346,8 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
 
         {/* ZONA 3: RING DE PRÁCTICA Y TÉCNICA */}
-        <div className="relative overflow-hidden rounded-xl border border-gold2/40 bg-black/20">
-          <EtiquetaZona n="3" titulo="Ring de Práctica" />
+        <div data-visible={primeraEstacion <= 3 && ultimaEstacion >= 3} className="relative overflow-hidden rounded-xl border border-gold2/40 bg-black/20">
+          <EtiquetaZona n="3" titulo={t("gym.ring")} />
           <svg viewBox="0 0 120 70" className="pointer-events-none absolute inset-x-1 bottom-0 h-[72%] w-[94%]">
             <rect x="6" y="46" width="108" height="9" fill="#5d452c" stroke="#2c2013" strokeWidth="1.2" />
             <polygon points="6,55 114,55 120,66 0,66" fill="#4a3524" />
@@ -279,12 +355,12 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
             {[20, 30, 40].map(y => <line key={y} x1="10" y1={y} x2="110" y2={y} stroke={y === 30 ? "#f2e7d0" : "#d4342c"} strokeWidth="2" />)}
           </svg>
           {asignacion.ring[0] && (
-            <div className="absolute bottom-[16%] left-[10%]">
+            <div className="gym-ring-boxer absolute bottom-[16%] left-[10%]">
               <Figura p={asignacion.ring[0]} pose="cabezal" escala={0.66} onClick={() => seleccionarAtleta(asignacion.ring[0].id)} />
             </div>
           )}
           {asignacion.ring[1] && (
-            <div className="absolute bottom-[16%] right-[10%]">
+            <div data-slot="1" className="gym-ring-boxer absolute bottom-[16%] right-[10%]">
               <Figura p={asignacion.ring[1]} pose="cabezal" escala={0.66} voltear onClick={() => seleccionarAtleta(asignacion.ring[1].id)} />
             </div>
           )}
@@ -305,14 +381,14 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
 
         {/* ZONA 4: TÉCNICA Y ESPEJO */}
-        <div className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
-          <EtiquetaZona n="4" titulo="Técnica y Espejo" />
+        <div data-visible={primeraEstacion <= 4 && ultimaEstacion >= 4} className="relative overflow-hidden rounded-xl border border-line/60 bg-black/15">
+          <EtiquetaZona n="4" titulo={t("gym.technique")} />
           <div className="pointer-events-none absolute right-2 top-5 h-[68%] w-[43%] rounded border-2 border-sky-200/30 bg-gradient-to-b from-[#4a5964] to-[#1d252c] opacity-90 shadow-inner">
             <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(255,255,255,0.08)_45%,transparent_60%)]" />
             <div className="absolute inset-x-2 bottom-2 h-1 rounded bg-sky-200/30" />
           </div>
           {asignacion.manoplas.map(b => (
-            <div key={b.id} className="absolute bottom-1 left-[8%]">
+            <div key={b.id} className="gym-single-boxer absolute bottom-1 left-[8%]">
               <Figura p={b} pose="sombra" escala={0.85} onClick={() => seleccionarAtleta(b.id)} />
             </div>
           ))}
@@ -331,8 +407,8 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         </div>
 
         {/* ZONA 5: HIDRATACIÓN Y DESCANSO */}
-        <div className="relative border border-line/60 bg-black/15">
-          <EtiquetaZona n="5" titulo="Hidratación" />
+        <div data-visible={primeraEstacion <= 5 && ultimaEstacion >= 5} className="relative border border-line/60 bg-black/15">
+          <EtiquetaZona n="5" titulo={t("gym.hydration")} />
           <svg viewBox="0 0 100 50" className="pointer-events-none absolute inset-x-2 bottom-1 h-[55%] w-[92%]">
             <rect x="10" y="22" width="60" height="6" fill="#6b5a42" stroke="#4a3d2b" />
             <rect x="14" y="28" width="5" height="18" fill="#4a3d2b" />
@@ -355,7 +431,7 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
         <div className="absolute right-[2%] top-[24%] z-10 h-[26%] w-[34%] border-2 border-neonc/60 bg-neonc/5 p-2 rounded-xl"
           style={{ boxShadow: "0 0 24px rgba(56,224,207,0.18) inset, 0 0 18px rgba(56,224,207,0.2)" }}>
           <div className="anim-neon flex items-center gap-1.5 font-cond text-[11px] uppercase tracking-[0.2em] text-neonc">
-            <I n="trophy" className="h-3.5 w-3.5" /> Zona Élite · +70% velocidad
+            <I n="trophy" className="h-3.5 w-3.5" /> {t("gym.elite")}
           </div>
           <div className="relative mt-1 h-[78%]">
             <div className="pointer-events-none absolute inset-x-2 bottom-0 h-[45%] border-t-2 border-neonc/40 bg-neonc/5" />
@@ -364,92 +440,75 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
                 <Figura p={b} pose="guardia" escala={0.8} onClick={() => seleccionarAtleta(b.id)} />
               </div>
             ))}
-            {asignacion.vip.length === 0 && <div className="mt-5 font-cond text-xs italic text-neonc/60">Asciende a tus estrellas del ranking aquí.</div>}
+            {asignacion.vip.length === 0 && <div className="mt-5 font-cond text-xs italic text-neonc/60">{t("gym.eliteEmpty")}</div>}
           </div>
         </div>
       )}
 
+      {paredAbierta && <Modal fit wide title={t("gym.wall")} onClose={() => setParedAbierta(false)}><div className="gym-wall-detail relative">{paredDelClub}</div></Modal>}
+
       {/* PLANTEL LATERAL RÁPIDO (PANEL DESPLEGABLE) */}
       {drawerAbierto && (
-        <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-72 min-w-0 flex-col overflow-hidden border-l border-line bg-ink/95 p-4 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-line pb-2">
-            <span className="font-display text-base text-cream uppercase tracking-wider">
-              Plantel del gimnasio ({todos.length})
-            </span>
-            <button
-              onClick={() => setDrawerAbierto(false)}
-              aria-label="Cerrar panel del plantel"
-              className="p-1 rounded text-mut hover:text-white cursor-pointer"
-            >
-              <I n="x" className="w-4 h-4" />
-            </button>
-          </div>
+        <Modal title={t("gym.roster", { count: todos.length })} icon="users" onClose={() => setDrawerAbierto(false)} fit>
+          <div className={plantelCompacto ? "gym-roster-screen" : ""}>
+          {plantelCompacto && <div className="space-y-2">
+            <select aria-label={t("sheet.boxer")} value={paginaVisiblePlantel} onChange={e => setPaginaPlantel(Number(e.target.value))} className="r4-select">{todos.map((b, i) => <option key={b.id} value={i}>{b.nombre}</option>)}</select>
+            <select aria-label={t("sheet.section")} value={detallePlantel} onChange={e => setDetallePlantel(e.target.value)} className="r4-select"><option value="datos">{t("sheet.identity")}</option><option value="nombre">{t("sheet.name")}</option></select>
+          </div>}
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scroll-fino py-3 pr-1">
-            {todos.map(b => (
+          {!plantelCompacto && estacionesPaginadas && estadisticas}
+          <div className="space-y-2 py-3">
+            {todos.slice(paginaVisiblePlantel * cantidadPlantel, (paginaVisiblePlantel + 1) * cantidadPlantel).map(b => (
+              plantelCompacto && detallePlantel === "nombre" ? <p key={b.id} className="text-sm [overflow-wrap:anywhere]">{b.nombre}</p> :
               <button
                 type="button"
                 key={b.id}
                 onClick={() => { seleccionarAtleta(b.id); setDrawerAbierto(false); }}
-                aria-label={`Ver ficha de ${b.nombre}, ${b.division}, energía ${Math.round(b.energia)}`}
+                aria-label={t("gym.boxerDetail",{name:b.nombre,division:presentarDivision(b.division,locale),energy:Math.round(b.energia)})}
                 className="w-full p-2.5 text-left rounded-xl bg-panel hover:bg-panel2 border border-line cursor-pointer flex items-center gap-3 transition-colors group"
               >
                 <RostroBoxeador atleta={b} className="w-10 h-10 shrink-0 rounded-lg" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-cond font-bold text-xs text-cream truncate group-hover:text-gold">
-                    {b.nombre}
+                  <div className="font-cond font-bold text-sm text-cream break-words group-hover:text-gold">
+                    {plantelCompacto ? t("sheet.heading") : b.nombre}
                   </div>
-                  <div className="font-cond text-[10px] text-mut uppercase">
-                    {b.division} · En. {Math.round(b.energia)}
+                  <div data-text-role="secondary" className="font-cond text-xs text-mut uppercase">
+                    {presentarDivision(b.division,locale)} · {t("gym.energy",{energy:Math.round(b.energia)})}
                   </div>
                 </div>
-                <div className="font-mono-data text-xs font-black text-gold">
+                <div className="font-mono-data text-sm font-black text-gold">
                   {valoracion(b.atrib)}
                 </div>
               </button>
             ))}
           </div>
 
-          <div className="pt-2 border-t border-line text-center">
-            <button
-              onClick={() => setDrawerAbierto(false)}
-              aria-label="Cerrar panel del plantel"
-              className="w-full py-1.5 rounded-lg bg-panel2 text-xs font-cond uppercase text-sand hover:text-white"
-            >
-              Cerrar Panel
-            </button>
+          {paginasPlantel > 1 && <div className="gym-roster-pagination grid grid-cols-2 items-center gap-2">
+            <Btn small disabled={paginaVisiblePlantel === 0} onClick={() => setPaginaPlantel(v => Math.max(0, v - 1))}>{t("action.previous")}</Btn>
+            <Btn small disabled={paginaVisiblePlantel === paginasPlantel - 1} onClick={() => setPaginaPlantel(v => Math.min(paginasPlantel - 1, v + 1))}>{t("action.next")}</Btn>
+            <span className="col-span-2 text-center text-sm">{paginaVisiblePlantel + 1}/{paginasPlantel}</span>
+          </div>}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* BARRA INFERIOR DE ESTADO CON ACCESO AL ROSTER */}
-      <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line bg-ink/92 px-4 py-2">
-          <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
-          <I n="users" className="h-4 w-4 text-gold" /> Alumnos <b className={espera ? "text-blood" : "text-cream"}>{alumnos.length}/{cupoAlumnos}</b>
-          {espera > 0 && <span className="text-[11px] text-blood">· {espera} en espera</span>}
-        </span>
-        <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
-          <I n="glove" className="h-4 w-4 text-blood" /> Federados <b className="text-cream">{state.plantel.filter(p => p.rol === "boxeador").length}</b>
-        </span>
-        <span className="flex items-center gap-1.5 font-cond text-sm text-sand">
-          <I n="medal" className="h-4 w-4 text-gold" /> Cinturones <b className="text-cream">{state.cinturones.length}</b>
-        </span>
-        {asignacion.vestuarios > 0 && (
-          <span className="flex items-center gap-1.5 border border-line2 bg-panel2 px-2 py-0.5 font-cond text-sm text-sand">
-            <I n="house" className="h-3.5 w-3.5 text-mut" /> En vestuarios: <b className="text-cream">{asignacion.vestuarios}</b>
-          </span>
-        )}
+      <div ref={estadoRef} className="gym-status absolute bottom-0 left-0 right-0 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line bg-ink/92 px-4 py-2">
+        {estacionesPaginadas && <select aria-label={t("gym.station")} value={estacion} onChange={e => { e.currentTarget.focus(); e.target.value === "club" ? setParedAbierta(true) : setEstacion(Number(e.target.value)); }} className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-2 text-sm text-sand">
+          {paredEnDetalle && <option value="club">{t("gym.wallIdentity")}</option>}<option value={1}>{t("gym.cardio")}</option><option value={2}>{t("gym.power")}</option><option value={3}>{t("gym.ring")}</option><option value={4}>{t("gym.technique")}</option><option value={5}>{t("gym.hydration")}</option>
+        </select>}
+        {!estacionesPaginadas && estadisticas}
 
         <div className="ml-auto flex items-center gap-3">
           <button
             onClick={() => setDrawerAbierto(!drawerAbierto)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-panel2 border border-line text-xs font-cond uppercase text-gold hover:border-gold2 transition-colors cursor-pointer"
+            className="btn-poster flex items-center gap-1.5 px-3 py-1 rounded-lg bg-panel2 border border-line text-sm font-cond uppercase text-gold hover:border-gold2 transition-colors cursor-pointer"
           >
             <I n="users" className="w-3.5 h-3.5" />
-            <span>Ver plantel ({todos.length})</span>
+            <span>{t("gym.viewRoster", { count: todos.length })}</span>
           </button>
           <span className="hidden font-cond text-[12px] uppercase tracking-wider text-mut xl:block">
-            Haz clic en un atleta para ver su ficha
+            {t("gym.clickBoxer")}
           </span>
         </div>
       </div>
@@ -461,5 +520,6 @@ export function GymView({ onAbrir, onSeleccionarBoxeador }: GymViewProps) {
 export default GymView;
 
 function Vacia() {
-  return <div className="absolute bottom-3 left-2 font-cond text-[11px] italic text-mut">Estación libre…</div>;
+  const { t } = useMessages();
+  return <div className="absolute bottom-3 left-2 font-cond text-[11px] italic text-mut">{t("gym.freeStation")}</div>;
 }

@@ -1,0 +1,719 @@
+{
+  "code_commit": "7262e319025175ee6560b9cdf2d252048ccb8b00",
+  "base_commit": "8b0075ea35fb23d6f4d797fd2da647fd14fe9ce3",
+  "assets": [
+    {
+      "path": "favicon.svg",
+      "bytes": 281,
+      "sha256": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f"
+    },
+    {
+      "path": "index.html",
+      "bytes": 1002,
+      "sha256": "2da02fd689891e83c9509cd73215066d6dd19a981c4e4db33e7cc0acff8ebfdd"
+    },
+    {
+      "path": "assets/index-C9SAbxas.css",
+      "bytes": 86239,
+      "sha256": "258aa070bf969617f061f7617292a79e0756666b41d34cf15136007e8eb28f71"
+    },
+    {
+      "path": "assets/index-CsZ02zsU.js",
+      "bytes": 572493,
+      "sha256": "529d282c1cd55016fe2c2912cff3c31d09f7fc0893d421c81ff7877eb65d7704"
+    },
+    {
+      "path": "i18n/en.json",
+      "bytes": 69423,
+      "sha256": "f1ef8c45421eee3bf3a997dc44542c50333a0be7b206d0cc6df3376536475187"
+    },
+    {
+      "path": "i18n/pt-BR.json",
+      "bytes": 73542,
+      "sha256": "857863a3f18eb3a4fa96c7ef2790f8f34dcf6030d3b3887050090e376ec4ef03"
+    }
+  ],
+  "canvas": [
+    {
+      "locale": "es",
+      "status": "PASS",
+      "cases": 490,
+      "elapsed_seconds": 65.865,
+      "build_unchanged": true,
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "2da02fd689891e83c9509cd73215066d6dd19a981c4e4db33e7cc0acff8ebfdd",
+        "assets\\index-C9SAbxas.css": "258aa070bf969617f061f7617292a79e0756666b41d34cf15136007e8eb28f71",
+        "assets\\index-CsZ02zsU.js": "529d282c1cd55016fe2c2912cff3c31d09f7fc0893d421c81ff7877eb65d7704",
+        "i18n\\en.json": "f1ef8c45421eee3bf3a997dc44542c50333a0be7b206d0cc6df3376536475187",
+        "i18n\\pt-BR.json": "857863a3f18eb3a4fa96c7ef2790f8f34dcf6030d3b3887050090e376ec4ef03"
+      }
+    },
+    {
+      "locale": "en",
+      "status": "PASS",
+      "cases": 490,
+      "elapsed_seconds": 66.321,
+      "build_unchanged": true,
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "2da02fd689891e83c9509cd73215066d6dd19a981c4e4db33e7cc0acff8ebfdd",
+        "assets\\index-C9SAbxas.css": "258aa070bf969617f061f7617292a79e0756666b41d34cf15136007e8eb28f71",
+        "assets\\index-CsZ02zsU.js": "529d282c1cd55016fe2c2912cff3c31d09f7fc0893d421c81ff7877eb65d7704",
+        "i18n\\en.json": "f1ef8c45421eee3bf3a997dc44542c50333a0be7b206d0cc6df3376536475187",
+        "i18n\\pt-BR.json": "857863a3f18eb3a4fa96c7ef2790f8f34dcf6030d3b3887050090e376ec4ef03"
+      }
+    },
+    {
+      "locale": "pt-BR",
+      "status": "PASS",
+      "cases": 490,
+      "elapsed_seconds": 66.056,
+      "build_unchanged": true,
+      "build": {
+        "favicon.svg": "370fcaee92d23e70452fda900b3feb7279195da57e1fc8c43ec0bd7b13dd6c4f",
+        "index.html": "2da02fd689891e83c9509cd73215066d6dd19a981c4e4db33e7cc0acff8ebfdd",
+        "assets\\index-C9SAbxas.css": "258aa070bf969617f061f7617292a79e0756666b41d34cf15136007e8eb28f71",
+        "assets\\index-CsZ02zsU.js": "529d282c1cd55016fe2c2912cff3c31d09f7fc0893d421c81ff7877eb65d7704",
+        "i18n\\en.json": "f1ef8c45421eee3bf3a997dc44542c50333a0be7b206d0cc6df3376536475187",
+        "i18n\\pt-BR.json": "857863a3f18eb3a4fa96c7ef2790f8f34dcf6030d3b3887050090e376ec4ef03"
+      }
+    }
+  ],
+  "overlays": {
+    "cases": 510,
+    "unique": 510,
+    "status": "PASS",
+    "families": [
+      {
+        "name": "advice-panel",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "advice-payment",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "archive",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "boxer-detail",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "calendar-views",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "career-closure-confirm",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "career-legacy-confirm",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "city-detail",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "city-records",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "club-status",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "courses",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "event-expired",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "event-panel",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "event-response",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "fight-screen",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "fight-screen-count",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "fight-screen-final-draw",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "fight-screen-final-ko",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "fight-screen-reduced",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "fundraising",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "gym-belts",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "gym-detail",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "intro",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "language-failure",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "language-switch",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "localized-english",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "localized-portuguese",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "market-extremes",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "planning",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "press-panel",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "profile-belt",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "profile-title-only",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "properties-extremes",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "render-recovery",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "roster-views",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "save-error",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "save-error-intro",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "selector-detail",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "selector-regenerate",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "selector-sign",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "settings",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "sponsor-panel",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "staff-extremes",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transaction-activity",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transaction-brand",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transaction-course",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transaction-gear",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transaction-property",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transaction-staff",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "transfer-cancel",
+        "cases": 10,
+        "status": "PASS"
+      },
+      {
+        "name": "weekly-balance",
+        "cases": 10,
+        "status": "PASS"
+      }
+    ],
+    "shards": [
+      {
+        "index": 0,
+        "cases": 64,
+        "elapsed_seconds": 508.601,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 1,
+        "cases": 64,
+        "elapsed_seconds": 448.581,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 2,
+        "cases": 64,
+        "elapsed_seconds": 515.229,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 3,
+        "cases": 64,
+        "elapsed_seconds": 524.658,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 4,
+        "cases": 64,
+        "elapsed_seconds": 433.989,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 5,
+        "cases": 64,
+        "elapsed_seconds": 463.337,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 6,
+        "cases": 63,
+        "elapsed_seconds": 462.043,
+        "status": "PASS",
+        "build_unchanged": true
+      },
+      {
+        "index": 7,
+        "cases": 63,
+        "elapsed_seconds": 521.21,
+        "status": "PASS",
+        "build_unchanged": true
+      }
+    ],
+    "source_sha256": "aa1da4c11815fcd866ab46ba5576c95f22f4e58220bf06d98320ce0a72cf8dbc"
+  },
+  "gpu_renderer": "ANGLE (AMD, AMD Radeon RX 7600 XT (0x00007480) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.31036.15)",
+  "gpu_features": {
+    "2d_canvas": "enabled",
+    "direct_rendering_display_compositor": "disabled_off_ok",
+    "gpu_compositing": "enabled",
+    "multiple_raster_threads": "enabled_on",
+    "opengl": "enabled_on",
+    "rasterization": "enabled",
+    "raw_draw": "disabled_off_ok",
+    "skia_graphite": "disabled_off",
+    "trees_in_viz": "disabled_off",
+    "video_decode": "enabled",
+    "video_encode": "enabled",
+    "webgl": "enabled",
+    "webgpu": "enabled",
+    "webnn": "disabled_off"
+  },
+  "zoom": "CSS /1.25; DPR=1",
+  "pseudo": true,
+  "date": "2026-10-05",
+  "status": "READY_FOR_REVIEW_NOT_ACCEPTED",
+  "verification": {
+    "command": "npm run verify",
+    "status": "PASS",
+    "tests": 518,
+    "test_files": 23,
+    "tests_seconds": 4.87,
+    "build_seconds": 4.25,
+    "total_seconds": 14.3061837,
+    "typecheck": "PASS",
+    "budget": "PASS",
+    "structural_audit": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "vite_warning": "Chunk exceeds 500 kB; retained, not hidden"
+  },
+  "catalog": {
+    "keys_per_locale": 1175,
+    "enabled": [
+      "es",
+      "en",
+      "pt-BR"
+    ],
+    "unknown_history": "Literal, explicitly historical; no fuzzy identity inference",
+    "domain_rule": "Locale never controls accounting or RNG"
+  },
+  "budget": {
+    "javascript_limit_bytes": 573440,
+    "css_limit_bytes": 92160,
+    "javascript_bytes": 572493,
+    "css_bytes": 86239,
+    "javascript_margin_bytes": 947,
+    "css_margin_bytes": 5921,
+    "initial_static_bytes": 660015,
+    "initial_with_english_bytes": 729438,
+    "initial_with_portuguese_bytes": 733557,
+    "total_shipped_bytes": 802980,
+    "new_chunks": false,
+    "limits_changed": false
+  },
+  "viewports": [
+    {
+      "nominal": [
+        1920,
+        1080
+      ],
+      "css_equivalent_125": [
+        1536,
+        864
+      ],
+      "dpr": 1,
+      "has_touch": false
+    },
+    {
+      "nominal": [
+        1440,
+        900
+      ],
+      "css_equivalent_125": [
+        1152,
+        720
+      ],
+      "dpr": 1,
+      "has_touch": false
+    },
+    {
+      "nominal": [
+        1366,
+        768
+      ],
+      "css_equivalent_125": [
+        1093,
+        614
+      ],
+      "dpr": 1,
+      "has_touch": false
+    },
+    {
+      "nominal": [
+        1280,
+        720
+      ],
+      "css_equivalent_125": [
+        1024,
+        576
+      ],
+      "dpr": 1,
+      "has_touch": false
+    },
+    {
+      "nominal": [
+        1024,
+        768
+      ],
+      "css_equivalent_125": [
+        819,
+        614
+      ],
+      "dpr": 1,
+      "has_touch": false
+    },
+    {
+      "nominal": [
+        1024,
+        600
+      ],
+      "css_equivalent_125": [
+        819,
+        480
+      ],
+      "dpr": 1,
+      "has_touch": false
+    },
+    {
+      "nominal": [
+        768,
+        1024
+      ],
+      "css_equivalent_125": [
+        614,
+        819
+      ],
+      "dpr": 1,
+      "has_touch": true
+    },
+    {
+      "nominal": [
+        390,
+        844
+      ],
+      "css_equivalent_125": [
+        312,
+        675
+      ],
+      "dpr": 1,
+      "has_touch": true
+    },
+    {
+      "nominal": [
+        390,
+        667
+      ],
+      "css_equivalent_125": [
+        312,
+        534
+      ],
+      "dpr": 1,
+      "has_touch": true
+    },
+    {
+      "nominal": [
+        844,
+        390
+      ],
+      "css_equivalent_125": [
+        675,
+        312
+      ],
+      "dpr": 1,
+      "has_touch": true
+    }
+  ],
+  "canvas_states": [
+    "normal",
+    "empty",
+    "maximum",
+    "one",
+    "four",
+    "ten",
+    "waiting"
+  ],
+  "focused": {
+    "desktop": {
+      "cases": 11,
+      "status": "PASS",
+      "seconds": 17.45,
+      "viewport": [
+        1280,
+        720
+      ],
+      "note": "Includes the case named selector-mobile, overridden to desktop; not counted as mobile proof."
+    },
+    "real_mobile_selector": {
+      "status": "PASS",
+      "viewport": [
+        390,
+        667
+      ],
+      "total_seconds": 3.95,
+      "case_seconds": 1.642,
+      "zoom": "100%",
+      "pseudo": false
+    },
+    "mid_staff_density": {
+      "viewport": [
+        1024,
+        576
+      ],
+      "pseudo": true,
+      "red_seconds": 0.675,
+      "green_seconds": 0.731,
+      "expected_cards": 2,
+      "status": "PASS"
+    }
+  },
+  "reused": {
+    "native_canvas": {
+      "cases": 49,
+      "seconds": 8.959,
+      "status": "PASS",
+      "candidate": "index-Xq9Dk7tf.js",
+      "reason": "Unchanged wide/native composition branches; final change adds only mid-height Staff capacity. Final density focal verifies current 8/8/6/3 and CTA alignment."
+    },
+    "r1_browser": {
+      "status": "PASS",
+      "viewports": [
+        [
+          1280,
+          720
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "candidate": "index-Xq9Dk7tf.js",
+      "reason": "Promotion/archive/save-error branches unchanged by subsequent Staff capacity fix; final 518-unit regression also covers R1."
+    },
+    "r2_browser": {
+      "status": "PASS",
+      "viewports": [
+        [
+          1280,
+          720
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "candidate": "index-Xq9Dk7tf.js",
+      "reason": "Combat/resumption/payment branches unchanged by subsequent Staff capacity fix; final 518-unit regression also covers R2."
+    }
+  },
+  "visual_inspection": {
+    "method": "Actual screenshots viewed, not only automated geometry; representative sampling, not every capture",
+    "current_build_samples": [
+      "English seven tabs 1280x720 CSS125+pseudo40",
+      "Portuguese club panel 390x667 CSS125+pseudo40",
+      "Market installed-brand grid 1920x1080 CSS125+pseudo40",
+      "Staff hired/last page 1440x900 CSS125+pseudo40",
+      "Combat corner 844x390 CSS125+pseudo40",
+      "Combat knockdown count 390x667 CSS125+pseudo40",
+      "Render recovery 844x390 CSS125+pseudo40",
+      "Staff mid-density 1024x576 pseudo40"
+    ],
+    "prior_unchanged_samples": [
+      "Native Plantel ten pupils paginated six per page",
+      "Native Mercado eight cards and aligned actions",
+      "Native Personal eight cards",
+      "Native Perfil three genuine courses"
+    ],
+    "captures_committed": false
+  },
+  "reproduction_commands": {
+    "canvas": "python tests/browser/r4_canvas.py --build-ready --dist <immutable-dist> --all-states --density-states --capture-states --text-audit --text-bounds --zoom --pseudo --locale <es|en|pt-BR> --port <5236|5237|5238>",
+    "overlays": "python tests/browser/r4_dialogs.py --build-ready --dist <immutable-dist> --matrix --shard <0..7> 8 --port <5245..5252>",
+    "note": "Use synthetic isolated origins only. The matrix itself enables documented CSS125/pseudo40. Do not use owner port3000/save."
+  },
+  "scope": {
+    "gate": "R4",
+    "findings": [
+      "A18",
+      "A19",
+      "A20",
+      "A23",
+      "A26",
+      "selector"
+    ],
+    "no_merge": true,
+    "no_deployment": true,
+    "no_pages": true,
+    "no_R5": true,
+    "no_BOX15": true,
+    "owner_save_untouched": true,
+    "prices_and_rules_unchanged": true
+  },
+  "limits": [
+    "Human assistive-technology review remains recommended; keyboard automation is not a screen-reader certification.",
+    "Chromium verified; Firefox/WebKit and all physical devices not certified.",
+    "JavaScript margin only 947 bytes; subsequent changes must remeasure without raising budgets.",
+    "Unknown historical strings deliberately remain literal, explicitly marked historical.",
+    "No universal guarantee of bug-free hours of play; R4 needs owner review/acceptance."
+  ]
+}
