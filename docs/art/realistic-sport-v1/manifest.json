@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "package": "realistic-sport-v1",
+  "date": "2026-10-08",
+  "repository": "MauricioDaneri10/LaVidaDelBoxeo",
+  "baseCommit": "914a1b415af3e62a1ec97e464ef9494783081494",
+  "imageCount": 16,
+  "totalImageBytes": 4835322,
+  "characters": "fictional",
+  "generatedBy": "image_gen",
+  "scope": "art-reference-package-no-production-changes",
+  "assets": [
+    {
+      "id": "00-brand",
+      "title": "Marca y portada",
+      "path": "references/00-brand.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 303780,
+      "sha256": "fbe2c4a121474abdf98a8b29bc617f450993c09a836ba47053db8ef329e93caa",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "01-ciudad",
+      "title": "Ciudad",
+      "path": "references/01-ciudad.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 418538,
+      "sha256": "4e319282e05667c42685a74ef3f8d97116b2aa40c5289baa3e271aec6e00c8c0",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": false
+    },
+    {
+      "id": "02-gimnasio",
+      "title": "Gimnasio",
+      "path": "references/02-gimnasio.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 316296,
+      "sha256": "cb6647f6e8fac6f7df1d5c60f5d338ce15bf127317f310c8af7c777635e50a3e",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": false
+    },
+    {
+      "id": "03-plantel",
+      "title": "Plantel",
+      "path": "references/03-plantel.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 238780,
+      "sha256": "25d9b936ea07f376a84a87b2b6170f9896250c93bf1262004df7c0a60c32685d",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "04-mercado",
+      "title": "Mercado",
+      "path": "references/04-mercado.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 270990,
+      "sha256": "a69b4889fc5b77bdcba05b1e5ef2066ab46c66625c1f6400f1b9f546780da5d9",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "05-perfil",
+      "title": "Mi Perfil",
+      "path": "references/05-perfil.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 277118,
+      "sha256": "abbc61f3f1eb79ba576e7851655ebec5712a54e3675b67e08eb1ced680c885b2",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "06-personal",
+      "title": "Personal",
+      "path": "references/06-personal.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 246078,
+      "sha256": "7678630f8758d1468c7fb45c325a3c59318d674b06e6e856e8dcff8bacd67731",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "07-calendario",
+      "title": "Calendario",
+      "path": "references/07-calendario.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 197214,
+      "sha256": "fbd8dc1497fce109b317a6778eec19569fc0f6f9cb6ddc59499b8dbf7eea3c0d",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "08-ficha",
+      "title": "Ficha del boxeador",
+      "path": "references/08-ficha.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 200408,
+      "sha256": "957b7fa69572556f6db1938b85a650c4cf190abaf5859f2a37ddf8f587112b8a",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "09-combate",
+      "title": "Combate, esquina y resultado",
+      "path": "references/09-combate.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 281690,
+      "sha256": "6250c1fd76834be9d79e9f08d30264c2472927d9027d39f07b9013054cff6f84",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "10-dialogos",
+      "title": "Ventanas y estados",
+      "path": "references/10-dialogos.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 221908,
+      "sha256": "b91669190b1c35635239b92cda2db482bb54ae95cccfc5a621cbb958a158fd52",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "11-mobile",
+      "title": "Adaptación móvil",
+      "path": "references/11-mobile.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 259446,
+      "sha256": "11bdcd64bb5e46cae44a9258830a1efb56c82dc5d150109df17a4640840c50b9",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "12-retratos",
+      "title": "Personajes ficticios",
+      "path": "references/12-retratos.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 252144,
+      "sha256": "0b5e350a9105be5bd69fd3ebd3ef4c5349f6ec0b0c93130e27e98563677a8c11",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "13-city-background",
+      "title": "Fondo limpio de Ciudad",
+      "path": "plates/13-city-background.webp",
+      "type": "scene-background-candidate",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 637668,
+      "sha256": "b65535352394f8e55ada3b641f268c32de1346e93a175f8c4485499f505609f4",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "14-gym-background",
+      "title": "Fondo limpio de Gimnasio",
+      "path": "plates/14-gym-background.webp",
+      "type": "scene-background-candidate",
+      "width": 1672,
+      "height": 941,
+      "bytes": 486346,
+      "sha256": "5019ea504407a7955ed683068c4b873ff5aee75325a5362647e87071e6f890f7",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": true
+    },
+    {
+      "id": "15-direccion-original",
+      "title": "Referencia de dirección elegida",
+      "path": "references/15-direccion-original.webp",
+      "type": "design-reference",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 226918,
+      "sha256": "6d78124b070bc5438c82697d49b02f414a5ebcfe50cce25c8812c7faedca6799",
+      "encoding": {
+        "format": "webp",
+        "quality": 90,
+        "contentResizedOrCropped": false
+      },
+      "runtimeIntegration": "not-implemented",
+      "promptAvailable": false
+    }
+  ]
+}
