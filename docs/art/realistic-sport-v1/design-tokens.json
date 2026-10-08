@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "status": "design-proposal",
+  "brand": {
+    "name": "La Vida del Boxeo",
+    "taglineProposal": "Carrera · Gimnasio · Legado",
+    "direction": "realistic-sport-manager",
+    "characters": "fictional"
+  },
+  "color": {
+    "background": "#07131D",
+    "surface": "#101F2C",
+    "surfaceRaised": "#192B39",
+    "textPrimary": "#F3F1E9",
+    "textSecondary": "#B7C9D4",
+    "border": "#496476",
+    "accentPrimary": "#F4B544",
+    "accentPrimaryHover": "#FFCA68",
+    "textOnPrimary": "#07131D",
+    "selection": "#31D1E0",
+    "focus": "#73F0F5",
+    "success": "#55DB9C",
+    "warning": "#FFD06A",
+    "danger": "#FF8797",
+    "backdrop": "rgba(3, 9, 15, 0.78)"
+  },
+  "typography": {
+    "displayDirection": "condensed, strong; reuse project fonts where possible",
+    "bodyDirection": "readable sans serif; tabular numerals for money and statistics",
+    "bodyPx": 16,
+    "bodyMinimumPx": 14,
+    "secondaryPx": 14,
+    "secondaryMinimumPx": 12,
+    "titleDesktopPx": 32,
+    "titleCompactPx": 24,
+    "bodyLineHeight": 1.45,
+    "headingLineHeight": 1.1
+  },
+  "spacingPx": [4, 8, 12, 16, 24, 32, 48],
+  "radiusPx": {"button": 6, "card": 10, "dialog": 14},
+  "controls": {
+    "minimumDesktopHeightPx": 36,
+    "minimumTouchTargetPx": 44,
+    "preferredHeightPx": 44,
+    "focusRingPx": 3,
+    "focusOffsetPx": 3,
+    "primary": "amber surface, dark text, icon optional",
+    "secondary": "dark surface, ivory text, visible border",
+    "status": "text and symbol as well as color"
+  },
+  "motion": {
+    "feedbackMs": 140,
+    "panelMs": 180,
+    "respectReducedMotion": true,
+    "essentialStateMayNotDependOnAnimation": true
+  },
+  "layout": {
+    "compactBreakpointProposalPx": 768,
+    "wideBreakpointProposalPx": 1200,
+    "responsiveRule": "content and available space determine reflow; breakpoints are starting points",
+    "scene": "decorative plate with independent semantic controls",
+    "mobile": "compact scene then decision panel; paginated collections",
+    "dialog": "existing R4 focus, stack and keyboard behavior"
+  },
+  "runtimeBudgetsBytes": {"javascript": 573440, "css": 92160},
+  "notes": [
+    "Token values are proposals; verify contrast in final composited states.",
+    "Do not encode translated text or gameplay data in raster images.",
+    "This package adds no runtime dependency."
+  ]
+}
